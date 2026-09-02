@@ -177,6 +177,12 @@ against the same fixture batch produces zero duplicate observations.
 above threshold; score is deterministically recomputable from aggregate counts; ranking uses only
 score + eligibility, no popularity bonus).
 
+**Implementation status (verified 2 September 2026):** complete locally against real PostgreSQL.
+PRD acceptance criteria 3-4 and 8 pass (`PublicScoreThresholdTest`, `CategoryRankingEndpointTest`):
+score is only surfaced at >= 30 opinions, score is deterministically recomputable from aggregate
+counts (60/20/20 -> 70.0), and ranking on `/top/{slug}` and `GET /api/categories/{slug}/ranking`
+uses score desc, opinion_count desc, name asc without popularity bonus, excluding entities below 100 opinions.
+
 ## Epic 12 - Top Suara Netijen (theme index)
 
 Full spec: `docs/25`. Runs in parallel with Epic 8 — both branch off Epic 7's relevant-opinion
@@ -202,6 +208,14 @@ output independently.
 shows the empty-state copy, not a padded/empty list; a duplicated/templated opinion does not
 inflate `observation_count`); Top 5 for a fixture entity matches a hand-computed frequency count
 exactly.
+
+**Implementation status (verified 2 September 2026):** complete locally against real PostgreSQL.
+PRD acceptance criteria 11-12 pass (`TopThemesThresholdTest`, `ThemeDataModelTest`):
+`theme_observations` unique constraint `(entity_id, theme_id, source_item_id)` prevents duplicate observation
+inflation; below-threshold entities (< 30 opinions or < 3 occurrences per theme) show the empty-state
+copy "Belum cukup opini untuk merangkum Suara Netijen" rather than a padded or empty list;
+Top 5 themes and positive/negative groups ("Netijen Paling Suka" and "Paling Sering Dikeluhkan")
+display frequency observation counts without numeric per-theme scores.
 
 ## Epic 9 - Rating Netijen
 
