@@ -1,0 +1,59 @@
+sources:
+  youtube:
+    role: broad
+    adapter: YouTubeAdapter
+    enabled: false
+    access: official_api
+    preflight: true
+    raw_ttl_hours: 720
+    notes: "Enable after API analytics/derived-metrics compliance is configured."
+
+  kaskus:
+    role: broad
+    adapter: KaskusAdapter
+    enabled: false
+    access: public_web
+    preflight: true
+    raw_ttl_hours: 72
+    notes: "Enable after current robots/terms/access preflight. Public threads only."
+
+  diskusiwebhosting:
+    role: niche_high_density
+    adapter: DiskusiWebHostingAdapter
+    enabled: true
+    access: public_web_rss
+    preflight: true
+    raw_ttl_hours: 72
+
+  serayamotor:
+    role: niche_high_density
+    adapter: SerayaMotorAdapter
+    enabled: true
+    access: public_web
+    preflight: true
+    raw_ttl_hours: 72
+
+  indoforum:
+    role: supporting
+    adapter: IndoForumAdapter
+    enabled: true
+    access: public_web
+    preflight: true
+    allowlist_only: true
+    raw_ttl_hours: 72
+
+  bluesky:
+    role: supporting_realtime
+    adapter: BlueskyAdapter
+    enabled: true
+    access: public_jetstream
+    preflight: true
+    raw_ttl_hours: 24
+
+  lowendtalk:
+    role: supporting
+    adapter: LowEndTalkAdapter
+    enabled: false
+    access: targeted_public_web
+    preflight: true
+    raw_ttl_hours: 72

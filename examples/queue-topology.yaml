@@ -1,0 +1,19 @@
+queues:
+  critical:
+    min_processes: 1
+    max_processes: 2
+  discovery:
+    min_processes: 1
+    max_processes: 2
+  crawl:
+    min_processes: 1
+    max_processes: 4
+  analysis:
+    min_processes: 1
+    max_processes: 4
+  aggregate:
+    min_processes: 1
+    max_processes: 2
+  maintenance:
+    min_processes: 1
+    max_processes: 1

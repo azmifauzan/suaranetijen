@@ -1,0 +1,22 @@
+formula_version: v1
+classes:
+  positive: 100
+  neutral: 50
+  negative: 0
+public_score_min_opinions: 30
+ranking_min_opinions: 100
+periods:
+  - 30d
+  - 90d
+  - 365d
+  - all
+default_period: 365d
+ranking:
+  primary: score_desc
+  tie_breakers:
+    - opinion_count_desc
+    - entity_name_asc
+manual_rating:
+  scale_min: 1
+  scale_max: 5
+  merge_with_sentiment: false
