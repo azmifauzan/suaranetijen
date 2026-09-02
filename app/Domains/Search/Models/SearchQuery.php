@@ -61,4 +61,12 @@ class SearchQuery extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory(): SearchQueryFactory
+    {
+        return SearchQueryFactory::new();
+    }
 }

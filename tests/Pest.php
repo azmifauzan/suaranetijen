@@ -18,6 +18,11 @@ pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
 
+// Unit tests still boot the app (no RefreshDatabase) so plain classes can read config(),
+// e.g. ScoreCalculator reading config/scoring.php instead of hard-coded thresholds.
+pest()->extend(TestCase::class)
+    ->in('Unit');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations

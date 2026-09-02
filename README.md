@@ -5,8 +5,8 @@
 Search-first public sentiment index for Indonesia. Search a brand, product, or service and see
 whether public conversation about it leans positive or negative.
 
-**Baseline:** 2 September 2026 · **Market:** Indonesia · **Status:** Phase 0 (foundation) and
-Phase 1 (search) verified locally against PostgreSQL/Redis
+**Baseline:** 2 September 2026 · **Market:** Indonesia · **Status:** Phase 0 (foundation), Phase 1
+(search), and Phase 2 (sentiment substrate) verified locally against PostgreSQL/Redis
 
 ## Product definition
 
@@ -92,19 +92,46 @@ composer ci:check    # npm check + vue-tsc + test
 
 ## Current implementation status
 
-**Phase 0 (foundation) and Phase 1 (search)** are implemented and verified against real
-PostgreSQL and Redis, not just SQLite tests. Admin access uses an authenticated `access-admin`
-Gate, non-admin users receive 403, the ~200-entity seed CSV imports cleanly (209 entities), and
-local lint, static analysis, and tests pass.
+**Phase 0 (foundation), Phase 1 (search), and Phase 2 (sentiment substrate)** are implemented and
+verified against real PostgreSQL and Redis, not just SQLite tests. Admin access uses an
+authenticated `access-admin` Gate, non-admin users receive 403, the ~200-entity seed CSV imports
+cleanly (209 entities), and local lint, static analysis, and tests pass.
 
 Search (`/`, `/search`, `GET /api/search`) implements PRD acceptance criteria 1 and 2 — typo and
 multi-word matching — verified against live seed data. One tracked gap: full-text search on
 name/category/description (`docs/13`, ADR-004) is not implemented, only `pg_trgm` similarity,
 exact/prefix matching, and token-based matching.
 
-The `Admin`, `Entities`, and `Search` domain modules are present. Sources, ingestion, sentiment,
-rankings, ratings, and the remaining roadmap modules are not implemented yet. Implementation
-order lives in `docs/17-implementation-backlog.md`.
+Epic 3 (sentiment data model) and Epic 4 (adapter framework) implement `docs/17`'s Definition of
+Done exactly: `sentiment_observations` rejects a duplicate `(entity_id, source_item_id)` at the
+database level (verified live on Postgres); the aggregate/ranking services reproduce the
+60/20/20 -> 70.0 worked example from `docs/11`; `FakeSourceAdapter` runs
+discover -> fetch -> extract -> temp storage -> expiry end-to-end via queued jobs, and one
+adapter's simulated failure doesn't affect another running in parallel; `SourceRateLimiter` goes
+through real Redis at runtime. A gap was found and fixed during this verification pass: public
+score / ranking thresholds and the formula version were hard-coded PHP constants instead of
+reading `examples/score-config.yaml` — now sourced from `config/scoring.php`
+(`SCORING_PUBLIC_MIN_OPINIONS`, `SCORING_RANKING_MIN_OPINIONS`, `SCORING_FORMULA_VERSION` env
+overrides).
+
+The `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, and `Sentiment` domain modules are
+present. Themes, public scores, and first-party ratings will be implemented in subsequent phases.
+Implementation order lives in `docs/17-implementation-backlog.md`.
+
+### Phase status
+
+Phases and epic mapping match `docs/18-roadmap.md`.
+
+| Phase | Epics | Status |
+|---|---|---|
+| 0. Foundation | 0, 1 | Done |
+| 1. Findability | 2 | Done |
+| 2. Sentiment substrate | 3, 4 | Done |
+| 3. First observations | 5, 7 (partial) | Not started |
+| 4. Public score | 8, 12 | Not started |
+| 5. Coverage expansion | 6 | Not started |
+| 6. First-party rating | 9 | Not started |
+| 7. Public launch readiness | 10, 11 | Not started |
 
 ## Documentation
 

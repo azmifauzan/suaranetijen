@@ -87,6 +87,14 @@ Samsung Galaxy A57; `vps biznet` finds VPS Biznet Gio and Biznet Gio).
 **Definition of done:** given hand-seeded rows in `sentiment_observations`, the aggregate and
 ranking queries return the exact numbers the `docs/11` worked example predicts (60/20/20 -> 70).
 
+**Implementation status (verified 2 September 2026):** complete locally against real PostgreSQL.
+`sentiment_observations` rejects a duplicate `(entity_id, source_item_id)` at the database level
+(verified against live Postgres, not just SQLite); `SentimentAggregator` reproduces the 60/20/20
+-> 70.0 worked example on daily and snapshot aggregates; `SentimentRankingService` sorts
+score desc, opinion_count desc, name asc. Public/ranking thresholds and the formula version now
+read from `config/scoring.php` (mirrors `examples/score-config.yaml`) instead of hard-coded
+constants — a gap found and fixed during this verification pass.
+
 ## Epic 4 - Adapter framework
 
 - `SourceAdapter` contract: `preflight()`, `discover(cursor)`, `fetch(ref)`, `extract(doc)`
@@ -101,6 +109,14 @@ ranking queries return the exact numbers the `docs/11` worked example predicts (
 **Definition of done:** a fake/no-op adapter implementing the contract runs through
 discover -> fetch -> extract -> (temp storage) -> expiry entirely via queued jobs, with one
 adapter's simulated failure not affecting a second adapter running in parallel.
+
+**Implementation status (verified 2 September 2026):** complete locally, including against real
+Postgres and Redis. `FakeSourceAdapter` runs discover -> fetch -> extract -> temp storage ->
+expiry end-to-end through `DiscoverSourceDocumentsJob`/`ExpireRawPayloadJob`; a simulated fetch
+failure on one source leaves a second source's run unaffected; `SourceRateLimiter` resolves
+through `RedisStore` at runtime (confirmed live, not the array test double); `crawl_states` cursor
+persistence and the six-state health machine (`docs/08`) are implemented as specified. No adapter
+beyond the fake one exists yet — that is Epic 5/6, not this epic.
 
 ## Epic 5 - Source adapters wave 1
 

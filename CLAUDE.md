@@ -343,15 +343,15 @@ upsert, threshold eligibility, and cursor parsing. Detail: `docs/22-testing-stra
 
 ## Current implementation status
 
-**Phase 0 (foundation) and Phase 1 (findability / Epic 2 search) are implemented and verified
-against a real PostgreSQL + Redis instance**, not just SQLite tests: PostgreSQL/Redis are the
-repository's default connections, Horizon is configured with the four documented supervisor
-groups, `/admin` is protected by the authenticated `access-admin` Gate, the ~200-entity seed CSV
-imports cleanly (209 entities after adding a placeholder `Samsung Galaxy A57` product purely to
-satisfy `docs/02` acceptance criterion 1 — Samsung has not released that model), and PRD
-acceptance criteria 1 and 2 (`samsng a57` -> Samsung Galaxy A57; `vps biznet` -> VPS Biznet Gio
-and Biznet Gio) pass against live data. This project does not use a GitHub Actions workflow; run
-the quality gates locally (`composer test`).
+**Phase 0 (foundation), Phase 1 (findability / Epic 2 search), and Phase 2 (sentiment substrate /
+Epic 3 + 4) are implemented and verified against a real PostgreSQL + Redis instance**, not just
+SQLite tests: PostgreSQL/Redis are the repository's default connections, Horizon is configured
+with the four documented supervisor groups, `/admin` is protected by the authenticated
+`access-admin` Gate, the ~200-entity seed CSV imports cleanly (209 entities after adding a
+placeholder `Samsung Galaxy A57` product purely to satisfy `docs/02` acceptance criterion 1 —
+Samsung has not released that model), and PRD acceptance criteria 1 and 2 (`samsng a57` -> Samsung
+Galaxy A57; `vps biznet` -> VPS Biznet Gio and Biznet Gio) pass against live data. This project
+does not use a GitHub Actions workflow; run the quality gates locally (`composer test`).
 
 Search implementation notes:
 - `SearchService` covers `docs/13`'s exact / alias / prefix / trigram / category-context tiers,
@@ -371,6 +371,24 @@ Search implementation notes:
   autocomplete preview and the `/search` page are distinct log paths — noise below that length
   would otherwise dominate the `search_queries` growth-loop log `docs/23` depends on.
 
+Sentiment substrate implementation notes (Epic 3 + 4, verified 2 September 2026):
+- `sentiment_observations` rejects a duplicate `(entity_id, source_item_id)` at the database
+  level, confirmed against live PostgreSQL (`UniqueConstraintViolationException`), not just the
+  SQLite test run.
+- `SentimentAggregator` reproduces the `docs/11` 60/20/20 -> 70.0 worked example on both daily and
+  snapshot aggregates; `SentimentRankingService` sorts score desc, opinion_count desc, name asc.
+- `FakeSourceAdapter` exercises the full Epic 4 DoD through queued jobs:
+  discover -> fetch -> extract -> temp storage -> expiry, and a simulated failure on one source
+  does not affect a second source running in parallel.
+- `SourceRateLimiter` wraps Laravel's `RateLimiter` facade, confirmed to resolve through real
+  Redis (`RedisStore`) at runtime, not the array cache.
+- **Gap found and fixed during this verification pass:** public-score/ranking thresholds and the
+  formula version (`docs/11`'s "thresholds are configuration, not hard-coded truth") were PHP
+  constants on `ScoreCalculator`, duplicating `examples/score-config.yaml` instead of reading it.
+  Replaced with `config/scoring.php` (`SCORING_PUBLIC_MIN_OPINIONS`, `SCORING_RANKING_MIN_OPINIONS`,
+  `SCORING_FORMULA_VERSION` env overrides); `tests/Unit` now boots the Laravel app (no
+  `RefreshDatabase`) so plain-class unit tests can call `config()`.
+
 Current implementation boundary:
 
 | Target per docs | Repository today |
@@ -380,8 +398,11 @@ Current implementation boundary:
 | Horizon supervisors | four documented supervisor groups configured and started locally |
 | `pg_trgm` search | implemented and verified against real PostgreSQL |
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
+| Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
+| Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis; only `FakeSourceAdapter` exists, no real source adapter yet (Epic 5/6) |
+| Scoring/ranking thresholds | `config/scoring.php`, mirrors `examples/score-config.yaml` |
 | Google OAuth / email magic link (`docs/12`) | Fortify password + 2FA |
-| `app/Domains/*` modules | `Admin`, `Entities`, `Search` present; later domains not implemented |
+| `app/Domains/*` modules | `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment` present; `Themes`, `Rankings`, `Ratings`, `Moderation` not implemented |
 
 The repository's `.env.example` now carries the PostgreSQL + Redis baseline. Tests retain isolated
 SQLite/array/sync defaults (with the trigram shim above) unless an explicit integration run
