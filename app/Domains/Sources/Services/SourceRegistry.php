@@ -6,7 +6,10 @@ use App\Domains\Sources\Adapters\BlueskyAdapter;
 use App\Domains\Sources\Adapters\DiskusiWebHostingAdapter;
 use App\Domains\Sources\Adapters\FakeSourceAdapter;
 use App\Domains\Sources\Adapters\IndoForumAdapter;
+use App\Domains\Sources\Adapters\KaskusAdapter;
+use App\Domains\Sources\Adapters\LowEndTalkAdapter;
 use App\Domains\Sources\Adapters\SerayaMotorAdapter;
+use App\Domains\Sources\Adapters\YouTubeAdapter;
 use App\Domains\Sources\Contracts\SourceAdapter;
 use App\Domains\Sources\Models\Source;
 use InvalidArgumentException;
@@ -32,6 +35,15 @@ class SourceRegistry
         'bluesky' => BlueskyAdapter::class,
         'BlueskyAdapter' => BlueskyAdapter::class,
         'App\\Domains\\Sources\\Adapters\\BlueskyAdapter' => BlueskyAdapter::class,
+        'youtube' => YouTubeAdapter::class,
+        'YouTubeAdapter' => YouTubeAdapter::class,
+        'App\\Domains\\Sources\\Adapters\\YouTubeAdapter' => YouTubeAdapter::class,
+        'kaskus' => KaskusAdapter::class,
+        'KaskusAdapter' => KaskusAdapter::class,
+        'App\\Domains\\Sources\\Adapters\\KaskusAdapter' => KaskusAdapter::class,
+        'lowendtalk' => LowEndTalkAdapter::class,
+        'LowEndTalkAdapter' => LowEndTalkAdapter::class,
+        'App\\Domains\\Sources\\Adapters\\LowEndTalkAdapter' => LowEndTalkAdapter::class,
     ];
 
     /**

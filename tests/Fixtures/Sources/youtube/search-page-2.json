@@ -1,0 +1,11 @@
+{
+    "items": [
+        {
+            "id": {"kind": "youtube#video", "videoId": "xyz12345678"},
+            "snippet": {
+                "title": "Review layanan internet",
+                "publishedAt": "2026-08-31T10:00:00Z"
+            }
+        }
+    ]
+}

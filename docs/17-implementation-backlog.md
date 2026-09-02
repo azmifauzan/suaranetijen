@@ -153,6 +153,21 @@ its allowlist instead of rejecting it — `discover()` now filters `forum_ids` t
 **Definition of done:** same bar as Epic 5, plus a documented preflight result per adapter (pass
 or explicit `policy_disabled` reason) before it is turned on for backfill.
 
+**Implementation status (verified 2 September 2026):** all three wave-2 adapters reach `healthy`
+preflight and produce >= 1 `CandidateOpinion` against fixtures (never live network, per `docs/22`);
+`KaskusAdapter` treats robots.txt as authoritative and reports `policy_disabled` when it disallows
+all user agents, matching `docs/24`'s instruction not to encode historical-policy assumptions;
+`YouTubeAdapter` reports `policy_disabled` until `YOUTUBE_API_KEY` is configured and paginates
+search results and comment threads through the official Data API; `LowEndTalkAdapter` stays scoped
+to Reviews/Providers/Outages. All three sources are seeded `enabled: false` so wave 2 stays off
+until an operator records a live preflight result, satisfying the DoD's backfill gate. A gap found
+and fixed during this pass: both `KaskusAdapter` and `LowEndTalkAdapter` accept an operator-supplied
+`thread_urls` cursor override for targeted backfill, but `documentRef()` resolved it through
+`absoluteUrl()` with no host check — unlike the `forum_ids`/`category_urls` allowlists next to it,
+an absolute URL on any host would have been crawled as-is. Fixed with a shared
+`AbstractHttpSourceAdapter::isSameHost()` check so `thread_urls` can only ever target the adapter's
+own domain, with a regression test per adapter.
+
 ## Epic 7 - Entity matching, relevance, sentiment
 
 - Alias matching stages: normalize -> exact alias -> token/phrase -> context disambiguation ->

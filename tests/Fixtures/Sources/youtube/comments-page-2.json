@@ -1,0 +1,19 @@
+{
+    "items": [
+        {
+            "id": "comment-2",
+            "snippet": {
+                "topLevelComment": {
+                    "snippet": {
+                        "textDisplay": "Sayangnya koneksinya lambat.",
+                        "publishedAt": "2026-09-01T10:02:00Z"
+                    }
+                }
+            }
+        },
+        {
+            "id": "comment-empty",
+            "snippet": {"topLevelComment": {"snippet": {"textOriginal": ""}}}
+        }
+    ]
+}

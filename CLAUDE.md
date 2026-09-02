@@ -344,8 +344,9 @@ upsert, threshold eligibility, and cursor parsing. Detail: `docs/22-testing-stra
 ## Current implementation status
 
 **Phase 0 (foundation), Phase 1 (findability / Epic 2 search), Phase 2 (sentiment substrate /
-Epic 3 + 4), Phase 3 (first observations / Epic 5 + Epic 7 partial), and Phase 4 (public score /
-Epic 8 + 12) are implemented and verified against a real PostgreSQL + Redis instance**, not just
+Epic 3 + 4), Phase 3 (first observations / Epic 5 + Epic 7 partial), Phase 4 (public score /
+Epic 8 + 12), and Phase 5 (coverage expansion / Epic 6) are implemented and verified against a
+real PostgreSQL + Redis instance**, not just
 SQLite tests: PostgreSQL/Redis are the repository's default connections, Horizon is configured
 with the four documented supervisor groups, `/admin` is protected by the authenticated
 `access-admin` Gate, the ~200-entity seed CSV imports cleanly (209 entities after adding a
@@ -435,6 +436,23 @@ Public score implementation notes (Epic 8 + Epic 12, verified 2 September 2026):
   noindex; do not ship thin pages"). This is app-wide SEO-infrastructure work, not an Epic 8/12
   logic bug — tracked for Epic 10 (UX / SEO).
 
+Coverage expansion implementation notes (Epic 6, verified 2 September 2026):
+- All three wave-2 adapters (`KaskusAdapter`, `YouTubeAdapter`, `LowEndTalkAdapter`) reach
+  `healthy` preflight and produce >= 1 `CandidateOpinion` against fixtures, never live network
+  (`docs/22`); `KaskusAdapter` treats robots.txt as authoritative and returns `policy_disabled`
+  when it disallows all user agents, per `docs/24`'s instruction not to encode historical KASKUS
+  policy as fact; `YouTubeAdapter` uses the official Data API and returns `policy_disabled` until
+  `YOUTUBE_API_KEY` is configured; `LowEndTalkAdapter` stays scoped to its Reviews/Providers/
+  Outages categories. All three sources are seeded `enabled: false`, satisfying the DoD's "before
+  it is turned on for backfill" gate.
+- **Gap found and fixed during this verification pass:** `KaskusAdapter` and `LowEndTalkAdapter`
+  both accept an operator-supplied `thread_urls` cursor override for targeted backfill, but
+  `documentRef()` resolved it through `absoluteUrl()` with no host check — unlike the neighboring
+  `forum_ids` (IndoForum, Epic 5) and `category_urls` (LowEndTalk's own listing path) allowlists,
+  an absolute URL on any host would have been crawled as-is. Fixed with a shared
+  `AbstractHttpSourceAdapter::isSameHost()` guard applied in both adapters' `documentRef()`, with a
+  regression test per adapter (`WaveTwoAdapterTest`).
+
 Current implementation boundary:
 
 | Target per docs | Repository today |
@@ -446,7 +464,8 @@ Current implementation boundary:
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
-| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter`, `SerayaMotorAdapter`, `IndoForumAdapter`, `BlueskyAdapter` implemented and verified against fixtures; wave 2 (Kaskus/YouTube/LowEndTalk, Epic 6) not implemented |
+| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter`, `SerayaMotorAdapter`, `IndoForumAdapter`, `BlueskyAdapter` implemented and verified against fixtures |
+| Wave-2 adapters (Epic 6) | `KaskusAdapter`, `YouTubeAdapter`, `LowEndTalkAdapter` implemented and verified against fixtures; seeded `enabled: false` pending a live operator preflight |
 | Entity matching, relevance, sentiment classifier (Epic 7) | implemented and verified for the Phase 3 slice; LLM fallback for ambiguous candidates not implemented |
 | Public score (Epic 8) | implemented and verified against real PostgreSQL |
 | Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds |

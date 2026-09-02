@@ -6,8 +6,8 @@ Search-first public sentiment index for Indonesia. Search a brand, product, or s
 whether public conversation about it leans positive or negative.
 
 **Baseline:** 2 September 2026 · **Market:** Indonesia · **Status:** Phase 0 (foundation), Phase 1
-(search), Phase 2 (sentiment substrate), Phase 3 (first observations), and Phase 4 (public score)
-verified locally against PostgreSQL/Redis
+(search), Phase 2 (sentiment substrate), Phase 3 (first observations), Phase 4 (public score), and
+Phase 5 (coverage expansion) verified locally against PostgreSQL/Redis
 
 ## Product definition
 
@@ -94,8 +94,9 @@ composer ci:check    # npm check + vue-tsc + test
 ## Current implementation status
 
 **Phase 0 (foundation), Phase 1 (search), Phase 2 (sentiment substrate), Phase 3 (first
-observations), and Phase 4 (public score)** are implemented and verified against real PostgreSQL
-and Redis, not just SQLite tests. Admin access uses an authenticated `access-admin` Gate,
+observations), Phase 4 (public score), and Phase 5 (coverage expansion)** are implemented and
+verified against real PostgreSQL and Redis, not just SQLite tests. Admin access uses an
+authenticated `access-admin` Gate,
 non-admin users receive 403, the ~200-entity seed CSV imports cleanly (209 entities), and local
 lint, static analysis, and tests pass.
 
@@ -142,6 +143,17 @@ fixed with an Indonesian negation-marker check. **Known gap, not fixed here:** n
 mechanism exists anywhere in the app for below-threshold entities (`docs/13`) — app-wide
 SEO-infrastructure work, tracked for Epic 10.
 
+Epic 6 (source adapters wave 2) implements `docs/17`'s Definition of Done: `KaskusAdapter`,
+`YouTubeAdapter`, and `LowEndTalkAdapter` all reach `healthy` preflight and produce at least one
+`CandidateOpinion` against fixtures, never live network; `KaskusAdapter` and `YouTubeAdapter` each
+report an explicit `policy_disabled` state (robots disallow-all for KASKUS, missing
+`YOUTUBE_API_KEY` for YouTube) instead of guessing; all three sources are seeded `enabled: false`
+so wave 2 stays off until an operator records a live preflight result. A gap was found and fixed
+during this pass: `KaskusAdapter` and `LowEndTalkAdapter` both accept an operator-supplied
+`thread_urls` override for targeted backfill, and resolved it with no host check — unlike the
+neighboring `forum_ids`/`category_urls` allowlists, an absolute URL on any host would have been
+crawled as-is. Fixed with a shared `isSameHost()` guard on `AbstractHttpSourceAdapter`.
+
 The `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment`, and `Themes` domain
 modules are present. First-party ratings will be implemented in a subsequent phase. Implementation
 order lives in `docs/17-implementation-backlog.md`.
@@ -157,7 +169,7 @@ Phases and epic mapping match `docs/18-roadmap.md`.
 | 2. Sentiment substrate | 3, 4 | Done |
 | 3. First observations | 5, 7 (partial) | Done |
 | 4. Public score | 8, 12 | Done |
-| 5. Coverage expansion | 6 | Not started |
+| 5. Coverage expansion | 6 | Done |
 | 6. First-party rating | 9 | Not started |
 | 7. Public launch readiness | 10, 11 | Not started |
 

@@ -45,8 +45,8 @@ class DiscoverSourceDocumentsJob implements ShouldQueue
             $crawlState->metadata ?? []
         );
 
-        if ($this->source->key === 'bluesky') {
-            $cursorMetadata['aliases'] = Entity::query()
+        if (in_array($this->source->key, ['bluesky', 'youtube', 'kaskus'], true)) {
+            $trackedTerms = Entity::query()
                 ->active()
                 ->searchable()
                 ->with('aliases')
@@ -61,6 +61,12 @@ class DiscoverSourceDocumentsJob implements ShouldQueue
                 ->unique()
                 ->values()
                 ->all();
+
+            if ($this->source->key === 'bluesky') {
+                $cursorMetadata['aliases'] = $trackedTerms;
+            } elseif (empty($cursorMetadata['queries'])) {
+                $cursorMetadata['queries'] = $trackedTerms;
+            }
         }
 
         $cursor = new CrawlCursor(

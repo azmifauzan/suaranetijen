@@ -1,0 +1,12 @@
+{
+    "items": [
+        {
+            "id": {"kind": "youtube#video", "videoId": "abc12345678"},
+            "snippet": {
+                "title": "Pengalaman VPS Biznet Gio",
+                "publishedAt": "2026-09-01T10:00:00Z"
+            }
+        }
+    ],
+    "nextPageToken": "search-page-2"
+}

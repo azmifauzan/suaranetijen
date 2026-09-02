@@ -25,12 +25,22 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
      */
     abstract protected function preflightUrl(): string;
 
+    /**
+     * Return query parameters required by the preflight endpoint.
+     *
+     * @return array<string, scalar>
+     */
+    protected function preflightQuery(): array
+    {
+        return [];
+    }
+
     public function preflight(): SourceHealth
     {
         $startedAt = microtime(true);
 
         try {
-            $response = $this->request($this->preflightUrl());
+            $response = $this->request($this->preflightUrl(), $this->preflightQuery());
             $responseTimeMs = (int) round((microtime(true) - $startedAt) * 1000);
 
             return match (true) {
@@ -407,6 +417,19 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
         $relativePath = str_starts_with($url, './') ? substr($url, 2) : $url;
 
         return rtrim($origin, '/').rtrim($directory, '/').'/'.ltrim($relativePath, '/');
+    }
+
+    /**
+     * Reject a URL whose host does not match the adapter's own source domain.
+     * Cursor metadata (e.g. an operator-supplied thread URL) must never let an
+     * adapter fetch an arbitrary host.
+     */
+    protected function isSameHost(string $url, string $baseUrl): bool
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $baseHost = strtolower((string) parse_url($baseUrl, PHP_URL_HOST));
+
+        return $host !== '' && $host === $baseHost;
     }
 
     protected function pageUrl(string $url, int $page): string

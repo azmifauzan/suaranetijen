@@ -10,7 +10,7 @@ use Illuminate\Database\Seeder;
 class SourceSeeder extends Seeder
 {
     /**
-     * Seed the wave-one source registry.
+     * Seed the source registry.
      */
     public function run(): void
     {
@@ -47,6 +47,33 @@ class SourceSeeder extends Seeder
                 'crawl_policy' => ['rate_limit_per_minute' => 30],
                 'retention_policy' => ['raw_ttl_hours' => 24],
             ],
+            [
+                'key' => 'youtube',
+                'name' => 'YouTube',
+                'adapter' => 'youtube',
+                'source_type' => SourceType::VideoComments,
+                'enabled' => false,
+                'crawl_policy' => ['rate_limit_per_minute' => 30],
+                'retention_policy' => ['raw_ttl_hours' => 72],
+            ],
+            [
+                'key' => 'kaskus',
+                'name' => 'KASKUS',
+                'adapter' => 'kaskus',
+                'source_type' => SourceType::Forum,
+                'enabled' => false,
+                'crawl_policy' => ['rate_limit_per_minute' => 10],
+                'retention_policy' => ['raw_ttl_hours' => 72],
+            ],
+            [
+                'key' => 'lowendtalk',
+                'name' => 'LowEndTalk',
+                'adapter' => 'lowendtalk',
+                'source_type' => SourceType::Forum,
+                'enabled' => false,
+                'crawl_policy' => ['rate_limit_per_minute' => 10],
+                'retention_policy' => ['raw_ttl_hours' => 72],
+            ],
         ];
 
         foreach ($sources as $attributes) {
@@ -54,7 +81,7 @@ class SourceSeeder extends Seeder
                 ['key' => $attributes['key']],
                 [
                     ...$attributes,
-                    'enabled' => true,
+                    'enabled' => $attributes['enabled'] ?? true,
                     'priority' => 100,
                     'health_state' => SourceHealthState::Healthy,
                 ]
