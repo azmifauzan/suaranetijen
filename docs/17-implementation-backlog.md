@@ -14,11 +14,15 @@ Epic 0 (foundation)
             -> Epic 4 (adapter framework)
                  -> Epic 5 (adapters wave 1) -> Epic 7 (matching/relevance/sentiment)
                                                     -> Epic 8 (public score)
+                                                    -> Epic 12 (Top Suara Netijen / theme index)
                  -> Epic 6 (adapters wave 2, after wave 1 pipeline is proven)
        -> Epic 9 (Rating Netijen, needs auth from Epic 0 + entities from Epic 1)
-Epic 2, Epic 8, Epic 9 -> Epic 10 (UX/SEO, needs real content to not ship thin pages)
+Epic 2, Epic 8, Epic 9, Epic 12 -> Epic 10 (UX/SEO, needs real content to not ship thin pages)
 Epic 4, Epic 5/6 running -> Epic 11 (operations, needs live crawl jobs to diagnose)
 ```
+
+Epic 12 runs in parallel with Epic 8 — both read the same Epic 7 relevant-opinion output through
+independent branches (`docs/09`), so neither blocks the other.
 
 Epic 6 intentionally starts after Epic 5 produces observations end-to-end — it validates the
 pipeline on lower-compliance-risk adapters first (`docs/09`, reason repeated below).
@@ -157,6 +161,32 @@ against the same fixture batch produces zero duplicate observations.
 above threshold; score is deterministically recomputable from aggregate counts; ranking uses only
 score + eligibility, no popularity bonus).
 
+## Epic 12 - Top Suara Netijen (theme index)
+
+Full spec: `docs/25`. Runs in parallel with Epic 8 — both branch off Epic 7's relevant-opinion
+output independently.
+
+- `themes`, `theme_aliases`, `theme_observations`, `entity_theme_daily`,
+  `entity_theme_snapshots` migrations (`docs/06`).
+- Theme extraction reading the same relevant-opinion stream Epic 7 already classifies for
+  sentiment — one opinion can yield multiple theme+sentiment pairs.
+- Canonical theme normalization/clustering (keyword normalization + Indonesian synonym
+  dictionary at minimum; embeddings/LLM fallback for ambiguous cases only, same posture as Epic 7
+  entity-matching fallback).
+- Frequency aggregation and Top 5/10 ranking query (`SUM(observation_count) ... ORDER BY total
+  DESC`), default window 12 months falling back to lifetime for sparse entities.
+- Minimum threshold: entity >= 30 qualified opinions AND theme >= 3 occurrences to display; below
+  that, "Belum cukup opini untuk merangkum Suara Netijen".
+- Positive/negative theme grouping, reusing the same theme+sentiment observations (no separate
+  pipeline).
+- Explicitly out of Epic 12: no numeric per-theme score, no per-category aspect taxonomy, no
+  Top-10 toggle UI, no theme-based search (`docs/18` post-MVP).
+
+**Definition of done:** acceptance criteria 11-12 from `docs/02` PRD pass (below-threshold entity
+shows the empty-state copy, not a padded/empty list; a duplicated/templated opinion does not
+inflate `observation_count`); Top 5 for a fixture entity matches a hand-computed frequency count
+exactly.
+
 ## Epic 9 - Rating Netijen
 
 - Auth: Google OAuth or email magic link (`docs/12`) — separate concern from the admin auth in
@@ -172,8 +202,9 @@ upsert, not an insert-only log); rating never influences `sentiment_snapshots` i
 
 - Homepage: search input, trending searches, popular categories, top-sentiment entities,
   recently updated entities (`docs/04`).
-- Entity page: all ten elements listed in `docs/04` (score, opinion count, distribution, rating,
-  period selector, trend chart, related entities, rating CTA, methodology link).
+- Entity page: all eleven elements listed in `docs/04` (score, opinion count, distribution, Top
+  Suara Netijen, rating, period selector, trend chart, related entities, rating CTA, methodology
+  link).
 - Category and top-list pages, including the mobile stacked-card ranking table.
 - `/methodology`, `/sources`, `/about`, `/terms`, `/privacy`.
 - Sitemap indexing only active searchable entities; `AggregateRating` schema used only for the
@@ -218,7 +249,8 @@ running adapter without a deploy.
 | >=4 source adapters healthy | Epic 5, 6 | source metrics: per-source health state |
 | At least 2 broad/niche source groups represented | Epic 5, 6 | source registry roles enabled |
 | Score recomputation deterministic | Epic 3, 8 | Epic 8 DoD replay check |
+| Top Suara Netijen shown for entities past threshold, correct empty-state below it | Epic 12 | Epic 12 DoD checks |
 | Mobile and SEO QA pass | Epic 10 | Epic 10 DoD checks |
 
-All six must hold simultaneously, not cumulatively over time — re-verify all of them right before
-launch, since later epics can regress earlier ones.
+All seven must hold simultaneously, not cumulatively over time — re-verify all of them right
+before launch, since later epics can regress earlier ones.

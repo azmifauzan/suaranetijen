@@ -20,6 +20,8 @@ Membuktikan bahwa user memperoleh value dari flow **search entity -> melihat Sen
 - Saya dapat melihat Sentimen Netijen 0-100.
 - Saya dapat melihat distribusi positif/netral/negatif.
 - Saya dapat melihat jumlah opini dalam periode yang dihitung.
+- Saya dapat melihat Top 5 Suara Netijen: tema yang paling sering dibicarakan netijen tentang
+  entity ini, dengan jumlah opini per tema (`docs/25`) — bukan aspect score.
 - Saya dapat melihat Rating Netijen 1-5 dari pengguna platform.
 - Saya dapat melihat entity related/parent/child.
 
@@ -66,6 +68,7 @@ Membuktikan bahwa user memperoleh value dari flow **search entity -> melihat Sen
 - ±200 seed entities.
 - Seven third-party source adapters plus first-party rating.
 - Daily/periodic sentiment aggregates.
+- Top Suara Netijen: theme extraction, normalization, and frequency ranking (`docs/25`).
 - Search autocomplete/fuzzy matching.
 - Ranking categories.
 - Basic moderation and rate limiting.
@@ -76,7 +79,8 @@ Membuktikan bahwa user memperoleh value dari flow **search entity -> melihat Sen
 - Specifications, prices, merchant availability.
 - Text review first-party yang panjang; MVP cukup star rating + optional short comment disabled by default.
 - Verified purchase/ownership.
-- Aspect sentiment.
+- Aspect sentiment (a numeric per-theme/per-aspect score). Top Suara Netijen (`docs/25`) shows
+  theme *frequency*, never a theme *score* — it does not reopen this exclusion.
 - Influencer/user reputation weighting.
 - Demographic inference.
 - Political entities.
@@ -95,3 +99,6 @@ Membuktikan bahwa user memperoleh value dari flow **search entity -> melihat Sen
 8. Ranking hanya menggunakan Sentimen Netijen dan eligibility rules.
 9. Website usable di viewport 360px.
 10. Semua queue/crawler failures terlihat di Horizon/admin.
+11. Entity di bawah Top Suara Netijen threshold menampilkan "Belum cukup opini", bukan tema kosong
+    atau tema dengan <3 occurrences (`docs/25`).
+12. Duplicate/templated opinion text tidak menaikkan theme observation count secara berulang.

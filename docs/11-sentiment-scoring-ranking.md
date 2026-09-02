@@ -73,6 +73,12 @@ rating_average = sum(active_user_rating) / rating_count
 
 Tidak masuk formula Sentimen Netijen.
 
+## Top Suara Netijen
+
+A third, separate metric: theme frequency, not a score. It reuses this doc's threshold and
+new-entity-fallback posture (minimum opinions, period fallback) but is never blended into the
+formula above. See `docs/25` for the full spec.
+
 ## Versioning
 
 Simpan `sentiment_model_version` dan `score_formula_version` pada snapshot agar perubahan metodologi dapat dilacak.

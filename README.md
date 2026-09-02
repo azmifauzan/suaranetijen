@@ -22,12 +22,15 @@ entity graph, sentiment observations, historical aggregates, rankings, and first
 | Metric | Range | Source |
 |---|---|---|
 | Sentimen Netijen | 0-100 | aggregated crawler sentiment |
+| Top Suara Netijen | ranked themes | most-discussed themes, by frequency, from the same opinion data (`docs/25`) |
 | Rating Netijen | 1-5 | first-party user star ratings |
 | Jumlah Opini | count | relevant observations in the period |
 | Distribusi Sentimen | % | positive / neutral / negative split |
 | Trend Sentimen | time series | schema supports it; not required for first launch |
 
-Sentimen Netijen and Rating Netijen are **never merged** — provenance has to stay obvious.
+Sentimen Netijen, Top Suara Netijen, and Rating Netijen are **never merged** — provenance has to
+stay obvious for each. Top Suara Netijen is theme frequency, never a numeric per-theme score —
+it is not aspect scoring.
 
 ### Score formula v1
 
@@ -47,6 +50,8 @@ becomes ranking-eligible at >= 100 (`examples/score-config.yaml`).
 - Redis from day one for queue, cache, locks, and rate limits; Horizon for queue observability.
 - Source adapters: YouTube, KASKUS, DiskusiWebHosting, SerayaMotor, IndoForum (selective),
   Bluesky, LowEndTalk (targeted), plus first-party ratings.
+- Top Suara Netijen: theme extraction/normalization and Top 5 frequency ranking per entity
+  (`docs/25`) — no numeric per-theme score, no per-category aspect taxonomy.
 - Out: specification database, price comparison, aspect scores, expert scores, benchmarks,
   verified purchase, opinion fact checking, and political entities.
 
@@ -103,7 +108,7 @@ order lives in `docs/17-implementation-backlog.md`.
 
 ## Documentation
 
-`docs/` holds 24 numbered documents and is the source of truth for product, schema, and
+`docs/` holds 25 numbered documents and is the source of truth for product, schema, and
 architecture decisions. `CLAUDE.md` / `AGENTS.md` carry the condensed version for coding agents.
 
 | File | Purpose |
@@ -128,10 +133,11 @@ architecture decisions. `CLAUDE.md` / `AGENTS.md` carry the condensed version fo
 | `docs/18-roadmap.md` | Product, source, and scale roadmap |
 | `docs/19-success-metrics.md` | Product, index, and source KPIs |
 | `docs/20-risk-register.md` | Risks and mitigations |
-| `docs/21-architecture-decisions.md` | ADR-001..010, frozen decisions |
+| `docs/21-architecture-decisions.md` | ADR-001..011, frozen decisions |
 | `docs/22-testing-strategy.md` | Unit, adapter fixture, NLP, E2E strategy |
 | `docs/23-seed-entity-strategy.md` | ~200 seed entity plan |
 | `docs/24-current-reference-baseline.md` | Externally validated facts (2 Sep 2026) |
+| `docs/25-top-suara-netijen.md` | Theme Index / Top Suara Netijen: pipeline, data model, ranking, scope |
 
 Config examples live in `examples/`: `score-config.yaml`, `source-registry.yaml`,
 `queue-topology.yaml`, `.env.example`.

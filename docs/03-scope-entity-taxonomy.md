@@ -77,3 +77,5 @@ VPS IDCloudHost
 - Jangan membuat entity terlalu granular jika netizen tidak menyebutnya secara konsisten.
 - Generic service lebih baik daripada plan/SKU yang cepat berubah.
 - Entity baru dapat masuk dari admin atau suggestion queue setelah search demand terlihat.
+- Kategori tidak butuh aspect taxonomy manual (battery/camera/... per Smartphone, dst); Top Suara
+  Netijen (`docs/25`) menemukan tema langsung dari data, lintas semua entity type.

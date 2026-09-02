@@ -18,6 +18,7 @@ SuaraNetijen menjadi **indeks sentimen publik Indonesia**: user cukup mencari se
 - Crawler/indexer opini publik.
 - Historical sentiment database.
 - Ranking engine berdasarkan sentimen.
+- Theme index yang merangkum tema paling sering dibicarakan netijen per entity (`docs/25`).
 - Community rating platform sebagai data first-party terpisah.
 
 ## What SuaraNetijen is not
@@ -46,6 +47,7 @@ SuaraNetijen menjadi **indeks sentimen publik Indonesia**: user cukup mencari se
 - Historical sentiment time series.
 - Entity aliases dan entity graph Indonesia.
 - Source adapters dan crawl history.
+- Canonical theme dictionary Bahasa Indonesia (`docs/25`), tumbuh seiring waktu.
 - First-party ratings.
 - Search demand data.
 - Ranking history per kategori.

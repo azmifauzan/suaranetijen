@@ -39,3 +39,11 @@
 ## ADR-010 - Politics deferred
 **Decision:** no political entity module in MVP/near roadmap.  
 **Why:** not needed to validate current product and creates separate compliance surface.
+
+## ADR-011 - Theme Index is a second derived layer, not aspect scoring
+**Decision:** Top Suara Netijen (`docs/25`) adds a theme-frequency index alongside Sentimen
+Netijen, sourced from the same relevant-opinion stream. It shows theme + observation count only —
+never a numeric per-theme score, and never a manual per-category aspect taxonomy.
+**Why:** answers "what do netizens say most" without reopening ADR-008's exclusion of aspect
+scoring/subscores; keeps the engine entity-type-agnostic (no per-category taxonomy to maintain),
+consistent with ADR-001's one-engine-across-types decision.

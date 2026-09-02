@@ -11,7 +11,7 @@ the execution-order view: what has to be true before the next phase can start.
 | 1. Findability | 2 | Seed entities are searchable, even with no sentiment yet. |
 | 2. Sentiment substrate | 3, 4 | Schema and adapter framework are ready; still zero live data. |
 | 3. First observations | 5, 7 (partial) | Wave-1 adapters produce real, matched, classified opinions. |
-| 4. Public score | 8 | Sentimen Netijen is computable and visible above threshold. |
+| 4. Public score | 8, 12 | Sentimen Netijen and Top Suara Netijen are computable and visible above threshold. |
 | 5. Coverage expansion | 6 | YouTube, KASKUS, LowEndTalk added once the pipeline is proven. |
 | 6. First-party rating | 9 | Rating Netijen is live and independently tracked. |
 | 7. Public launch readiness | 10, 11 | UX/SEO complete; admin diagnostics and backups in place. |
@@ -38,7 +38,20 @@ median sentiment freshness lagging a category, or source diversity concentrated 
 - faster historical trend updates.
 - source coverage page per entity.
 
-## Post-MVP 2 - First-party flywheel
+## Post-MVP 2 - Theme Index depth
+
+**Trigger:** Epic 12 (`docs/17`, `docs/25`) is live and stable at MVP scope; expand once theme
+data volume is enough to make these worthwhile, not before.
+
+- natural-language theme-based search ("VPS yang banyak dibilang murah") — `docs/13`.
+- Top 10 toggle beyond the MVP Top 5 default.
+- theme trend chart (theme frequency over time).
+- theme comparison across entities in the same category.
+- personalized theme recommendation.
+- advanced taxonomy editor / category-specific theme ontology, if the fully data-driven approach
+  in `docs/25` ever proves insufficient.
+
+## Post-MVP 3 - First-party flywheel
 
 **Trigger:** rating conversion or repeat-visit metrics from `docs/19` show first-party
 engagement is the binding constraint, not third-party coverage.
@@ -48,7 +61,7 @@ engagement is the binding constraint, not third-party coverage.
 - entity suggestion by users.
 - user follow/watch list.
 
-## Post-MVP 3 - Data partnerships
+## Post-MVP 4 - Data partnerships
 
 **Trigger:** evaluated opportunistically, not on a fixed schedule — pursue when a partner's terms
 and cost are compatible with `docs/15` data-minimization and provenance rules.
@@ -60,7 +73,7 @@ Targets where useful:
 - Trustpilot Data Solutions.
 - app review data.
 
-## Post-MVP 4 - New categories
+## Post-MVP 5 - New categories
 
 **Trigger:** current categories (`docs/03`) show healthy coverage and score stability; expanding
 category count before that dilutes crawl/adapter effort across too many low-density entities.

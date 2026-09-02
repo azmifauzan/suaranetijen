@@ -15,8 +15,8 @@ API ini internal web API terlebih dahulu; bukan public developer API.
 - `critical` - rating snapshot/search maintenance.
 - `discovery` - source discovery.
 - `crawl` - fetch/parse.
-- `analysis` - entity/relevance/sentiment.
-- `aggregate` - daily/snapshot/ranking.
+- `analysis` - entity/relevance/sentiment/theme extraction.
+- `aggregate` - daily/snapshot/ranking (sentiment and theme).
 - `maintenance` - retention/cleanup.
 
 ## Core jobs
@@ -31,6 +31,11 @@ API ini internal web API terlebih dahulu; bukan public developer API.
 - `AggregateDailySentimentJob`
 - `RefreshSentimentSnapshotJob`
 - `RefreshCategoryRankingJob`
+- `ExtractThemesJob` (`docs/25`, runs alongside `ClassifySentimentJob` off the same relevant opinion)
+- `NormalizeAndClusterThemeJob`
+- `UpsertThemeObservationJob`
+- `AggregateDailyThemeJob`
+- `RefreshThemeSnapshotJob`
 - `ExpireRawPayloadJob`
 
 ## Scheduling baseline

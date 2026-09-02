@@ -32,12 +32,15 @@ Tidak menampilkan spec, harga, atau aspect score.
 2. Sentimen Netijen `0-100`.
 3. `N opini dianalisis`.
 4. Positive / neutral / negative distribution.
-5. Rating Netijen `1-5` + voter count.
-6. Period selector (30d / 90d / 12m / all, bila data tersedia).
-7. Trend chart sederhana.
-8. Related entities.
-9. CTA beri rating.
-10. Methodology/source disclosure link.
+5. Top 5 Suara Netijen: tema + jumlah opini per tema, plus "Netijen Paling Suka" / "Paling Sering
+   Dikeluhkan" groups (`docs/25`). Below threshold, show "Belum cukup opini untuk merangkum Suara
+   Netijen" instead of an empty or padded list.
+6. Rating Netijen `1-5` + voter count.
+7. Period selector (30d / 90d / 12m / all, bila data tersedia).
+8. Trend chart sederhana.
+9. Related entities.
+10. CTA beri rating.
+11. Methodology/source disclosure link.
 
 ## Category page
 
@@ -64,4 +67,6 @@ Bukan:
 - Main score terlihat tanpa horizontal scroll.
 - Cards satu kolom pada <=640px.
 - Ranking table berubah menjadi stacked cards pada mobile.
+- Top Suara Netijen tampil sebagai chips/tags atau compact ranked list, bukan tabel lebar
+  (`docs/25`).
 - CLS rendah; reserve space untuk images.

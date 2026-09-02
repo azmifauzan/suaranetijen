@@ -57,6 +57,7 @@ app/Domains/
   Sources/
   Ingestion/
   Sentiment/
+  Themes/
   Rankings/
   Ratings/
   Moderation/

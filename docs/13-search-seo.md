@@ -17,6 +17,13 @@ Ranking search priority:
 
 Sentiment score boleh menjadi secondary tie-breaker kecil hanya setelah textual relevance, atau tidak dipakai sama sekali di MVP search.
 
+## Post-MVP: theme-based search
+
+Once the Theme Index (`docs/25`) exists, search can answer natural-language demand like "VPS
+yang banyak dibilang murah" by ranking entities on theme observation count for a given theme —
+still PostgreSQL, still no dedicated search engine or product spec data. This is explicitly
+post-MVP (`docs/18`), listed here only so MVP search is not designed in a way that blocks it.
+
 ## SEO page model
 
 Entity URL:
@@ -38,6 +45,7 @@ Entity page mempunyai data unik:
 - score;
 - distribution;
 - opinion count;
+- top themes (`docs/25`);
 - historical trend;
 - rating count;
 - related entities.

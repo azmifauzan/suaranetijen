@@ -98,6 +98,54 @@ Precomputed public periods.
 - score
 - calculated_at
 
+### `themes`
+Canonical theme dictionary (`docs/25`).
+- id
+- slug
+- display_label
+- canonical_key
+- created_at / updated_at
+
+### `theme_aliases`
+- id
+- theme_id
+- alias
+- normalized_alias
+
+### `theme_observations`
+One theme+sentiment pair extracted from one relevant opinion. Same dedup posture as
+`sentiment_observations` — no duplicate counting per source item.
+- id
+- entity_id
+- theme_id
+- source_id
+- source_document_hash
+- sentiment enum `positive|neutral|negative`
+- confidence nullable
+- published_at nullable
+- created_at
+
+### `entity_theme_daily`
+- entity_id
+- theme_id
+- date
+- positive_count
+- neutral_count
+- negative_count
+- observation_count
+
+### `entity_theme_snapshots`
+Precomputed Top 5/10 query speedup, optional.
+- entity_id
+- theme_id
+- window
+- observation_count
+- positive_count
+- neutral_count
+- negative_count
+- rank
+- calculated_at
+
 ### `user_ratings`
 - user_id
 - entity_id

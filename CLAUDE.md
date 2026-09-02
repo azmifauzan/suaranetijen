@@ -206,7 +206,7 @@ Vue components must have a single root element.
 
 # SuaraNetijen
 
-`docs/` holds 24 numbered documents produced during brainstorming. They are the **source of truth**
+`docs/` holds 25 numbered documents produced during brainstorming. They are the **source of truth**
 for product, schema, and architecture decisions, and they describe a target that is not built yet.
 Read the relevant document before designing anything new; do not rewrite `docs/` to match code.
 
@@ -224,12 +224,14 @@ entity graph, sentiment observations, historical aggregates, rankings, and first
 | Metric | Range | Source |
 |---|---|---|
 | Sentimen Netijen | 0-100 | aggregated crawler sentiment |
+| Top Suara Netijen | ranked themes | theme frequency from the same opinion data (`docs/25`) |
 | Rating Netijen | 1-5 | first-party user star ratings |
 | Jumlah Opini | count | relevant observations in the period |
 | Distribusi Sentimen | % | positive / neutral / negative split |
 
-**The two scores are never merged** (ADR-007). No public aspect score, experience score,
-authenticity score, performance score, or source weight exists.
+**The three metrics are never merged** (ADR-007, ADR-011). No public aspect score, experience
+score, authenticity score, performance score, or source weight exists. Top Suara Netijen shows
+theme *frequency*, never a numeric per-theme score — do not build one.
 
 ## Score formula v1
 
@@ -253,7 +255,8 @@ Detail: `docs/11-sentiment-scoring-ranking.md`.
   is navigation and matching only — brand opinions never cascade to child services
   (`IDCloudHost bagus` -> IDCloudHost; `VPS IDCloudHost bagus` -> VPS IDCloudHost).
 - **No aspect scoring.** No camera/support/performance subscores, no specs, no prices, no
-  benchmarks, no verified purchase, no fact checking. MVP is sentiment only.
+  benchmarks, no verified purchase, no fact checking. Top Suara Netijen (`docs/25`) shows theme
+  frequency and does not reopen this — it must never render a numeric per-theme score.
 - **No source weighting.** Source role affects crawl priority only, never the score.
 - **Derived index first.** Raw payloads are temporary with a per-adapter TTL. Hashes and external
   IDs persist for deduplication; raw text does not.
@@ -271,8 +274,9 @@ Detail: `docs/11-sentiment-scoring-ranking.md`.
 
 Core tables (`docs/06-domain-data-model.md`): `entities`, `entity_aliases`, `categories`,
 `sources`, `source_documents`, `source_items`, `sentiment_observations` (unique
-`(entity_id, source_item_id)`), `sentiment_daily`, `sentiment_snapshots`, `user_ratings` (unique
-`(user_id, entity_id)`), `rating_snapshots`.
+`(entity_id, source_item_id)`), `sentiment_daily`, `sentiment_snapshots`, `themes`,
+`theme_aliases`, `theme_observations`, `entity_theme_daily`, `entity_theme_snapshots` (`docs/25`),
+`user_ratings` (unique `(user_id, entity_id)`), `rating_snapshots`.
 
 Operational: `crawl_states`, `ingestion_failures`, `unmatched_mentions`, `search_queries`,
 `source_preflight_logs`.
@@ -280,10 +284,13 @@ Operational: `crawl_states`, `ingestion_failures`, `unmatched_mentions`, `search
 ## Pipeline
 
 ```text
-discovery -> fetch -> extract -> normalize -> deduplicate -> entity matching
-  -> opinion relevance -> sentiment classification -> observation
-  -> daily aggregate -> snapshot / ranking
+discovery -> fetch -> extract -> normalize -> deduplicate -> entity matching -> opinion relevance
+  -> sentiment classification -> observation -> daily aggregate -> snapshot / ranking
+  -> theme extraction -> normalization/clustering -> theme observation -> theme daily aggregate
 ```
+
+Theme extraction (`docs/25`) is a second, independent branch off the same relevant-opinion
+output — it never blocks, and is never blocked by, sentiment classification.
 
 Adapter contract (`docs/08-source-adapter-specs.md`): `preflight()`, `discover()`, `fetch()`,
 `extract()`. Health states: `healthy`, `degraded`, `blocked`, `policy_disabled`, `parser_broken`,
@@ -299,7 +306,7 @@ Modular monolith, one codebase, workload separated by queue rather than by servi
 ```text
 app/Domains/
   Entities/  Search/  Sources/  Ingestion/
-  Sentiment/  Rankings/  Ratings/  Moderation/  Admin/
+  Sentiment/  Themes/  Rankings/  Ratings/  Moderation/  Admin/
 ```
 
 Extract a service only after a measured bottleneck — `docs/05-technical-architecture.md`.
@@ -404,10 +411,11 @@ overrides them.
 | `docs/18-roadmap.md` | Product, source, and scale roadmap |
 | `docs/19-success-metrics.md` | Product, index, and source KPIs |
 | `docs/20-risk-register.md` | Risks and mitigations |
-| `docs/21-architecture-decisions.md` | ADR-001..010, frozen decisions |
+| `docs/21-architecture-decisions.md` | ADR-001..011, frozen decisions |
 | `docs/22-testing-strategy.md` | Unit, adapter fixture, NLP, E2E strategy |
 | `docs/23-seed-entity-strategy.md` | ~200 seed entity plan |
 | `docs/24-current-reference-baseline.md` | Externally validated facts (2 Sep 2026) |
+| `docs/25-top-suara-netijen.md` | Theme Index / Top Suara Netijen: pipeline, data model, ranking, scope |
 
 Config examples: `examples/score-config.yaml`, `examples/source-registry.yaml`,
 `examples/queue-topology.yaml`, `examples/.env.example`.

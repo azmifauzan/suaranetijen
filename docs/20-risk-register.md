@@ -15,3 +15,7 @@
 | Rating brigading | Manual rating distortion | account constraint, rate limiting, anomaly logs |
 | Model change alters history | Comparability | model/formula versioning |
 | Legal/privacy exposure | Operational | data minimization, no author profiling, source guardrails, clear methodology |
+| Theme over-fragmentation | Diluted/noisy Top Suara list | canonical theme dictionary, normalization/clustering before ranking (`docs/25`) |
+| Poor theme normalization | Garbage or misleading themes | Indonesian synonym dictionary, LLM fallback only for ambiguous cases, manual QA sample |
+| Templated/spam text inflates theme frequency | Misleading "most-said" ranking | shares the same dedup layer as sentiment (`docs/09`), not a separate weaker one |
+| Theme score misread as objective quality score | Drifts toward aspect-scoring/benchmarking positioning | never render a numeric per-theme score in UI or API; frequency and count only (`docs/25`, ADR-008) |

@@ -25,6 +25,7 @@ docs/21-architecture-decisions.md
 docs/22-testing-strategy.md
 docs/23-seed-entity-strategy.md
 docs/24-current-reference-baseline.md
+docs/25-top-suara-netijen.md
 examples/.env.example
 examples/queue-topology.yaml
 examples/score-config.yaml

@@ -34,6 +34,9 @@ event log exists just because it is listed here.
 | Duplicate suppression rate | rejected-as-duplicate / total candidate opinions | ingestion pipeline counters |
 | Unmatched mention rate | `unmatched_mentions` count / total candidate opinions | `unmatched_mentions` vs candidate count |
 | Classifier error rate | disagreement rate on the curated QA sample (`docs/22`) | manual QA review |
+| Entities with a displayable Top Suara Netijen | count past the `docs/25` threshold (>=30 opinions, top theme >=3 occurrences) | `entity_theme_daily` |
+| Theme normalization collapse rate | raw distinct phrasings / canonical themes assigned | theme extraction + clustering counters |
+| Theme dedup suppression rate | rejected-as-duplicate / total candidate theme observations | theme pipeline counters |
 
 Thresholds for "healthy" on each row are set once real data exists in the validation window
 below — this document does not fix them in advance because pre-launch estimates would be

@@ -10,11 +10,14 @@ source discovery
  -> deduplicate
  -> candidate entity matching
  -> opinion relevance
- -> sentiment classification
- -> sentiment observation
- -> daily aggregate
- -> public snapshot/ranking
+ -> sentiment classification -> sentiment observation -> daily aggregate -> public snapshot/ranking
+ -> theme extraction -> theme normalization/clustering -> theme observation -> theme daily aggregate
 ```
+
+The same relevant-opinion output feeds two independent derived branches after "opinion
+relevance": sentiment classification (above) and theme extraction (`docs/25`). Neither branch
+blocks the other — a theme-extraction failure must not withhold a sentiment observation, and vice
+versa.
 
 ## Discovery vs fetch
 
@@ -41,6 +44,10 @@ Minimum:
 - remove quoted prior text before hash pada forum.
 
 Near-duplicate filtering boleh dipakai untuk syndicated/repeated text, tetapi jangan menilai user authenticity.
+
+This dedup layer is upstream of both derived branches — theme frequency (`docs/25`) inherits it
+rather than re-deduplicating independently, so a repeated promo template cannot inflate a theme's
+observation count either.
 
 ## Rate limiting
 
