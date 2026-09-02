@@ -2,6 +2,7 @@
 
 namespace App\Domains\Ingestion\Jobs;
 
+use App\Domains\Entities\Models\Entity;
 use App\Domains\Sources\Contracts\CrawlCursor;
 use App\Domains\Sources\Enums\DocumentState;
 use App\Domains\Sources\Models\CrawlState;
@@ -39,13 +40,36 @@ class DiscoverSourceDocumentsJob implements ShouldQueue
             ]
         );
 
+        $cursorMetadata = array_merge(
+            $this->source->crawl_policy ?? [],
+            $crawlState->metadata ?? []
+        );
+
+        if ($this->source->key === 'bluesky') {
+            $cursorMetadata['aliases'] = Entity::query()
+                ->active()
+                ->searchable()
+                ->with('aliases')
+                ->get()
+                ->flatMap(function (Entity $entity): array {
+                    return [
+                        $entity->name,
+                        ...$entity->aliases->pluck('normalized_alias')->all(),
+                    ];
+                })
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+        }
+
         $cursor = new CrawlCursor(
             sourceKey: $this->source->key,
             cursorKey: $this->cursorKey,
             cursorValue: $crawlState->cursor_value,
             lastExternalId: $crawlState->last_external_id,
             lastCrawledAt: $crawlState->last_crawled_at,
-            metadata: $crawlState->metadata ?? []
+            metadata: $cursorMetadata
         );
 
         $adapter = $registry->resolve($this->source);

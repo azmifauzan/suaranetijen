@@ -41,5 +41,7 @@ class DatabaseSeeder extends Seeder
         if (file_exists($seedPath)) {
             $importer->import($seedPath);
         }
+
+        $this->call(SourceSeeder::class);
     }
 }

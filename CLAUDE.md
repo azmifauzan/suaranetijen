@@ -343,8 +343,9 @@ upsert, threshold eligibility, and cursor parsing. Detail: `docs/22-testing-stra
 
 ## Current implementation status
 
-**Phase 0 (foundation), Phase 1 (findability / Epic 2 search), and Phase 2 (sentiment substrate /
-Epic 3 + 4) are implemented and verified against a real PostgreSQL + Redis instance**, not just
+**Phase 0 (foundation), Phase 1 (findability / Epic 2 search), Phase 2 (sentiment substrate /
+Epic 3 + 4), and Phase 3 (first observations / Epic 5 + Epic 7 partial, this branch) are
+implemented and verified against a real PostgreSQL + Redis instance**, not just
 SQLite tests: PostgreSQL/Redis are the repository's default connections, Horizon is configured
 with the four documented supervisor groups, `/admin` is protected by the authenticated
 `access-admin` Gate, the ~200-entity seed CSV imports cleanly (209 entities after adding a
@@ -389,6 +390,30 @@ Sentiment substrate implementation notes (Epic 3 + 4, verified 2 September 2026)
   `SCORING_FORMULA_VERSION` env overrides); `tests/Unit` now boots the Laravel app (no
   `RefreshDatabase`) so plain-class unit tests can call `config()`.
 
+First-observations implementation notes (Epic 5 + Epic 7 partial, verified 2 September 2026):
+- All four wave-1 adapters (`DiskusiWebHostingAdapter`, `SerayaMotorAdapter`, `IndoForumAdapter`,
+  `BlueskyAdapter`) reach `healthy` preflight and produce >= 1 `CandidateOpinion` against sanitized
+  fixtures, never live network (`docs/22`); `DiskusiWebHostingAdapter` drops offers/WTS threads,
+  `SerayaMotorAdapter` is scoped to its named sub-forums, `BlueskyAdapter` filters the Jetstream
+  firehose by normalized entity alias.
+- `EntityMatcher` picks the longest textual match and rejects equal-length ambiguity, so a brand
+  match never cascades to a service observation (confirmed with "IDCloudHost" vs.
+  "VPS IDCloudHost").
+- Mentions without an evaluation, and mentions with an unresolved entity, are written to
+  `unmatched_mentions` with a reason code and no PII — never a best-guess entity.
+- `UpsertSentimentObservationJob` is idempotent on `(entity_id, source_item_id)`, confirmed live
+  on Postgres (`UniqueConstraintViolationException` on a raw duplicate insert).
+- **Gaps found and fixed during this verification pass:** `IndoForumAdapter` fell back to crawling
+  any numeric forum ID not on its allowlist instead of rejecting it — `discover()` now filters
+  `forum_ids` through `FORUM_PATHS` first. The sentiment classifier had never actually been
+  evaluated against `docs/22`'s Indonesian test set as the Epic 7 DoD requires — added a
+  16-example curated set (formal/slang/typo/mixed-English/emoji/negation/sarcasm), **measured
+  accuracy 16/16**; that evaluation also exposed and fixed a bug where emoji-only sentiment always
+  returned null because `TextNormalizer::normalize()` stripped emoji before the classifier saw
+  them. Typo and sarcasm remain honest, tested ceilings (typo -> null; sarcasm -> neutral), not
+  defects. LLM fallback for ambiguous candidates (`docs/10`) is not implemented — deferred until
+  ambiguous-candidate volume justifies it.
+
 Current implementation boundary:
 
 | Target per docs | Repository today |
@@ -399,7 +424,9 @@ Current implementation boundary:
 | `pg_trgm` search | implemented and verified against real PostgreSQL |
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
-| Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis; only `FakeSourceAdapter` exists, no real source adapter yet (Epic 5/6) |
+| Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
+| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter`, `SerayaMotorAdapter`, `IndoForumAdapter`, `BlueskyAdapter` implemented and verified against fixtures; wave 2 (Kaskus/YouTube/LowEndTalk, Epic 6) not implemented |
+| Entity matching, relevance, sentiment classifier (Epic 7) | implemented and verified for the Phase 3 slice; LLM fallback for ambiguous candidates not implemented |
 | Scoring/ranking thresholds | `config/scoring.php`, mirrors `examples/score-config.yaml` |
 | Google OAuth / email magic link (`docs/12`) | Fortify password + 2FA |
 | `app/Domains/*` modules | `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment` present; `Themes`, `Rankings`, `Ratings`, `Moderation` not implemented |

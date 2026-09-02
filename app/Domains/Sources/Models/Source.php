@@ -101,6 +101,14 @@ class Source extends Model
     }
 
     /**
+     * @return HasMany<UnmatchedMention, $this>
+     */
+    public function unmatchedMentions(): HasMany
+    {
+        return $this->hasMany(UnmatchedMention::class);
+    }
+
+    /**
      * Scope query to enabled sources.
      *
      * @param  Builder<$this>  $query
