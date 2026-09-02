@@ -336,23 +336,22 @@ upsert, threshold eligibility, and cursor parsing. Detail: `docs/22-testing-stra
 
 ## Current implementation status
 
-The repository is still the Laravel starter kit: Fortify authentication with two-factor, profile
-and security settings, and the default Inertia pages. **None of the SuaraNetijen domain exists
-yet** — no entities, sources, ingestion, sentiment, ranking, or rating code, and no `app/Domains/`
-directory. Implementation order is in `docs/17-implementation-backlog.md` (Epic 0 onward).
+Epic 0 is implemented and locally verified: PostgreSQL/Redis are the repository defaults, Horizon
+is configured, and `/admin` is protected by the authenticated `access-admin` Gate. This project
+does not use a GitHub Actions workflow; run the quality gates locally.
 
-Target stack from `docs/` that is **not yet wired up** — do not describe any of it as done:
+Current implementation boundary:
 
 | Target per docs | Repository today |
 |---|---|
-| PostgreSQL | SQLite |
-| Redis queue, cache, locks, rate limits | `database` driver |
-| Horizon supervisors | not installed |
+| PostgreSQL | default runtime connection; full suite verified locally |
+| Redis queue, cache, locks, rate limits | default runtime drivers; verified locally |
+| Horizon supervisors | four documented supervisor groups configured and started locally |
 | Google OAuth / email magic link (`docs/12`) | Fortify password + 2FA |
-| `app/Domains/*` modules | starter-kit `app/` layout |
+| `app/Domains/*` modules | `Admin` and `Entities` present; later domains not implemented |
 
-`examples/.env.example` shows the intended PostgreSQL + Redis configuration; the repository's own
-`.env.example` is still the starter default.
+The repository's `.env.example` now carries the PostgreSQL + Redis baseline. Tests retain isolated
+SQLite/array/sync defaults unless an explicit integration run overrides them.
 
 ## Document map
 

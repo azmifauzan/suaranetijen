@@ -31,13 +31,16 @@ pipeline on lower-compliance-risk adapters first (`docs/09`, reason repeated bel
 - Redis connection for queue/cache/locks/rate limits replacing the starter's `database` driver.
 - Horizon installed and configured with supervisors `supervisor-critical`,
   `supervisor-crawl`, `supervisor-analysis`, `supervisor-maintenance` (`docs/16`).
-- CI: `composer lint`, `composer types:check`, `composer test` (already scripted in
-  `composer.json`) running in a pipeline on every push/PR.
 - Base admin auth: gate an `/admin` route group behind an authenticated + authorized admin user
   (Fortify is already installed for the public side).
 
 **Definition of done:** `composer dev` runs web + queue worker + Vite against Postgres/Redis; an
-authenticated non-admin user gets 403 on `/admin`; CI is green on a trivial PR.
+authenticated non-admin user gets 403 on `/admin`; local quality gates pass.
+
+**Implementation status (verified 2 September 2026):** complete locally. `composer dev` registers
+the web server, Horizon, logs, and Vite; all four documented Horizon supervisors start against an
+isolated Redis database; the full 60-test suite passes against PostgreSQL/Redis and via
+`composer test`; and the admin access matrix passes.
 
 ## Epic 1 - Entity catalog
 

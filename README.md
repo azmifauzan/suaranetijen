@@ -5,8 +5,8 @@
 Search-first public sentiment index for Indonesia. Search a brand, product, or service and see
 whether public conversation about it leans positive or negative.
 
-**Baseline:** 2 September 2026 · **Market:** Indonesia · **Status:** starter kit in place, domain
-implementation not started
+**Baseline:** 2 September 2026 · **Market:** Indonesia · **Status:** Epic 0 verified locally; Epic 1
+implementation is present
 
 ## Product definition
 
@@ -59,11 +59,15 @@ becomes ranking-eligible at >= 100 (`examples/score-config.yaml`).
 | Frontend | Inertia v3 + Vue 3.5 + Tailwind 4, Vite 8 |
 | Auth | Laravel Fortify (incl. two-factor) |
 | Routing types | Laravel Wayfinder |
+| Database | PostgreSQL |
+| Queue / cache | Redis + PhpRedis |
+| Queue operations | Laravel Horizon 5.x |
 | Tests | Pest |
 | Lint / static analysis | Pint, PHPStan, `vue-tsc` |
 
-**Not yet wired up**, though the target architecture calls for them: PostgreSQL (currently
-SQLite), Redis-backed queue and cache (currently `database`), and Horizon (not installed).
+Horizon runs the documented `supervisor-critical`, `supervisor-crawl`, `supervisor-analysis`, and
+`supervisor-maintenance` groups. The test suite keeps SQLite/array/sync defaults unless an explicit
+integration run supplies PostgreSQL and Redis settings.
 
 ## Getting started
 
@@ -83,10 +87,13 @@ composer ci:check    # npm check + vue-tsc + test
 
 ## Current implementation status
 
-The repository is the Laravel starter kit: authentication, profile and security settings, and the
-default Inertia pages. None of the SuaraNetijen domain exists yet — no entities, sources,
-ingestion, sentiment, or rating code. Implementation order lives in
-`docs/17-implementation-backlog.md`.
+Epic 0 is implemented and locally verified against PostgreSQL and Redis. Admin access uses an
+authenticated `access-admin` Gate, non-admin users receive 403, and local lint, static analysis,
+and tests pass against PostgreSQL/Redis.
+
+The `Admin` and `Entities` domain modules are present. Sources, ingestion, sentiment, rankings,
+ratings, and the remaining roadmap modules are not implemented yet. Implementation order lives
+in `docs/17-implementation-backlog.md`.
 
 ## Documentation
 

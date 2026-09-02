@@ -1,0 +1,146 @@
+<?php
+
+namespace App\Domains\Entities\Models;
+
+use App\Domains\Entities\Enums\EntityStatus;
+use App\Domains\Entities\Enums\EntityType;
+use Database\Factories\EntityFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property int $id
+ * @property int $category_id
+ * @property int|null $parent_id
+ * @property EntityType $type
+ * @property string $name
+ * @property string $slug
+ * @property string|null $description
+ * @property EntityStatus $status
+ * @property bool $searchable
+ * @property bool $rankable
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read Category $category
+ * @property-read Entity|null $parent
+ * @property-read Collection<int, Entity> $children
+ * @property-read Collection<int, EntityAlias> $aliases
+ */
+#[Fillable([
+    'category_id',
+    'parent_id',
+    'type',
+    'name',
+    'slug',
+    'description',
+    'status',
+    'searchable',
+    'rankable',
+])]
+class Entity extends Model
+{
+    /** @use HasFactory<EntityFactory> */
+    use HasFactory;
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'type' => EntityType::class,
+            'status' => EntityStatus::class,
+            'searchable' => 'boolean',
+            'rankable' => 'boolean',
+        ];
+    }
+
+    /**
+     * Get the category that this entity belongs to.
+     *
+     * @return BelongsTo<Category, $this>
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Get the parent entity (e.g. brand for a product/service).
+     *
+     * @return BelongsTo<Entity, $this>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    /**
+     * Get the child entities (e.g. products or services of a brand).
+     *
+     * @return HasMany<Entity, $this>
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id');
+    }
+
+    /**
+     * Get the aliases associated with this entity.
+     *
+     * @return HasMany<EntityAlias, $this>
+     */
+    public function aliases(): HasMany
+    {
+        return $this->hasMany(EntityAlias::class);
+    }
+
+    /**
+     * Scope query to only active entities.
+     *
+     * @param  Builder<$this>  $query
+     * @return Builder<$this>
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('status', EntityStatus::Active);
+    }
+
+    /**
+     * Scope query to only searchable entities.
+     *
+     * @param  Builder<$this>  $query
+     * @return Builder<$this>
+     */
+    public function scopeSearchable(Builder $query): Builder
+    {
+        return $query->where('searchable', true);
+    }
+
+    /**
+     * Scope query to only rankable entities.
+     *
+     * @param  Builder<$this>  $query
+     * @return Builder<$this>
+     */
+    public function scopeRankable(Builder $query): Builder
+    {
+        return $query->where('rankable', true);
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory(): EntityFactory
+    {
+        return EntityFactory::new();
+    }
+}
