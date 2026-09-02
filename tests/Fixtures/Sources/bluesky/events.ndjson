@@ -1,0 +1,2 @@
+{"did":"did:plc:example","time_us":1788256800000000,"kind":"commit","commit":{"operation":"create","collection":"app.bsky.feed.post","rkey":"3jzpost","record":{"$type":"app.bsky.feed.post","text":"VPS Biznet Gio stabil dan murah","createdAt":"2026-09-01T10:00:00Z"}}}
+{"did":"did:plc:example","time_us":1788256801000000,"kind":"commit","commit":{"operation":"create","collection":"app.bsky.feed.post","rkey":"3jzother","record":{"$type":"app.bsky.feed.post","text":"Hari ini cuacanya cerah","createdAt":"2026-09-01T10:01:00Z"}}}

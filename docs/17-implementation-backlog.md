@@ -133,6 +133,15 @@ first depending on YouTube quota approval or KASKUS's stricter runtime preflight
 **Definition of done:** all four adapters reach `healthy` in a preflight check; each produces at
 least one `CandidateOpinion` against a live fixture entity within a scheduled backfill run.
 
+**Implementation status (verified 2 September 2026):** complete locally against real PostgreSQL/
+Redis. All four adapters reach `healthy` preflight and produce at least one `CandidateOpinion`
+against fixtures, never live network (`docs/22`); exclusion rules are enforced, not just claimed —
+`DiskusiWebHostingAdapter` drops offers/WTS threads, `SerayaMotorAdapter` is scoped to its named
+sub-forums, `BlueskyAdapter` filters the Jetstream firehose by normalized entity alias. A gap found
+and fixed during this pass: `IndoForumAdapter` fell back to crawling any numeric forum ID not on
+its allowlist instead of rejecting it — `discover()` now filters `forum_ids` through
+`FORUM_PATHS` before building a request, with a regression test.
+
 ## Epic 6 - Source adapters wave 2
 
 5. `KaskusAdapter` — public thread pages only; runtime preflight is authoritative, no
@@ -162,6 +171,25 @@ or explicit `policy_disabled` reason) before it is turned on for backfill.
 **Definition of done:** classifier precision/recall on the curated set meets a documented
 threshold (record the number when first measured — this doc does not fix one); a job replay
 against the same fixture batch produces zero duplicate observations.
+
+**Implementation status (verified 2 September 2026, partial per `docs/18`'s Phase 3 scope):**
+complete locally against real PostgreSQL/Redis for the pieces Phase 3 requires. `EntityMatcher`
+picks the longest textual match and rejects equal-length ambiguity, so a brand match never
+cascades to a service observation (confirmed with the "IDCloudHost" vs. "VPS IDCloudHost" case);
+mentions without an evaluation, and mentions with an unresolved entity, are written to
+`unmatched_mentions` (never a best-guess entity) with a reason code and no PII stored;
+`UpsertSentimentObservationJob` is idempotent on `(entity_id, source_item_id)`, confirmed against
+live Postgres (`UniqueConstraintViolationException` on a raw duplicate insert). A gap found and
+fixed during this pass: the classifier had never actually been evaluated against `docs/22`'s
+Indonesian test set as this Definition of Done requires — added a 16-example curated set covering
+formal/slang/typo/mixed-English/emoji/negation/sarcasm, **measured accuracy 16/16**. That
+evaluation also exposed a real bug — emoji-only sentiment (e.g. a bare "👍") always returned null
+because `TextNormalizer::normalize()` stripped emoji before the classifier saw them — fixed by
+matching a small positive/negative emoji set against raw text pre-normalization. Typo and sarcasm
+remain honest, tested ceilings (typo → null, no wrong guess; sarcasm → neutral, lexical terms
+cancel out), not defects — closing them needs real NLP and is out of this epic's scope. LLM
+fallback for ambiguous candidates (`docs/10`) is not implemented — deferred, not required until
+ambiguous-candidate volume justifies it.
 
 ## Epic 8 - Public score
 

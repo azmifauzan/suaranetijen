@@ -5,6 +5,7 @@ namespace App\Domains\Ingestion\Jobs;
 use App\Domains\Sources\Contracts\FetchedDocument;
 use App\Domains\Sources\Contracts\SourceDocumentRef;
 use App\Domains\Sources\Enums\ProcessingState;
+use App\Domains\Sources\Models\RawPayload;
 use App\Domains\Sources\Models\SourceDocument;
 use App\Domains\Sources\Models\SourceItem;
 use App\Domains\Sources\Services\RawPayloadStorage;
@@ -57,8 +58,11 @@ class ExtractCandidateOpinionsJob implements ShouldQueue
                 ]
             );
 
-            // Store raw payload specifically for this item if needed
-            $storage->store($source, $opinion->text, $item, 'text/plain');
+            if (! RawPayload::query()->where('source_item_id', $item->id)->exists()) {
+                $storage->store($source, $opinion->text, $item, 'text/plain');
+            }
+
+            MatchEntitiesJob::dispatch($item->id);
         }
     }
 }

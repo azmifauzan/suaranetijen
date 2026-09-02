@@ -36,16 +36,25 @@ class SentimentAggregator
 
         $score = ScoreCalculator::calculate($positive, $neutral, $negative);
 
-        return SentimentDaily::updateOrCreate(
-            ['entity_id' => $entityId, 'date' => $dateStr],
-            [
-                'positive_count' => $positive,
-                'neutral_count' => $neutral,
-                'negative_count' => $negative,
-                'opinion_count' => $total,
-                'score' => $score,
-            ]
-        );
+        $daily = SentimentDaily::query()
+            ->where('entity_id', $entityId)
+            ->whereDate('date', $dateStr)
+            ->first();
+
+        $daily ??= new SentimentDaily([
+            'entity_id' => $entityId,
+            'date' => $dateStr,
+        ]);
+
+        $daily->fill([
+            'positive_count' => $positive,
+            'neutral_count' => $neutral,
+            'negative_count' => $negative,
+            'opinion_count' => $total,
+            'score' => $score,
+        ])->save();
+
+        return $daily;
     }
 
     /**

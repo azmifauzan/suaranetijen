@@ -6,7 +6,8 @@ Search-first public sentiment index for Indonesia. Search a brand, product, or s
 whether public conversation about it leans positive or negative.
 
 **Baseline:** 2 September 2026 · **Market:** Indonesia · **Status:** Phase 0 (foundation), Phase 1
-(search), and Phase 2 (sentiment substrate) verified locally against PostgreSQL/Redis
+(search), Phase 2 (sentiment substrate), and Phase 3 (first observations, this branch) verified
+locally against PostgreSQL/Redis
 
 ## Product definition
 
@@ -92,10 +93,11 @@ composer ci:check    # npm check + vue-tsc + test
 
 ## Current implementation status
 
-**Phase 0 (foundation), Phase 1 (search), and Phase 2 (sentiment substrate)** are implemented and
-verified against real PostgreSQL and Redis, not just SQLite tests. Admin access uses an
-authenticated `access-admin` Gate, non-admin users receive 403, the ~200-entity seed CSV imports
-cleanly (209 entities), and local lint, static analysis, and tests pass.
+**Phase 0 (foundation), Phase 1 (search), Phase 2 (sentiment substrate), and Phase 3 (first
+observations)** are implemented and verified against real PostgreSQL and Redis, not just SQLite
+tests. Admin access uses an authenticated `access-admin` Gate, non-admin users receive 403, the
+~200-entity seed CSV imports cleanly (209 entities), and local lint, static analysis, and tests
+pass.
 
 Search (`/`, `/search`, `GET /api/search`) implements PRD acceptance criteria 1 and 2 — typo and
 multi-word matching — verified against live seed data. One tracked gap: full-text search on
@@ -114,6 +116,20 @@ reading `examples/score-config.yaml` — now sourced from `config/scoring.php`
 (`SCORING_PUBLIC_MIN_OPINIONS`, `SCORING_RANKING_MIN_OPINIONS`, `SCORING_FORMULA_VERSION` env
 overrides).
 
+Epic 5 (source adapters wave 1) and the Phase-3 slice of Epic 7 (entity matching, relevance,
+sentiment) implement `docs/17`'s Definition of Done: `DiskusiWebHostingAdapter`,
+`SerayaMotorAdapter`, `IndoForumAdapter`, and `BlueskyAdapter` all reach `healthy` preflight and
+produce at least one `CandidateOpinion` against fixtures (never live network, per `docs/22`);
+`EntityMatcher` never lets a brand match cascade to a service observation; unresolved or
+non-evaluative mentions go to `unmatched_mentions`, never a best-guess entity;
+`UpsertSentimentObservationJob` is idempotent on `(entity_id, source_item_id)`, confirmed live on
+Postgres. Two gaps were found and fixed during this verification pass: `IndoForumAdapter` didn't
+actually enforce its forum-ID allowlist (any numeric ID would still crawl); and the sentiment
+classifier had never been evaluated against `docs/22`'s Indonesian test set as the Epic 7 DoD
+requires — now measured at 16/16 on a curated formal/slang/typo/mixed-English/emoji/negation/
+sarcasm set, which also surfaced and fixed an emoji-stripping bug that made emoji-only sentiment
+always return null.
+
 The `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, and `Sentiment` domain modules are
 present. Themes, public scores, and first-party ratings will be implemented in subsequent phases.
 Implementation order lives in `docs/17-implementation-backlog.md`.
@@ -127,7 +143,7 @@ Phases and epic mapping match `docs/18-roadmap.md`.
 | 0. Foundation | 0, 1 | Done |
 | 1. Findability | 2 | Done |
 | 2. Sentiment substrate | 3, 4 | Done |
-| 3. First observations | 5, 7 (partial) | Not started |
+| 3. First observations | 5, 7 (partial) | Done |
 | 4. Public score | 8, 12 | Not started |
 | 5. Coverage expansion | 6 | Not started |
 | 6. First-party rating | 9 | Not started |
