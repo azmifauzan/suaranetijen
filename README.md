@@ -6,8 +6,8 @@ Search-first public sentiment index for Indonesia. Search a brand, product, or s
 whether public conversation about it leans positive or negative.
 
 **Baseline:** 2 September 2026 · **Market:** Indonesia · **Status:** Phase 0 (foundation), Phase 1
-(search), Phase 2 (sentiment substrate), and Phase 3 (first observations, this branch) verified
-locally against PostgreSQL/Redis
+(search), Phase 2 (sentiment substrate), Phase 3 (first observations), and Phase 4 (public score)
+verified locally against PostgreSQL/Redis
 
 ## Product definition
 
@@ -93,11 +93,11 @@ composer ci:check    # npm check + vue-tsc + test
 
 ## Current implementation status
 
-**Phase 0 (foundation), Phase 1 (search), Phase 2 (sentiment substrate), and Phase 3 (first
-observations)** are implemented and verified against real PostgreSQL and Redis, not just SQLite
-tests. Admin access uses an authenticated `access-admin` Gate, non-admin users receive 403, the
-~200-entity seed CSV imports cleanly (209 entities), and local lint, static analysis, and tests
-pass.
+**Phase 0 (foundation), Phase 1 (search), Phase 2 (sentiment substrate), Phase 3 (first
+observations), and Phase 4 (public score)** are implemented and verified against real PostgreSQL
+and Redis, not just SQLite tests. Admin access uses an authenticated `access-admin` Gate,
+non-admin users receive 403, the ~200-entity seed CSV imports cleanly (209 entities), and local
+lint, static analysis, and tests pass.
 
 Search (`/`, `/search`, `GET /api/search`) implements PRD acceptance criteria 1 and 2 — typo and
 multi-word matching — verified against live seed data. One tracked gap: full-text search on
@@ -130,9 +130,21 @@ requires — now measured at 16/16 on a curated formal/slang/typo/mixed-English/
 sarcasm set, which also surfaced and fixed an emoji-stripping bug that made emoji-only sentiment
 always return null.
 
-The `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, and `Sentiment` domain modules are
-present. Themes, public scores, and first-party ratings will be implemented in subsequent phases.
-Implementation order lives in `docs/17-implementation-backlog.md`.
+Epic 8 (public score) and Epic 12 (Top Suara Netijen) implement `docs/17`'s Definition of Done:
+PRD acceptance criteria 3-4, 8, 11, and 12 pass — score only shown at >= 30 opinions, deterministic
+recomputation from raw counts (60/20/20 -> 70.0), `/top/{slug}` reuses the Epic 3 ranking query
+unchanged (score desc, opinion_count desc, name asc, no popularity bonus), no `AggregateRating`
+schema.org markup, and Top Suara Netijen shows theme frequency with the correct empty-state copy
+below threshold, no numeric per-theme score. A gap was found and fixed during this pass:
+`ThemeExtractor` derived a theme's sentiment purely from its canonical-key suffix with no negation
+handling, mis-stamping negated mentions (e.g. "servernya gak cepat sama sekali") as positive —
+fixed with an Indonesian negation-marker check. **Known gap, not fixed here:** no `noindex`
+mechanism exists anywhere in the app for below-threshold entities (`docs/13`) — app-wide
+SEO-infrastructure work, tracked for Epic 10.
+
+The `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment`, and `Themes` domain
+modules are present. First-party ratings will be implemented in a subsequent phase. Implementation
+order lives in `docs/17-implementation-backlog.md`.
 
 ### Phase status
 
@@ -144,7 +156,7 @@ Phases and epic mapping match `docs/18-roadmap.md`.
 | 1. Findability | 2 | Done |
 | 2. Sentiment substrate | 3, 4 | Done |
 | 3. First observations | 5, 7 (partial) | Done |
-| 4. Public score | 8, 12 | Not started |
+| 4. Public score | 8, 12 | Done |
 | 5. Coverage expansion | 6 | Not started |
 | 6. First-party rating | 9 | Not started |
 | 7. Public launch readiness | 10, 11 | Not started |

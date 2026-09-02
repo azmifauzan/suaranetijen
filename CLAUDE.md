@@ -344,8 +344,8 @@ upsert, threshold eligibility, and cursor parsing. Detail: `docs/22-testing-stra
 ## Current implementation status
 
 **Phase 0 (foundation), Phase 1 (findability / Epic 2 search), Phase 2 (sentiment substrate /
-Epic 3 + 4), and Phase 3 (first observations / Epic 5 + Epic 7 partial, this branch) are
-implemented and verified against a real PostgreSQL + Redis instance**, not just
+Epic 3 + 4), Phase 3 (first observations / Epic 5 + Epic 7 partial), and Phase 4 (public score /
+Epic 8 + 12) are implemented and verified against a real PostgreSQL + Redis instance**, not just
 SQLite tests: PostgreSQL/Redis are the repository's default connections, Horizon is configured
 with the four documented supervisor groups, `/admin` is protected by the authenticated
 `access-admin` Gate, the ~200-entity seed CSV imports cleanly (209 entities after adding a
@@ -414,6 +414,27 @@ First-observations implementation notes (Epic 5 + Epic 7 partial, verified 2 Sep
   defects. LLM fallback for ambiguous candidates (`docs/10`) is not implemented — deferred until
   ambiguous-candidate volume justifies it.
 
+Public score implementation notes (Epic 8 + Epic 12, verified 2 September 2026):
+- PRD acceptance criteria 3-4, 8, 11, 12 pass: score only surfaced at >= 30 opinions, score is
+  deterministically recomputable from raw aggregate counts (60/20/20 -> 70.0), `/top/{slug}` and
+  `GET /api/categories/{slug}/ranking` reuse `SentimentRankingService::getRanking()` unchanged
+  (score desc, opinion_count desc, name asc, no popularity bonus), no `AggregateRating` schema.org
+  markup anywhere, and Top Suara Netijen shows the correct empty-state copy
+  ("Belum cukup opini untuk merangkum Suara Netijen") below threshold, never a padded/empty list.
+- `theme_observations`'s unique `(entity_id, theme_id, source_item_id)` constraint keeps
+  `UpsertThemeObservationJob` idempotent, confirmed live on Postgres; theme frequency counts match
+  a hand-computed check exactly (5 "cepat" / 3 "murah" observations).
+- Epic 12 thresholds live in `config/themes.php` (`THEMES_MIN_ENTITY_OPINIONS`,
+  `THEMES_MIN_THEME_OCCURRENCES`, `THEMES_DEFAULT_LIMIT`), same pattern as `config/scoring.php`.
+- **Gap found and fixed during this verification pass:** `ThemeExtractor::determineSentimentForTheme()`
+  derived a theme's sentiment purely from its canonical-key suffix with no negation handling, so a
+  negated mention ("servernya gak cepat sama sekali") was mis-stamped positive — fixed with an
+  Indonesian negation-marker window check that flips theme-name-derived polarity when negated.
+- **Known gap, not fixed here:** no `noindex` meta-tag mechanism exists anywhere in the app for
+  entities below the public-score threshold (`docs/13`: "entities under threshold may be
+  noindex; do not ship thin pages"). This is app-wide SEO-infrastructure work, not an Epic 8/12
+  logic bug — tracked for Epic 10 (UX / SEO).
+
 Current implementation boundary:
 
 | Target per docs | Repository today |
@@ -427,9 +448,12 @@ Current implementation boundary:
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
 | Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter`, `SerayaMotorAdapter`, `IndoForumAdapter`, `BlueskyAdapter` implemented and verified against fixtures; wave 2 (Kaskus/YouTube/LowEndTalk, Epic 6) not implemented |
 | Entity matching, relevance, sentiment classifier (Epic 7) | implemented and verified for the Phase 3 slice; LLM fallback for ambiguous candidates not implemented |
+| Public score (Epic 8) | implemented and verified against real PostgreSQL |
+| Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds |
 | Scoring/ranking thresholds | `config/scoring.php`, mirrors `examples/score-config.yaml` |
+| `noindex` for below-threshold entities (`docs/13`) | not implemented — tracked gap (Epic 10) |
 | Google OAuth / email magic link (`docs/12`) | Fortify password + 2FA |
-| `app/Domains/*` modules | `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment` present; `Themes`, `Rankings`, `Ratings`, `Moderation` not implemented |
+| `app/Domains/*` modules | `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment`, `Themes` present; ranking stays in `Sentiment`; `Rankings`, `Ratings`, `Moderation` not implemented as separate modules |
 
 The repository's `.env.example` now carries the PostgreSQL + Redis baseline. Tests retain isolated
 SQLite/array/sync defaults (with the trigram shim above) unless an explicit integration run
