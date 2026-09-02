@@ -182,6 +182,13 @@ PRD acceptance criteria 3-4 and 8 pass (`PublicScoreThresholdTest`, `CategoryRan
 score is only surfaced at >= 30 opinions, score is deterministically recomputable from aggregate
 counts (60/20/20 -> 70.0), and ranking on `/top/{slug}` and `GET /api/categories/{slug}/ranking`
 uses score desc, opinion_count desc, name asc without popularity bonus, excluding entities below 100 opinions.
+Re-verified in a fresh isolated Postgres/Redis run: `/top/{slug}` reuses
+`SentimentRankingService::getRanking()` unchanged (zero drift from Epic 3), thresholds read
+`config/scoring.php` (no reintroduced hard-coded constants), and no `AggregateRating` schema.org
+markup is emitted anywhere. **Known gap, not fixed here:** no `noindex` meta-tag mechanism exists
+anywhere in the app for entities below the public-score threshold — an app-wide SEO-infrastructure
+gap (`docs/13`'s "entities under threshold may be noindex; do not ship thin pages"), not a narrow
+Epic 8 logic bug. Belongs to Epic 10 (UX / SEO).
 
 ## Epic 12 - Top Suara Netijen (theme index)
 
@@ -215,7 +222,16 @@ PRD acceptance criteria 11-12 pass (`TopThemesThresholdTest`, `ThemeDataModelTes
 inflation; below-threshold entities (< 30 opinions or < 3 occurrences per theme) show the empty-state
 copy "Belum cukup opini untuk merangkum Suara Netijen" rather than a padded or empty list;
 Top 5 themes and positive/negative groups ("Netijen Paling Suka" and "Paling Sering Dikeluhkan")
-display frequency observation counts without numeric per-theme scores.
+display frequency observation counts without numeric per-theme scores. Re-verified in a fresh
+isolated Postgres run, including a hand-computed frequency check (5 "cepat" / 3 "murah"
+observations matching the snapshot exactly) and idempotency of `UpsertThemeObservationJob` on
+`(entity_id, theme_id, source_item_id)`, confirmed live. A gap found and fixed during this pass:
+`ThemeExtractor::determineSentimentForTheme()` derived a theme's sentiment purely from its
+canonical-key suffix, with no negation handling — a negated mention ("servernya gak cepat sama
+sekali") was mis-stamped positive, feeding directly into the "Netijen Paling Suka" vs.
+"Paling Sering Dikeluhkan" split. Fixed with an Indonesian negation-marker window check that flips
+theme-name-derived polarity when negated (context/fallback-derived sentiment untouched, since
+Epic 7's classifier already handles negation at the opinion level).
 
 ## Epic 9 - Rating Netijen
 

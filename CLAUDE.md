@@ -343,15 +343,17 @@ upsert, threshold eligibility, and cursor parsing. Detail: `docs/22-testing-stra
 
 ## Current implementation status
 
-**Phase 0 (foundation), Phase 1 (findability / Epic 2 search), and Phase 2 (sentiment substrate /
-Epic 3 + 4) are implemented and verified against a real PostgreSQL + Redis instance**, not just
+**Phase 0 (foundation), Phase 1 (findability / Epic 2 search), Phase 2 (sentiment substrate /
+Epic 3 + 4), and Phase 4 (public score / Epic 8 + 12, this branch) are implemented and verified
+against a real PostgreSQL + Redis instance**, not just
 SQLite tests: PostgreSQL/Redis are the repository's default connections, Horizon is configured
 with the four documented supervisor groups, `/admin` is protected by the authenticated
 `access-admin` Gate, the ~200-entity seed CSV imports cleanly (209 entities after adding a
 placeholder `Samsung Galaxy A57` product purely to satisfy `docs/02` acceptance criterion 1 —
 Samsung has not released that model), and PRD acceptance criteria 1 and 2 (`samsng a57` -> Samsung
 Galaxy A57; `vps biznet` -> VPS Biznet Gio and Biznet Gio) pass against live data. This project
-does not use a GitHub Actions workflow; run the quality gates locally (`composer test`).
+does not use a GitHub Actions workflow; run the quality gates locally (`composer test`). This
+branch does not include Phase 3 (Epic 5/7), which is developed on a sibling branch.
 
 Search implementation notes:
 - `SearchService` covers `docs/13`'s exact / alias / prefix / trigram / category-context tiers,
@@ -389,6 +391,27 @@ Sentiment substrate implementation notes (Epic 3 + 4, verified 2 September 2026)
   `SCORING_FORMULA_VERSION` env overrides); `tests/Unit` now boots the Laravel app (no
   `RefreshDatabase`) so plain-class unit tests can call `config()`.
 
+Public score implementation notes (Epic 8 + Epic 12, verified 2 September 2026):
+- PRD acceptance criteria 3-4, 8, 11, 12 pass: score only surfaced at >= 30 opinions, score is
+  deterministically recomputable from raw aggregate counts (60/20/20 -> 70.0), `/top/{slug}` and
+  `GET /api/categories/{slug}/ranking` reuse `SentimentRankingService::getRanking()` unchanged
+  (score desc, opinion_count desc, name asc, no popularity bonus), no `AggregateRating` schema.org
+  markup anywhere, and Top Suara Netijen shows the correct empty-state copy
+  ("Belum cukup opini untuk merangkum Suara Netijen") below threshold, never a padded/empty list.
+- `theme_observations`'s unique `(entity_id, theme_id, source_item_id)` constraint keeps
+  `UpsertThemeObservationJob` idempotent, confirmed live on Postgres; theme frequency counts match
+  a hand-computed check exactly (5 "cepat" / 3 "murah" observations).
+- Epic 12 thresholds live in `config/themes.php` (`THEMES_MIN_ENTITY_OPINIONS`,
+  `THEMES_MIN_THEME_OCCURRENCES`, `THEMES_DEFAULT_LIMIT`), same pattern as `config/scoring.php`.
+- **Gap found and fixed during this verification pass:** `ThemeExtractor::determineSentimentForTheme()`
+  derived a theme's sentiment purely from its canonical-key suffix with no negation handling, so a
+  negated mention ("servernya gak cepat sama sekali") was mis-stamped positive — fixed with an
+  Indonesian negation-marker window check that flips theme-name-derived polarity when negated.
+- **Known gap, not fixed here:** no `noindex` meta-tag mechanism exists anywhere in the app for
+  entities below the public-score threshold (`docs/13`: "entities under threshold may be
+  noindex; do not ship thin pages"). This is app-wide SEO-infrastructure work, not an Epic 8/12
+  logic bug — tracked for Epic 10 (UX / SEO).
+
 Current implementation boundary:
 
 | Target per docs | Repository today |
@@ -399,10 +422,13 @@ Current implementation boundary:
 | `pg_trgm` search | implemented and verified against real PostgreSQL |
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
-| Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis; only `FakeSourceAdapter` exists, no real source adapter yet (Epic 5/6) |
+| Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis; only `FakeSourceAdapter` exists, no real source adapter yet (Epic 5/6, sibling branch) |
+| Public score (Epic 8) | implemented and verified against real PostgreSQL |
+| Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds |
 | Scoring/ranking thresholds | `config/scoring.php`, mirrors `examples/score-config.yaml` |
+| `noindex` for below-threshold entities (`docs/13`) | not implemented — tracked gap (Epic 10) |
 | Google OAuth / email magic link (`docs/12`) | Fortify password + 2FA |
-| `app/Domains/*` modules | `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment` present; `Themes`, `Rankings`, `Ratings`, `Moderation` not implemented |
+| `app/Domains/*` modules | `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment` present; `Themes` implemented (this branch, ranking stays in `Sentiment`); `Rankings`, `Ratings`, `Moderation` not implemented as separate modules |
 
 The repository's `.env.example` now carries the PostgreSQL + Redis baseline. Tests retain isolated
 SQLite/array/sync defaults (with the trigram shim above) unless an explicit integration run

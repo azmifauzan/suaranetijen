@@ -47,6 +47,21 @@ test('ThemeExtractor extracts multiple themes and sentiments from opinion text p
         ->and($slowItem['sentiment'])->toBe(SentimentClass::Negative);
 });
 
+test('ThemeExtractor flips theme sentiment when the mention is negated', function () {
+    $normalizer = new ThemeNormalizer;
+    $normalizer->seedDefaultThemes();
+
+    $extractor = new ThemeExtractor($normalizer);
+
+    // "gak cepat" negates the otherwise-positive "cepat" (speed_fast) theme.
+    $extracted = $extractor->extract('Servernya gak cepat sama sekali, mengecewakan.');
+
+    $fastItem = collect($extracted)->firstWhere('theme.canonical_key', 'speed_fast');
+
+    expect($fastItem)->not->toBeNull()
+        ->and($fastItem['sentiment'])->toBe(SentimentClass::Negative);
+});
+
 test('ThemeExtractor collapses multiple synonyms in the same text into one theme observation', function () {
     $normalizer = new ThemeNormalizer;
     $normalizer->seedDefaultThemes();
