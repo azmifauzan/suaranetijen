@@ -5,8 +5,8 @@
 Search-first public sentiment index for Indonesia. Search a brand, product, or service and see
 whether public conversation about it leans positive or negative.
 
-**Baseline:** 2 September 2026 · **Market:** Indonesia · **Status:** Epic 0 verified locally; Epic 1
-implementation is present
+**Baseline:** 2 September 2026 · **Market:** Indonesia · **Status:** Phase 0 (foundation) and
+Phase 1 (search) verified locally against PostgreSQL/Redis
 
 ## Product definition
 
@@ -87,13 +87,19 @@ composer ci:check    # npm check + vue-tsc + test
 
 ## Current implementation status
 
-Epic 0 is implemented and locally verified against PostgreSQL and Redis. Admin access uses an
-authenticated `access-admin` Gate, non-admin users receive 403, and local lint, static analysis,
-and tests pass against PostgreSQL/Redis.
+**Phase 0 (foundation) and Phase 1 (search)** are implemented and verified against real
+PostgreSQL and Redis, not just SQLite tests. Admin access uses an authenticated `access-admin`
+Gate, non-admin users receive 403, the ~200-entity seed CSV imports cleanly (209 entities), and
+local lint, static analysis, and tests pass.
 
-The `Admin` and `Entities` domain modules are present. Sources, ingestion, sentiment, rankings,
-ratings, and the remaining roadmap modules are not implemented yet. Implementation order lives
-in `docs/17-implementation-backlog.md`.
+Search (`/`, `/search`, `GET /api/search`) implements PRD acceptance criteria 1 and 2 — typo and
+multi-word matching — verified against live seed data. One tracked gap: full-text search on
+name/category/description (`docs/13`, ADR-004) is not implemented, only `pg_trgm` similarity,
+exact/prefix matching, and token-based matching.
+
+The `Admin`, `Entities`, and `Search` domain modules are present. Sources, ingestion, sentiment,
+rankings, ratings, and the remaining roadmap modules are not implemented yet. Implementation
+order lives in `docs/17-implementation-backlog.md`.
 
 ## Documentation
 

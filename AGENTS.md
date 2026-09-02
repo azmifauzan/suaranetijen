@@ -336,9 +336,33 @@ upsert, threshold eligibility, and cursor parsing. Detail: `docs/22-testing-stra
 
 ## Current implementation status
 
-Epic 0 is implemented and locally verified: PostgreSQL/Redis are the repository defaults, Horizon
-is configured, and `/admin` is protected by the authenticated `access-admin` Gate. This project
-does not use a GitHub Actions workflow; run the quality gates locally.
+**Phase 0 (foundation) and Phase 1 (findability / Epic 2 search) are implemented and verified
+against a real PostgreSQL + Redis instance**, not just SQLite tests: PostgreSQL/Redis are the
+repository's default connections, Horizon is configured with the four documented supervisor
+groups, `/admin` is protected by the authenticated `access-admin` Gate, the ~200-entity seed CSV
+imports cleanly (209 entities after adding a placeholder `Samsung Galaxy A57` product purely to
+satisfy `docs/02` acceptance criterion 1 — Samsung has not released that model), and PRD
+acceptance criteria 1 and 2 (`samsng a57` -> Samsung Galaxy A57; `vps biznet` -> VPS Biznet Gio
+and Biznet Gio) pass against live data. This project does not use a GitHub Actions workflow; run
+the quality gates locally (`composer test`).
+
+Search implementation notes:
+- `SearchService` covers `docs/13`'s exact / alias / prefix / trigram / category-context tiers,
+  plus a `browse` tier (name-ordered listing, no query text) so `/search` and a homepage category
+  card have something to show before the user types anything.
+- **Known gap against `docs/13` and ADR-004:** full-text search (FTS) on name/category/description
+  is not implemented — only `pg_trgm` similarity, exact/prefix matching, and LIKE-based token
+  matching. ADR-004 commits to "`pg_trgm` + FTS"; only the first half exists. Low risk for the
+  current short entity names, but description-heavy or stemmed queries will under-match. Track
+  this as a fast-follow inside Epic 2, not something to build silently as a side effect of an
+  unrelated change.
+- `pg_trgm` runs against real PostgreSQL; the test suite additionally shims `similarity()` /
+  `greatest()` as SQLite functions (`TrigramSimilarity::registerSqliteFunctions()`) so the same
+  `SearchService` SQL is exercised in CI without a Postgres dependency. Trust the live-Postgres
+  verification over the SQLite-shimmed test run for anything trigram-ranking-specific.
+- Autocomplete and live search-as-you-type only fire below a 2-character query, and the
+  autocomplete preview and the `/search` page are distinct log paths — noise below that length
+  would otherwise dominate the `search_queries` growth-loop log `docs/23` depends on.
 
 Current implementation boundary:
 
@@ -347,11 +371,14 @@ Current implementation boundary:
 | PostgreSQL | default runtime connection; full suite verified locally |
 | Redis queue, cache, locks, rate limits | default runtime drivers; verified locally |
 | Horizon supervisors | four documented supervisor groups configured and started locally |
+| `pg_trgm` search | implemented and verified against real PostgreSQL |
+| FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
 | Google OAuth / email magic link (`docs/12`) | Fortify password + 2FA |
-| `app/Domains/*` modules | `Admin` and `Entities` present; later domains not implemented |
+| `app/Domains/*` modules | `Admin`, `Entities`, `Search` present; later domains not implemented |
 
 The repository's `.env.example` now carries the PostgreSQL + Redis baseline. Tests retain isolated
-SQLite/array/sync defaults unless an explicit integration run overrides them.
+SQLite/array/sync defaults (with the trigram shim above) unless an explicit integration run
+overrides them.
 
 ## Document map
 

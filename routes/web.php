@@ -1,9 +1,20 @@
 <?php
 
 use App\Domains\Entities\Controllers\EntityShowController;
+use App\Domains\Entities\Models\Category;
+use App\Domains\Search\Controllers\Api\SearchController;
+use App\Domains\Search\Controllers\SearchPageController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::get('/', function () {
+    return Inertia::render('Welcome', [
+        'categories' => Category::active()->orderBy('name')->get(['id', 'name', 'slug']),
+    ]);
+})->name('home');
+
+Route::get('/search', [SearchPageController::class, 'index'])->name('search.index');
+Route::get('/api/search', [SearchController::class, 'index'])->name('api.search');
 
 Route::get('/e/{slug}', [EntityShowController::class, 'show'])->name('entities.show');
 
