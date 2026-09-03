@@ -5,9 +5,10 @@
 Search-first public sentiment index for Indonesia. Search a brand, product, or service and see
 whether public conversation about it leans positive or negative.
 
-**Baseline:** 2 September 2026 · **Market:** Indonesia · **Status:** Phase 0 (foundation), Phase 1
-(search), Phase 2 (sentiment substrate), Phase 3 (first observations), Phase 4 (public score), and
-Phase 5 (coverage expansion) verified locally against PostgreSQL/Redis
+**Baseline:** 3 September 2026 · **Market:** Indonesia · **Status:** Phase 0 (foundation), Phase 1
+(search), Phase 2 (sentiment substrate), Phase 3 (first observations), Phase 4 (public score),
+Phase 5 (coverage expansion), and Phase 6 (first-party rating) verified locally against
+PostgreSQL/Redis
 
 ## Product definition
 
@@ -94,9 +95,9 @@ composer ci:check    # npm check + vue-tsc + test
 ## Current implementation status
 
 **Phase 0 (foundation), Phase 1 (search), Phase 2 (sentiment substrate), Phase 3 (first
-observations), Phase 4 (public score), and Phase 5 (coverage expansion)** are implemented and
-verified against real PostgreSQL and Redis, not just SQLite tests. Admin access uses an
-authenticated `access-admin` Gate,
+observations), Phase 4 (public score), Phase 5 (coverage expansion), and Phase 6 (first-party
+rating)** are implemented and verified against real PostgreSQL and Redis, not just SQLite tests.
+Admin access uses an authenticated `access-admin` Gate,
 non-admin users receive 403, the ~200-entity seed CSV imports cleanly (209 entities), and local
 lint, static analysis, and tests pass.
 
@@ -154,9 +155,19 @@ during this pass: `KaskusAdapter` and `LowEndTalkAdapter` both accept an operato
 neighboring `forum_ids`/`category_urls` allowlists, an absolute URL on any host would have been
 crawled as-is. Fixed with a shared `isSameHost()` guard on `AbstractHttpSourceAdapter`.
 
-The `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment`, and `Themes` domain
-modules are present. First-party ratings will be implemented in a subsequent phase. Implementation
-order lives in `docs/17-implementation-backlog.md`.
+Epic 9 (Rating Netijen) implements `docs/17`'s Definition of Done: `PUT`/`DELETE
+/api/entities/{id}/rating` upsert on `(user_id, entity_id)`, never insert-only, with
+`RatingAggregator` recomputing `rating_snapshots` synchronously on every write and a regression
+test confirming rating writes never alter `sentiment_snapshots` (ADR-007/011). `docs/12`'s minimum
+anti-abuse list (auth, rate limit, CSRF, unique constraint, burst logging, account ban) is
+implemented; a gap was found and fixed during this pass — "account ban/admin disable" was the one
+item from that list with no implementation at all, so `users.is_banned` was added and enforced in
+the rating request's `authorize()`. No admin UI toggles the flag yet (Epic 11's admin views cover
+crawl/source operations, not users). The unique constraint was confirmed to reject a duplicate
+insert with `UniqueConstraintViolationException` live on Postgres.
+
+The `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment`, `Themes`, and `Ratings`
+domain modules are present. Implementation order lives in `docs/17-implementation-backlog.md`.
 
 ### Phase status
 
@@ -170,7 +181,7 @@ Phases and epic mapping match `docs/18-roadmap.md`.
 | 3. First observations | 5, 7 (partial) | Done |
 | 4. Public score | 8, 12 | Done |
 | 5. Coverage expansion | 6 | Done |
-| 6. First-party rating | 9 | Not started |
+| 6. First-party rating | 9 | Done |
 | 7. Public launch readiness | 10, 11 | Not started |
 
 ## Documentation
