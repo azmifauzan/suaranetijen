@@ -34,6 +34,7 @@ class UserFactory extends Factory
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
             'is_admin' => false,
+            'is_banned' => false,
         ];
     }
 
@@ -44,6 +45,16 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_admin' => true,
+        ]);
+    }
+
+    /**
+     * Indicate that the user has been banned from contributing.
+     */
+    public function banned(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_banned' => true,
         ]);
     }
 

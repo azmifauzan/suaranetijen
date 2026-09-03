@@ -355,6 +355,14 @@ Samsung has not released that model), and PRD acceptance criteria 1 and 2 (`sams
 Galaxy A57; `vps biznet` -> VPS Biznet Gio and Biznet Gio) pass against live data. This project
 does not use a GitHub Actions workflow; run the quality gates locally (`composer test`).
 
+**Phase 6 (Rating Netijen / Epic 9) is implemented and verified against a real PostgreSQL
+instance** (155/155 tests passing, pint clean), same bar as Phase 0-5: migrations
+(`user_ratings`, `rating_snapshots`, `users.is_banned`) run cleanly against live Postgres, and the
+`(user_id, entity_id)` unique constraint was confirmed to reject a duplicate insert with
+`UniqueConstraintViolationException` on live Postgres, not just SQLite. Redis was not running
+during this verification pass, so the Redis-dependent parts of the suite (`SourceRateLimiter` etc.,
+unrelated to Ratings) were not re-exercised here — that was already verified live in Phase 2/4.
+
 Search implementation notes:
 - `SearchService` covers `docs/13`'s exact / alias / prefix / trigram / category-context tiers,
   plus a `browse` tier (name-ordered listing, no query text) so `/search` and a homepage category
@@ -453,6 +461,42 @@ Coverage expansion implementation notes (Epic 6, verified 2 September 2026):
   `AbstractHttpSourceAdapter::isSameHost()` guard applied in both adapters' `documentRef()`, with a
   regression test per adapter (`WaveTwoAdapterTest`).
 
+Rating Netijen implementation notes (Epic 9, reviewed 3 September 2026):
+- `UserRating` (unique `(user_id, entity_id)`) and `RatingSnapshot` (`Ratings` domain) implement
+  the `docs/12` upsert model: `PUT /api/entities/{id}/rating` upserts via
+  `updateOrCreate(['user_id', 'entity_id'])` so a second submission replaces the first rather than
+  logging a new row, `DELETE` removes the contribution, and `RatingAggregator::refresh()`
+  recomputes `rating_count`/`rating_average` synchronously on every write — satisfying PRD
+  acceptance criterion 7 (`RatingEndpointTest`). The unique constraint was confirmed live on
+  PostgreSQL (`UniqueConstraintViolationException` on a raw duplicate insert), not just SQLite.
+- `rating.updated`/`rating.deleted` are logged per write and never touch `sentiment_observations`
+  or `sentiment_snapshots` — confirmed by a regression test that submits a rating and asserts the
+  entity's existing `SentimentSnapshot` row is byte-for-byte unchanged, enforcing ADR-007/011's
+  "the three metrics are never merged".
+- Anti-abuse minimums from `docs/12` are covered: `auth` + `throttle:ratings` (10/min, keyed by
+  user id, IP fallback for guests) on the route group, the `web` middleware group's CSRF applies
+  to `routes/web.php` by default, the DB-level unique constraint blocks duplicate contributions,
+  and every write and every 429 is logged (`rating.updated`/`rating.deleted`/`rating.rate_limited`).
+  No text review/report workflow exists, matching `docs/12`'s explicit MVP scope-out.
+- The entity page (`resources/js/pages/Entities/Show.vue`) shows "Rating Netijen" as its own card,
+  never merged with Sentimen Netijen, never says "verified rating" (`docs/12`), and prompts a guest
+  to log in rather than rendering a disabled control.
+- **Gap found and fixed during this review:** `docs/12`'s minimum anti-abuse list includes
+  "account ban/admin disable" alongside rate limiting and CSRF — the other four items were
+  implemented but this one was entirely missing, so a banned user had no way to be stopped from
+  rating even after a burst/anomaly log flagged them. Added `users.is_banned` (migration + cast +
+  `User::isBanned()`, mirroring the existing `is_admin` pattern) and wired it into
+  `StoreRatingRequest::authorize()` so a banned user gets 403 on new/updated ratings, with a
+  regression test (`RatingEndpointTest`). No admin UI toggles it yet — Epic 11's admin
+  moderation views don't cover users, only crawl/source operations — so today it's set directly
+  (e.g. via `tinker` or a seeder), same MVP posture as the rest of Epic 9.
+- **Known gap, not fixed here:** `docs/12`'s auth options are "Google OAuth or email magic link";
+  this repo reuses the existing Fortify password + 2FA guard for ratings, same already-tracked
+  deviation noted for the rest of the app (see the boundary table below) — not something to
+  special-case for ratings alone.
+- Existing gaps flagged for other epics remain open and unrelated to this review: no `noindex`
+  meta-tag mechanism (Epic 10) and no FTS (Epic 2, ADR-004).
+
 Current implementation boundary:
 
 | Target per docs | Repository today |
@@ -471,8 +515,10 @@ Current implementation boundary:
 | Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds |
 | Scoring/ranking thresholds | `config/scoring.php`, mirrors `examples/score-config.yaml` |
 | `noindex` for below-threshold entities (`docs/13`) | not implemented — tracked gap (Epic 10) |
+| Rating Netijen (Epic 9) | implemented and verified against real PostgreSQL (unique-constraint rejection confirmed live) |
+| Rating anti-abuse minimums (`docs/12`) | auth, rate limit, CSRF, unique constraint, burst/anomaly logging, and account ban all implemented; ban has no admin UI yet |
 | Google OAuth / email magic link (`docs/12`) | Fortify password + 2FA |
-| `app/Domains/*` modules | `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment`, `Themes` present; ranking stays in `Sentiment`; `Rankings`, `Ratings`, `Moderation` not implemented as separate modules |
+| `app/Domains/*` modules | `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment`, `Themes`, `Ratings` present; ranking stays in `Sentiment`; `Rankings` and `Moderation` not implemented as separate modules |
 
 The repository's `.env.example` now carries the PostgreSQL + Redis baseline. Tests retain isolated
 SQLite/array/sync defaults (with the trigram shim above) unless an explicit integration run

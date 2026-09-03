@@ -2,6 +2,7 @@
 
 use App\Domains\Entities\Controllers\EntityShowController;
 use App\Domains\Entities\Models\Category;
+use App\Domains\Ratings\Controllers\Api\RatingController;
 use App\Domains\Search\Controllers\Api\SearchController;
 use App\Domains\Search\Controllers\SearchPageController;
 use App\Domains\Sentiment\Controllers\Api\CategoryRankingController;
@@ -21,6 +22,11 @@ Route::get('/api/search', [SearchController::class, 'index'])->name('api.search'
 Route::get('/e/{slug}', [EntityShowController::class, 'show'])->name('entities.show');
 Route::get('/top/{slug}', [TopRankingController::class, 'show'])->name('rankings.show');
 Route::get('/api/categories/{slug}/ranking', [CategoryRankingController::class, 'index'])->name('api.categories.ranking');
+
+Route::middleware(['auth', 'throttle:ratings'])->group(function (): void {
+    Route::put('/api/entities/{entity}/rating', [RatingController::class, 'update'])->name('api.entities.rating.update');
+    Route::delete('/api/entities/{entity}/rating', [RatingController::class, 'destroy'])->name('api.entities.rating.destroy');
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');

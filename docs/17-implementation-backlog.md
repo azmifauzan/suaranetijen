@@ -287,6 +287,23 @@ Epic 7's classifier already handles negation at the opinion level).
 **Definition of done:** acceptance criterion 7 from `docs/02` PRD passes (star rating is an
 upsert, not an insert-only log); rating never influences `sentiment_snapshots` in any code path.
 
+**Implementation status (reviewed 3 September 2026):** complete and verified against a real
+PostgreSQL instance (155/155 tests, `(user_id, entity_id)` unique constraint confirmed to reject a
+duplicate insert with `UniqueConstraintViolationException` live, not just SQLite). PRD acceptance
+criterion 7 passes: `PUT /api/entities/{id}/rating` upserts on
+`(user_id, entity_id)` and `DELETE` removes the contribution, both recomputing
+`rating_snapshots` synchronously through `RatingAggregator`; a regression test confirms rating
+writes never alter an entity's existing `sentiment_snapshots` row. Anti-abuse: `auth` +
+`throttle:ratings` (10/min), the `web` group's CSRF, a DB-level unique constraint, and
+`rating.updated`/`rating.deleted`/`rating.rate_limited` logging are all in place. Continues to
+reuse Fortify password + 2FA instead of `docs/12`'s Google OAuth/magic-link options — an
+already-tracked, app-wide deviation, not new to this epic. **Gap found and fixed during this
+review:** `docs/12`'s minimum anti-abuse list also requires "account ban/admin disable", which had
+no implementation at all — added `users.is_banned` and enforced it in
+`StoreRatingRequest::authorize()` (403 for a banned user), with a regression test. No admin UI
+exists yet to toggle the flag; that's Epic 11-adjacent user-moderation scope, not required by this
+epic's DoD.
+
 ## Epic 10 - UX / SEO
 
 - Homepage: search input, trending searches, popular categories, top-sentiment entities,

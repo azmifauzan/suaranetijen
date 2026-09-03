@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, useHttp } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { login } from '@/routes';
+import { destroy as deleteRating, update as updateRating } from '@/routes/api/entities/rating';
 
 interface CategoryData {
     id: number;
@@ -71,6 +74,20 @@ interface ThemesData {
     negative_themes: ThemeItem[];
 }
 
+interface RatingData {
+    rating_count: number;
+    rating_average: number | null;
+    user_rating: number | null;
+}
+
+interface RatingMutationResponse {
+    data: {
+        rating: number | null;
+        rating_count: number;
+        rating_average: number | null;
+    };
+}
+
 interface RelatedEntity {
     id: number;
     name: string;
@@ -84,9 +101,15 @@ const props = defineProps<{
     period: string;
     availablePeriods: string[];
     sentiment: SentimentData;
+    rating: RatingData;
     themes: ThemesData;
     relatedEntities: RelatedEntity[];
 }>();
+
+const ratingData = ref<RatingData>({ ...props.rating });
+const ratingForm = useHttp<{ rating: number }, RatingMutationResponse>({
+    rating: props.rating.user_rating ?? 0,
+});
 
 const periodLabels: Record<string, string> = {
     '30d': '30 Hari',
@@ -98,6 +121,62 @@ const periodLabels: Record<string, string> = {
 function switchPeriod(p: string) {
     router.get(`/e/${props.entity.slug}`, { period: p }, { preserveScroll: true });
 }
+
+function updateRatingData(response: RatingMutationResponse): void {
+    ratingData.value = {
+        rating_count: response.data.rating_count,
+        rating_average: response.data.rating_average,
+        user_rating: response.data.rating,
+    };
+    ratingForm.rating = response.data.rating ?? 0;
+}
+
+async function submitRating(): Promise<void> {
+    if (ratingForm.rating < 1 || ratingForm.rating > 5) {
+        return;
+    }
+
+    ratingForm.clearErrors();
+    try {
+        await ratingForm.put(updateRating.url(props.entity.id), {
+            onSuccess: updateRatingData,
+            onHttpException: (response) => {
+                ratingForm.setError(
+                    'rating',
+                    response.status === 429
+                        ? 'Terlalu banyak percobaan rating. Coba lagi nanti.'
+                        : 'Rating gagal disimpan. Coba lagi.',
+                );
+            },
+        });
+    } catch {
+        if (!ratingForm.hasErrors) {
+            ratingForm.setError('rating', 'Rating gagal disimpan. Coba lagi.');
+        }
+    }
+}
+
+async function removeRating(): Promise<void> {
+    ratingForm.clearErrors();
+    try {
+        await ratingForm.delete(deleteRating.url(props.entity.id), {
+            onSuccess: updateRatingData,
+            onHttpException: (response) => {
+                ratingForm.setError(
+                    'rating',
+                    response.status === 429
+                        ? 'Terlalu banyak percobaan rating. Coba lagi nanti.'
+                        : 'Rating gagal dihapus. Coba lagi.',
+                );
+            },
+        });
+    } catch {
+        if (!ratingForm.hasErrors) {
+            ratingForm.setError('rating', 'Rating gagal dihapus. Coba lagi.');
+        }
+    }
+}
+
 </script>
 
 <template>
@@ -305,6 +384,131 @@ function switchPeriod(p: string) {
                     <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                         {{ sentiment.empty_state_message || 'Crawler opini publik belum mengumpulkan minimal 30 opini netijen untuk entitas ini. Skor agregat publik akan dihitung otomatis saat pipeline observasi aktif.' }}
                     </p>
+                </div>
+            </div>
+
+            <!-- Rating Netijen Card -->
+            <div
+                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8 dark:border-neutral-800 dark:bg-neutral-900"
+            >
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <h2
+                            class="text-lg font-bold text-neutral-900 dark:text-neutral-100"
+                        >
+                            Rating Netijen
+                        </h2>
+                        <p
+                            class="mt-1 text-xs text-neutral-500 dark:text-neutral-400"
+                        >
+                            Rating dari pengguna SuaraNetijen, terpisah dari
+                            Sentimen Netijen.
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-black text-amber-500">
+                            <template v-if="ratingData.rating_average !== null">
+                                {{ ratingData.rating_average.toFixed(1) }}
+                            </template>
+                            <span v-else>—</span>
+                            <span class="text-base font-medium text-neutral-400"
+                                >/5</span
+                            >
+                        </div>
+                        <div
+                            class="text-xs text-neutral-500 dark:text-neutral-400"
+                        >
+                            {{ ratingData.rating_count.toLocaleString() }}
+                            rating
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    v-if="$page.props.auth.user"
+                    class="mt-6 border-t border-neutral-100 pt-5 dark:border-neutral-800"
+                >
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-4"
+                    >
+                        <div>
+                            <div
+                                id="rating-label"
+                                class="text-sm font-semibold text-neutral-800 dark:text-neutral-200"
+                            >
+                                {{
+                                    ratingData.user_rating === null
+                                        ? 'Beri rating Anda'
+                                        : 'Rating Anda'
+                                }}
+                            </div>
+                            <div
+                                role="group"
+                                aria-labelledby="rating-label"
+                                class="mt-2 flex gap-1"
+                            >
+                                <button
+                                    v-for="star in 5"
+                                    :key="star"
+                                    type="button"
+                                    class="flex h-10 w-10 items-center justify-center rounded-lg text-2xl transition-colors focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                    :class="
+                                        star <= ratingForm.rating
+                                            ? 'text-amber-500'
+                                            : 'text-neutral-300 dark:text-neutral-600'
+                                    "
+                                    :aria-label="`Beri rating ${star} dari 5`"
+                                    :aria-pressed="star === ratingForm.rating"
+                                    @click="ratingForm.rating = star"
+                                >
+                                    ★
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                class="min-h-10 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+                                :disabled="
+                                    ratingForm.processing ||
+                                    ratingForm.rating < 1
+                                "
+                                @click="submitRating"
+                            >
+                                {{
+                                    ratingForm.processing
+                                        ? 'Menyimpan...'
+                                        : 'Simpan rating'
+                                }}
+                            </button>
+                            <button
+                                v-if="ratingData.user_rating !== null"
+                                type="button"
+                                class="min-h-10 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                                :disabled="ratingForm.processing"
+                                @click="removeRating"
+                            >
+                                Hapus rating
+                            </button>
+                        </div>
+                    </div>
+                    <p
+                        v-if="ratingForm.errors.rating"
+                        class="mt-2 text-xs text-rose-600 dark:text-rose-400"
+                    >
+                        {{ ratingForm.errors.rating }}
+                    </p>
+                </div>
+                <div
+                    v-else
+                    class="mt-6 border-t border-neutral-100 pt-5 text-sm text-neutral-600 dark:border-neutral-800 dark:text-neutral-300"
+                >
+                    <Link
+                        :href="login()"
+                        class="font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
+                    >
+                        Masuk untuk memberi rating
+                    </Link>
                 </div>
             </div>
 

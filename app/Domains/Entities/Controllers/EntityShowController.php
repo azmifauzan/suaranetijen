@@ -3,6 +3,7 @@
 namespace App\Domains\Entities\Controllers;
 
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Ratings\Models\UserRating;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Domains\Sentiment\Services\ScoreCalculator;
@@ -25,7 +26,7 @@ class EntityShowController extends Controller
     {
         /** @var Entity $entity */
         $entity = Entity::query()
-            ->with(['category', 'parent', 'aliases'])
+            ->with(['category', 'parent', 'aliases', 'ratingSnapshot'])
             ->where('slug', $slug)
             ->active()
             ->firstOrFail();
@@ -96,6 +97,13 @@ class EntityShowController extends Controller
             ->limit(4)
             ->get(['id', 'name', 'slug', 'type']);
 
+        $userRating = $request->user()
+            ? UserRating::query()
+                ->whereBelongsTo($entity)
+                ->where('user_id', $request->user()->getAuthIdentifier())
+                ->value('rating')
+            : null;
+
         return Inertia::render('Entities/Show', [
             'entity' => [
                 'id' => $entity->id,
@@ -125,6 +133,15 @@ class EntityShowController extends Controller
             'period' => $selectedPeriod->value,
             'availablePeriods' => array_map(fn (Period $p) => $p->value, Period::cases()),
             'sentiment' => $sentimentData,
+            'rating' => [
+                'rating_count' => $entity->ratingSnapshot
+                    ? (int) $entity->ratingSnapshot->rating_count
+                    : 0,
+                'rating_average' => $entity->ratingSnapshot?->rating_average === null
+                    ? null
+                    : (float) $entity->ratingSnapshot->rating_average,
+                'user_rating' => $userRating === null ? null : (int) $userRating,
+            ],
             'themes' => $themesData,
             'relatedEntities' => $relatedEntities->map(fn (Entity $e) => [
                 'id' => $e->id,

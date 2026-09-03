@@ -4,6 +4,8 @@ namespace App\Domains\Entities\Models;
 
 use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Enums\EntityType;
+use App\Domains\Ratings\Models\RatingSnapshot;
+use App\Domains\Ratings\Models\UserRating;
 use Database\Factories\EntityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -31,6 +34,8 @@ use Illuminate\Support\Carbon;
  * @property-read Entity|null $parent
  * @property-read Collection<int, Entity> $children
  * @property-read Collection<int, EntityAlias> $aliases
+ * @property-read Collection<int, UserRating> $ratings
+ * @property-read RatingSnapshot|null $ratingSnapshot
  */
 #[Fillable([
     'category_id',
@@ -101,6 +106,26 @@ class Entity extends Model
     public function aliases(): HasMany
     {
         return $this->hasMany(EntityAlias::class);
+    }
+
+    /**
+     * Get the first-party ratings for this entity.
+     *
+     * @return HasMany<UserRating, $this>
+     */
+    public function ratings(): HasMany
+    {
+        return $this->hasMany(UserRating::class);
+    }
+
+    /**
+     * Get the current first-party rating snapshot.
+     *
+     * @return HasOne<RatingSnapshot, $this>
+     */
+    public function ratingSnapshot(): HasOne
+    {
+        return $this->hasOne(RatingSnapshot::class);
     }
 
     /**
