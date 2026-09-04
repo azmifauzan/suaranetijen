@@ -20,7 +20,14 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Domains/Admin/Commands',
     ])
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->trustProxies(at: '*');
+        // Trust only RFC1918 private ranges: the app always sits behind an
+        // Nginx reverse proxy on a private Docker network, never exposed
+        // directly to the public internet.
+        $middleware->trustProxies(at: [
+            '10.0.0.0/8',
+            '172.16.0.0/12',
+            '192.168.0.0/16',
+        ]);
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
