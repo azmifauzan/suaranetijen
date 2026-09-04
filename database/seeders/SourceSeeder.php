@@ -44,6 +44,13 @@ class SourceSeeder extends Seeder
                 'name' => 'Bluesky',
                 'adapter' => 'bluesky',
                 'source_type' => SourceType::Social,
+                // Disabled: Jetstream (jetstream2.us-east.bsky.network/subscribe) is a
+                // WebSocket-only firehose. BlueskyAdapter::discover() issues a plain HTTP
+                // GET, which the server rejects with 400 Bad Request — confirmed against
+                // the live endpoint (2026-09-04). Adapter tests only covered fixture data,
+                // never the real WebSocket handshake, so this never surfaced before. Needs
+                // a proper WebSocket client / persistent listener before re-enabling.
+                'enabled' => false,
                 'crawl_policy' => ['rate_limit_per_minute' => 30],
                 'retention_policy' => ['raw_ttl_hours' => 24],
             ],

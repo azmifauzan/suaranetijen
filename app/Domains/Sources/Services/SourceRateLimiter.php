@@ -2,9 +2,9 @@
 
 namespace App\Domains\Sources\Services;
 
+use App\Domains\Sources\Exceptions\RateLimitExceededException;
 use App\Domains\Sources\Models\Source;
 use Illuminate\Support\Facades\RateLimiter;
-use RuntimeException;
 
 class SourceRateLimiter
 {
@@ -29,8 +29,7 @@ class SourceRateLimiter
         );
 
         if ($executed === false) {
-            $availableIn = RateLimiter::availableIn($limiterKey);
-            throw new RuntimeException("Rate limit exceeded for source [{$source->key}]. Try again in {$availableIn} seconds.");
+            throw new RateLimitExceededException($source->key, RateLimiter::availableIn($limiterKey));
         }
 
         return $executed;

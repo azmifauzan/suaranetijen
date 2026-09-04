@@ -5,6 +5,7 @@ namespace App\Domains\Ingestion\Jobs;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Sources\Contracts\CrawlCursor;
 use App\Domains\Sources\Enums\DocumentState;
+use App\Domains\Sources\Exceptions\RateLimitExceededException;
 use App\Domains\Sources\Models\CrawlState;
 use App\Domains\Sources\Models\IngestionFailure;
 use App\Domains\Sources\Models\Source;
@@ -14,17 +15,33 @@ use App\Domains\Sources\Services\SourceRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
+use RuntimeException;
 use Throwable;
 
 class DiscoverSourceDocumentsJob implements ShouldQueue
 {
-    use Queueable;
+    use InteractsWithQueue, Queueable;
+
+    /**
+     * Allow enough attempts for rate-limit backoff cycles: each self-imposed
+     * throttle hit releases the job rather than failing it permanently.
+     */
+    public int $tries = 5;
 
     public function __construct(
         public Source $source,
         public string $cursorKey = 'default'
     ) {
         $this->queue = 'discovery';
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function backoff(): array
+    {
+        return [10, 30, 60, 120];
     }
 
     public function handle(SourceRegistry $registry, SourceRateLimiter $rateLimiter): void
@@ -115,9 +132,23 @@ class DiscoverSourceDocumentsJob implements ShouldQueue
                     'metadata' => $batch->nextCursor->metadata,
                 ]);
             }
+        } catch (RateLimitExceededException $e) {
+            $this->release($e->retryAfterSeconds);
         } catch (Throwable $e) {
-            IngestionFailure::record($source->id, 'discovery', $e);
             throw $e;
         }
+    }
+
+    /**
+     * Called once the job is definitively done retrying (genuine error after
+     * all attempts, or rate-limit backoff exhausted its attempt budget).
+     */
+    public function failed(?Throwable $exception): void
+    {
+        IngestionFailure::record(
+            $this->source->id,
+            'discovery',
+            $exception ?? new RuntimeException('Unknown discovery failure')
+        );
     }
 }
