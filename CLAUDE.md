@@ -556,19 +556,101 @@ Public launch readiness implementation notes (Epic 10 + 11, verified 4 September
   48px-min search inputs) rather than a live Lighthouse/browser run — do a manual pass before
   launch.
 
+**Staging deployment (4 September 2026):** first deploy to a real external environment —
+`https://suaranetijen.web.id`, a shared Docker host (nginx-proxy + certbot, shared PostgreSQL,
+own Redis per app) alongside other unrelated apps. Deploying for real (not just `composer test`
+against local Postgres/Redis) surfaced six bugs that no test run had caught:
+
+1. `config/horizon.php`'s `environments` map had no `staging` key (only `production`/`local`) —
+   `php artisan horizon` would have thrown "no environment matched". Added a `staging` entry
+   mirroring `local`'s minimal overrides.
+2. The repository had no `Dockerfile` at all. Added `Dockerfile` (`php:8.5-apache`, Node build
+   stage for Vite/Wayfinder, `composer install` + `npm run build` in one stage),
+   `.dockerignore`, and `docker-entrypoint.sh` (caches config/routes/views on boot, then execs
+   the container's command — same image serves the app, Horizon, and the scheduler via
+   different `command:` overrides in `docker-compose.yml` on the server).
+3. `bootstrap/app.php` never called `trustProxies()`, so the app ignored `X-Forwarded-Proto`
+   from the staging Nginx reverse proxy and rendered `http://` asset/preload links on an
+   `https://` page. Fixed, then a background security review flagged the first fix
+   (`trustProxies(at: '*')`) as trusting spoofable headers from *any* client — narrowed to
+   RFC1918 private ranges only, matching the app's actual deployment (always behind a proxy on
+   a private Docker network, never directly internet-facing). Regression test:
+   `tests/Feature/TrustedProxyTest.php`.
+4. **Crawler self-rate-limiting caused permanent job failures, not backoff.** First observed
+   when `DiskusiWebHostingAdapter` hit its own 30/min limit right after a discovery burst: 21 of
+   ~22 fetches died permanently, because `SourceRateLimiter` threw a generic `RuntimeException`
+   that `FetchSourceDocumentJob` caught and logged as a permanent `IngestionFailure` — combined
+   with Horizon's `tries: 1` default, a self-imposed throttle was indistinguishable from a real
+   adapter error. Fixed in two passes: (a) a dedicated `RateLimitExceededException` plus
+   `release()`/`tries: 5`/backoff — insufficient once `LowEndTalkAdapter` was enabled and a
+   single discovery run queued 102 fetches against its 10/min limit (53 still died with
+   `MaxAttemptsExceededException`, since 5 attempts' worth of backoff couldn't cover a 102-item
+   backlog); (b) rate-limit hits now `delete()` the current attempt and redispatch a fresh job
+   instance with the limiter's exact retry-after delay, up to 30 bounces, entirely decoupled
+   from the genuine-error `$tries` budget. Regression tests:
+   `tests/Feature/Ingestion/RateLimitRetryTest.php` (recovery and exhaustion paths for both
+   `FetchSourceDocumentJob` and `DiscoverSourceDocumentsJob`).
+5. **`BlueskyAdapter` cannot work as written.** Confirmed live: Jetstream
+   (`jetstream2.us-east.bsky.network/subscribe`) is a WebSocket-only firehose; the adapter's
+   `discover()` issues a plain HTTP GET, which the server rejects with `400 Bad Request`. This
+   never surfaced in Epic 5's fixture-based tests because fixtures mock a normal HTTP response,
+   never the real WebSocket handshake. Disabled in `SourceSeeder` (was seeded `enabled: true`)
+   with the root cause recorded in a comment. Needs a proper WebSocket client / persistent
+   listener process before re-enabling — a different job shape than the poll-every-30-minutes
+   `DiscoverSourceDocumentsJob` pattern the rest of the adapters use, out of scope for this pass.
+6. **`KaskusAdapter` cannot work as written either**, for a different reason: `kaskus.co.id`'s
+   search page is a Next.js app whose SSR payload ships an empty fallback cache (`"fallback":{}`)
+   — results load client-side only, so a plain HTML GET's thread-link parser (`~/thread/~i`)
+   always finds zero results, independent of query, robots.txt, or preflight health (which
+   reports `healthy` since it only checks reachability, not content). It was already seeded
+   `enabled: false`; the fix here is just recording the confirmed root cause in `SourceSeeder`
+   so it isn't re-investigated later as "maybe just needs a selector fix". Needs the site's
+   underlying JSON API (if publicly reachable) or a JS-rendering fetcher.
+
+Also verified live and **not** bugs, despite looking like ones at first: `IndoForumAdapter` and
+`DiskusiWebHostingAdapter` produced source items that were 100% `unmatched_mentions`
+(`entity_not_resolved`) in the first crawl cycle — manually replayed several raw payloads through
+the real adapters' `extract()` and confirmed the text genuinely doesn't mention any of the
+209-seed entities (forum intros, general "any Virtualizor outage?" chatter, etc.) — `EntityMatcher`
+correctly discarding rather than guessing, per the precision-over-recall standing constraint.
+
+`YouTubeAdapter` and `LowEndTalkAdapter` were enabled for the first time this session (both were
+seeded `enabled: false` pending exactly this kind of live operator check, per Epic 6's DoD). A
+dedicated GCP project (`suaranetijen`) and an API-restricted key
+(`suaranetijen-staging-youtube`, scoped to YouTube Data API v3 only) were created for
+`YOUTUBE_API_KEY`. Both now run clean against live data: `sentiment_observations` went from 0 to
+307 in this session, `source_items` to ~12k (YouTube's per-video comment pagination — up to
+`YOUTUBE_MAX_COMMENT_PAGES=3` pages per video — accounts for most of that volume).
+
+**Known gap, not fully diagnosed:** the `analysis` queue grew faster than `supervisor-analysis`'s
+single worker (staging's Horizon env mirrors `local`'s minimal 1-process default) could drain it
+— observed ~2.8k → ~3.9k pending in a few minutes, ~4.3k at last check. Most likely explanation is
+legitimate volume (YouTube's comment fan-out landing all at once), not a retry storm — `failed_jobs`
+at the same time contained only pre-fix rate-limit/discovery errors, nothing from the `analysis`
+queue. Not confirmed either way; worth another look once the backlog has had time to fully drain,
+and worth raising `supervisor-analysis` `maxProcesses` for the `staging` Horizon environment if it
+doesn't keep up going forward.
+
+**Process note for future staging redeploys:** this session's redeploys used
+`docker compose up -d` / `--force-recreate`, which hard-kills the Horizon container instead of
+draining it — `php artisan horizon:terminate` (Horizon's documented graceful-restart command)
+inside the running container before recreating it would let in-flight jobs finish instead of
+being interrupted and requeued. Not done consistently this session; worth scripting into whatever
+deploy step replaces manual `docker compose pull && up -d` next.
+
 Current implementation boundary:
 
 | Target per docs | Repository today |
 |---|---|
 | PostgreSQL | default runtime connection; full suite verified locally |
 | Redis queue, cache, locks, rate limits | default runtime drivers; verified locally |
-| Horizon supervisors | four documented supervisor groups configured and started locally |
+| Horizon supervisors | four documented supervisor groups configured and started locally and on staging (`config/horizon.php` now has a `staging` environment entry) |
 | `pg_trgm` search | implemented and verified against real PostgreSQL |
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
-| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter`, `SerayaMotorAdapter`, `IndoForumAdapter`, `BlueskyAdapter` implemented and verified against fixtures |
-| Wave-2 adapters (Epic 6) | `KaskusAdapter`, `YouTubeAdapter`, `LowEndTalkAdapter` implemented and verified against fixtures; seeded `enabled: false` pending a live operator preflight |
+| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter`, `SerayaMotorAdapter`, `IndoForumAdapter` live and producing real observations on staging; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
+| Wave-2 adapters (Epic 6) | `YouTubeAdapter` and `LowEndTalkAdapter` enabled and verified against live staging traffic; `KaskusAdapter` stays `enabled: false` — kaskus.co.id search is client-rendered (Next.js, empty SSR fallback), needs its JSON API or a JS-rendering fetcher |
 | Entity matching, relevance, sentiment classifier (Epic 7) | implemented and verified for the Phase 3 slice; LLM fallback for ambiguous candidates not implemented |
 | Public score (Epic 8) | implemented and verified against real PostgreSQL |
 | Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds |
@@ -581,6 +663,8 @@ Current implementation boundary:
 | Admin operations diagnostics + replay, source kill switch (Epic 11) | implemented and verified; every recorded `IngestionFailure` also surfaces in Horizon's failed jobs |
 | Encrypted backups + restore verification, ops alerting (Epic 11, `docs/16`) | `backup:database` (daily + monthly `--verify`) and `monitor:metrics` (every 15 min) scheduled; local disk only, no off-host copy; alerting covers queue/job/crawl/parser metrics only, not the full `docs/16` list |
 | `app/Domains/*` modules | `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment`, `Themes`, `Ratings` present; ranking stays in `Sentiment`; `Rankings` and `Moderation` not implemented as separate modules |
+| Docker deploy artifacts | `Dockerfile`, `.dockerignore`, `docker-entrypoint.sh` added; image built locally and pushed to Docker Hub (`azmifauzan/suaranetijen`), staging server pulls and runs via its own `docker-compose.yml` (not in this repo) |
+| Staging environment | live at `https://suaranetijen.web.id`; see staging deployment notes above for the bugs found and fixed getting there |
 
 The repository's `.env.example` now carries the PostgreSQL + Redis baseline. Tests retain isolated
 SQLite/array/sync defaults (with the trigram shim above) unless an explicit integration run
