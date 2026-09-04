@@ -24,14 +24,21 @@ class DiscoverSourceDocumentsJob implements ShouldQueue
     use InteractsWithQueue, Queueable;
 
     /**
-     * Allow enough attempts for rate-limit backoff cycles: each self-imposed
-     * throttle hit releases the job rather than failing it permanently.
+     * Genuine-error retry budget. Rate-limit hits are handled separately (see
+     * $rateLimitBounces) so competing fetch jobs on the same source can't
+     * exhaust this budget before discovery ever gets its turn.
      */
     public int $tries = 5;
 
+    /**
+     * Rate-limit bounces before giving up and recording a permanent failure.
+     */
+    private const MAX_RATE_LIMIT_BOUNCES = 30;
+
     public function __construct(
         public Source $source,
-        public string $cursorKey = 'default'
+        public string $cursorKey = 'default',
+        public int $rateLimitBounces = 0
     ) {
         $this->queue = 'discovery';
     }
@@ -133,15 +140,31 @@ class DiscoverSourceDocumentsJob implements ShouldQueue
                 ]);
             }
         } catch (RateLimitExceededException $e) {
-            $this->release($e->retryAfterSeconds);
+            if ($this->rateLimitBounces >= self::MAX_RATE_LIMIT_BOUNCES) {
+                IngestionFailure::record(
+                    $source->id,
+                    'discovery',
+                    $e,
+                    null,
+                    null,
+                    ['rate_limit_bounces_exhausted' => true]
+                );
+
+                return;
+            }
+
+            // Requeue as a fresh job rather than release(): this keeps rate-limit
+            // backoff off the genuine-error retry budget ($tries) entirely.
+            $this->delete();
+            self::dispatch($this->source, $this->cursorKey, $this->rateLimitBounces + 1)
+                ->delay(now()->addSeconds($e->retryAfterSeconds));
         } catch (Throwable $e) {
             throw $e;
         }
     }
 
     /**
-     * Called once the job is definitively done retrying (genuine error after
-     * all attempts, or rate-limit backoff exhausted its attempt budget).
+     * Called once a genuine error exhausts its retry budget.
      */
     public function failed(?Throwable $exception): void
     {

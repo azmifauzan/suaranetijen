@@ -22,13 +22,22 @@ class FetchSourceDocumentJob implements ShouldQueue
     use InteractsWithQueue, Queueable;
 
     /**
-     * Allow enough attempts for rate-limit backoff cycles: each self-imposed
-     * throttle hit releases the job rather than failing it permanently.
+     * Genuine-error retry budget. Rate-limit hits are handled separately (see
+     * $rateLimitBounces) so a large discovery batch queued against a low
+     * rate limit doesn't exhaust this budget before its turn ever comes up.
      */
     public int $tries = 5;
 
+    /**
+     * Rate-limit bounces before giving up and recording a permanent failure.
+     * Deliberately generous: a large discovery batch against a low per-source
+     * rate limit can need many cycles before every document gets its turn.
+     */
+    private const MAX_RATE_LIMIT_BOUNCES = 30;
+
     public function __construct(
-        public SourceDocument $document
+        public SourceDocument $document,
+        public int $rateLimitBounces = 0
     ) {
         $this->queue = 'crawl';
     }
@@ -78,7 +87,27 @@ class FetchSourceDocumentJob implements ShouldQueue
             ExtractCandidateOpinionsJob::dispatch($this->document, $rawPayload->payload);
         } catch (RateLimitExceededException $e) {
             $this->document->update(['state' => DocumentState::Discovered]);
-            $this->release($e->retryAfterSeconds);
+
+            if ($this->rateLimitBounces >= self::MAX_RATE_LIMIT_BOUNCES) {
+                $this->document->update(['state' => DocumentState::Failed]);
+                IngestionFailure::record(
+                    $source->id,
+                    'fetch',
+                    $e,
+                    $this->document->id,
+                    null,
+                    ['canonical_url' => $this->document->canonical_url, 'rate_limit_bounces_exhausted' => true]
+                );
+
+                return;
+            }
+
+            // Requeue as a fresh job rather than release(): this keeps rate-limit
+            // backoff off the genuine-error retry budget ($tries) entirely, so a
+            // large discovery batch against a low rate limit can't exhaust it.
+            $this->delete();
+            self::dispatch($this->document, $this->rateLimitBounces + 1)
+                ->delay(now()->addSeconds($e->retryAfterSeconds));
         } catch (Throwable $e) {
             $this->document->update(['state' => DocumentState::Failed]);
             throw $e;
@@ -86,8 +115,7 @@ class FetchSourceDocumentJob implements ShouldQueue
     }
 
     /**
-     * Called once the job is definitively done retrying (genuine error after
-     * all attempts, or rate-limit backoff exhausted its attempt budget).
+     * Called once a genuine error exhausts its retry budget.
      */
     public function failed(?Throwable $exception): void
     {
