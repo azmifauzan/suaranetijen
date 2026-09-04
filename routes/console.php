@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 Schedule::command('sources:preflight')->daily()->withoutOverlapping();
 Schedule::command('sources:backfill')->everyThirtyMinutes()->withoutOverlapping();
+Schedule::command('backup:database')->dailyAt('02:00')->withoutOverlapping();
+Schedule::command('backup:database', ['--verify' => true])->monthlyOn(1, '03:00')->withoutOverlapping();
+Schedule::command('monitor:metrics')->everyFifteenMinutes()->withoutOverlapping();

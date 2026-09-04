@@ -5,6 +5,7 @@ namespace App\Domains\Entities\Controllers;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Ratings\Models\UserRating;
 use App\Domains\Sentiment\Enums\Period;
+use App\Domains\Sentiment\Models\SentimentDaily;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Domains\Sentiment\Services\ScoreCalculator;
 use App\Domains\Themes\Services\TopThemesService;
@@ -104,7 +105,26 @@ class EntityShowController extends Controller
                 ->value('rating')
             : null;
 
+        // Daily sentiment trend (up to 30 days)
+        $trend = SentimentDaily::query()
+            ->where('entity_id', $entity->id)
+            ->orderBy('date', 'desc')
+            ->limit(30)
+            ->get()
+            ->reverse()
+            ->values()
+            ->map(fn (SentimentDaily $d) => [
+                'date' => $d->date->format('Y-m-d'),
+                'label' => $d->date->format('d M'),
+                'score' => $d->score !== null ? (float) $d->score : null,
+                'opinion_count' => (int) $d->opinion_count,
+                'positive_count' => (int) $d->positive_count,
+                'neutral_count' => (int) $d->neutral_count,
+                'negative_count' => (int) $d->negative_count,
+            ]);
+
         return Inertia::render('Entities/Show', [
+            'trend' => $trend,
             'entity' => [
                 'id' => $entity->id,
                 'name' => $entity->name,

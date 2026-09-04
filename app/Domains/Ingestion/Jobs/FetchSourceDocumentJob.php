@@ -4,6 +4,8 @@ namespace App\Domains\Ingestion\Jobs;
 
 use App\Domains\Sources\Contracts\SourceDocumentRef;
 use App\Domains\Sources\Enums\DocumentState;
+use App\Domains\Sources\Models\IngestionFailure;
+use App\Domains\Sources\Models\Source;
 use App\Domains\Sources\Models\SourceDocument;
 use App\Domains\Sources\Services\RawPayloadStorage;
 use App\Domains\Sources\Services\SourceRateLimiter;
@@ -27,7 +29,7 @@ class FetchSourceDocumentJob implements ShouldQueue
         SourceRateLimiter $rateLimiter,
         RawPayloadStorage $storage
     ): void {
-        $source = $this->document->source;
+        $source = Source::find($this->document->source_id) ?? $this->document->source;
 
         if (! $source->enabled || ! $source->health_state->isOperational()) {
             return;
@@ -59,6 +61,14 @@ class FetchSourceDocumentJob implements ShouldQueue
             ExtractCandidateOpinionsJob::dispatch($this->document, $rawPayload->payload);
         } catch (Throwable $e) {
             $this->document->update(['state' => DocumentState::Failed]);
+            IngestionFailure::record(
+                $source->id,
+                'fetch',
+                $e,
+                $this->document->id,
+                null,
+                ['canonical_url' => $this->document->canonical_url]
+            );
             throw $e;
         }
     }

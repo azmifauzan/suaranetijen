@@ -6,6 +6,7 @@ use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Enums\EntityType;
 use App\Domains\Ratings\Models\RatingSnapshot;
 use App\Domains\Ratings\Models\UserRating;
+use App\Domains\Sentiment\Models\SentimentSnapshot;
 use Database\Factories\EntityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -126,6 +127,16 @@ class Entity extends Model
     public function ratingSnapshot(): HasOne
     {
         return $this->hasOne(RatingSnapshot::class);
+    }
+
+    /**
+     * Get the sentiment snapshots for this entity.
+     *
+     * @return HasMany<SentimentSnapshot, $this>
+     */
+    public function sentimentSnapshots(): HasMany
+    {
+        return $this->hasMany(SentimentSnapshot::class);
     }
 
     /**

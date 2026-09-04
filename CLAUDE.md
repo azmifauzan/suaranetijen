@@ -363,6 +363,15 @@ instance** (155/155 tests passing, pint clean), same bar as Phase 0-5: migration
 during this verification pass, so the Redis-dependent parts of the suite (`SourceRateLimiter` etc.,
 unrelated to Ratings) were not re-exercised here — that was already verified live in Phase 2/4.
 
+**Phase 7 (Public launch readiness / Epic 10 + 11) is implemented and verified against a real
+PostgreSQL + Redis instance** (166/166 tests passing, pint clean, phpstan clean), reviewed
+4 September 2026: `noindex` now covers below-threshold entity pages, the XML sitemap excludes
+thin entities, admin operations diagnostics (`crawl_states`, `ingestion_failures`,
+`unmatched_mentions`) with failure replay are live, the source kill switch stops
+discovery/fetch within one job run with no deploy, and encrypted daily Postgres backups plus a
+`monitor:metrics` alert command are scheduled. Three gaps were found and fixed during this
+review — see the implementation notes below.
+
 Search implementation notes:
 - `SearchService` covers `docs/13`'s exact / alias / prefix / trigram / category-context tiers,
   plus a `browse` tier (name-ordered listing, no query text) so `/search` and a homepage category
@@ -439,10 +448,8 @@ Public score implementation notes (Epic 8 + Epic 12, verified 2 September 2026):
   derived a theme's sentiment purely from its canonical-key suffix with no negation handling, so a
   negated mention ("servernya gak cepat sama sekali") was mis-stamped positive — fixed with an
   Indonesian negation-marker window check that flips theme-name-derived polarity when negated.
-- **Known gap, not fixed here:** no `noindex` meta-tag mechanism exists anywhere in the app for
-  entities below the public-score threshold (`docs/13`: "entities under threshold may be
-  noindex; do not ship thin pages"). This is app-wide SEO-infrastructure work, not an Epic 8/12
-  logic bug — tracked for Epic 10 (UX / SEO).
+- The `noindex` gap noted here (entities below the public-score threshold had no `<meta
+  name="robots">` mechanism, `docs/13`) was closed in Phase 7 (Epic 10), not in this pass.
 
 Coverage expansion implementation notes (Epic 6, verified 2 September 2026):
 - All three wave-2 adapters (`KaskusAdapter`, `YouTubeAdapter`, `LowEndTalkAdapter`) reach
@@ -494,8 +501,60 @@ Rating Netijen implementation notes (Epic 9, reviewed 3 September 2026):
   this repo reuses the existing Fortify password + 2FA guard for ratings, same already-tracked
   deviation noted for the rest of the app (see the boundary table below) — not something to
   special-case for ratings alone.
-- Existing gaps flagged for other epics remain open and unrelated to this review: no `noindex`
-  meta-tag mechanism (Epic 10) and no FTS (Epic 2, ADR-004).
+- Existing gap flagged for other epics remains open and unrelated to this review: no FTS
+  (Epic 2, ADR-004). The `noindex` gap previously listed here was closed in Phase 7 (Epic 10).
+
+Public launch readiness implementation notes (Epic 10 + 11, verified 4 September 2026):
+- `Entities/Show.vue` renders `<meta name="robots" content="noindex, follow">` when
+  `sentiment.is_eligible` is false and `index, follow` otherwise, closing the tracked SEO gap from
+  Epic 8/12 (`docs/13`). The entity page's JSON-LD only attaches `AggregateRating` when a
+  first-party `RatingSnapshot` exists, never for Sentimen Netijen (ADR-007/011).
+- `SitemapController` builds `/sitemap.xml` from active/searchable entities that clear the public
+  threshold, plus active categories/top-lists and the static trust pages — a below-threshold
+  entity never appears. `CategoryShowController` adds the `/category/{slug}` page (search/filter,
+  Top Sentimen, Most Discussed, Recently Updated) and `StaticPageController` adds `/methodology`,
+  `/sources`, `/about`, `/terms`, `/privacy`.
+- Admin operations diagnostics (`AdminOperationsController`) surface `crawl_states`,
+  `ingestion_failures`, and `unmatched_mentions` with per-item/per-failure replay, satisfying PRD
+  acceptance criterion 10 (every queue/crawler failure visible in Horizon or the admin panel) —
+  every job that records an `IngestionFailure` also rethrows, so it lands in Horizon's failed jobs
+  too. The source kill switch (`AdminSourceController::toggleStatus`) flips `sources.enabled`,
+  and `DiscoverSourceDocumentsJob`/`FetchSourceDocumentJob` both check it before doing any work, so
+  a disabled source stops within the next job run with no deploy (confirmed with `Queue::fake()`).
+- `BackupDatabaseCommand` produces an encrypted daily `pg_dump` (`storage/app/backups`, `Crypt`
+  envelope), prunes to 7 daily + 4 weekly retention, and `--verify` decrypts and sanity-checks the
+  newest backup. `CheckSystemMetricsCommand` (`monitor:metrics`) checks queue depth/age, 24h failed
+  job count, per-source crawl/preflight success rate, and 24h parse failure rate against
+  `docs/16`'s alert list, logging a warning per breach. Both are scheduled in `routes/console.php`
+  (`backup:database` daily at 02:00, `monitor:metrics` every 15 minutes).
+- **Three gaps found and fixed during this review:**
+  1. `SitemapController`'s `whereHas('sentimentSnapshots', ...)` checked threshold eligibility
+     against *any* period row, while the eager-loaded snapshot used for `lastmod` was restricted to
+     `365d`/`all` — an entity eligible only on a `30d`/`90d` snapshot (not the periods the rest of
+     the app treats as the public default, `docs/11`) could pass the `whereHas` check yet have no
+     matching eager-loaded snapshot, silently falling back to `$entity->updated_at`. Scoped
+     `whereHas` to `365d`/`all` to match the eager load and the entity page's own eligibility logic;
+     regression test added (`SitemapAndTrustPagesTest`).
+  2. `AdminOperationsController::retryFailure()` handled failures with a `source_item_id` (retries
+     `MatchEntitiesJob`) or a `source_document_id` (retries `FetchSourceDocumentJob`), but a
+     `discovery`-stage failure has neither — it was silently marked resolved with nothing
+     re-queued, misleading whoever clicked "retry". Added a fallback that re-dispatches
+     `DiscoverSourceDocumentsJob` for the failure's source; regression test added
+     (`AdminOperationsAndKillSwitchTest`).
+  3. `docs/16`'s backup requirement includes a monthly restore test; only the daily backup was
+     scheduled, with no periodic `--verify` run. Added `backup:database --verify` on a monthly
+     schedule (`routes/console.php`).
+- **Known gaps, not fixed here:** backups are written to local disk
+  (`storage/app/backups`) with no off-host copy step — acceptable for the single-VPS MVP baseline
+  in `docs/16`, but worth revisiting before scaling past one host. `monitor:metrics` covers queue
+  depth/age, job failure rate, crawl success rate, and parser failure rate from `docs/16`'s list;
+  it does not cover opinions/day, unmatched-candidate rate, classifier latency, aggregate
+  freshness, search latency, or page p95 — those need real APM/tracing rather than a console
+  command and were out of scope for this pass. Mobile usability at 360px (PRD acceptance
+  criterion 9) was checked by pattern consistency with the already-verified `Entities/Show.vue` and
+  `Top/Show.vue` layouts (same `max-w-5xl` container, `grid-cols-1` mobile-first breakpoints,
+  48px-min search inputs) rather than a live Lighthouse/browser run — do a manual pass before
+  launch.
 
 Current implementation boundary:
 
@@ -514,10 +573,13 @@ Current implementation boundary:
 | Public score (Epic 8) | implemented and verified against real PostgreSQL |
 | Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds |
 | Scoring/ranking thresholds | `config/scoring.php`, mirrors `examples/score-config.yaml` |
-| `noindex` for below-threshold entities (`docs/13`) | not implemented — tracked gap (Epic 10) |
+| `noindex` for below-threshold entities (`docs/13`) | implemented (Epic 10) — `Entities/Show.vue` sets `robots` meta from `sentiment.is_eligible` |
 | Rating Netijen (Epic 9) | implemented and verified against real PostgreSQL (unique-constraint rejection confirmed live) |
 | Rating anti-abuse minimums (`docs/12`) | auth, rate limit, CSRF, unique constraint, burst/anomaly logging, and account ban all implemented; ban has no admin UI yet |
 | Google OAuth / email magic link (`docs/12`) | Fortify password + 2FA |
+| Sitemap, category page, static trust pages (Epic 10) | implemented and verified against real PostgreSQL (below-threshold entities excluded) |
+| Admin operations diagnostics + replay, source kill switch (Epic 11) | implemented and verified; every recorded `IngestionFailure` also surfaces in Horizon's failed jobs |
+| Encrypted backups + restore verification, ops alerting (Epic 11, `docs/16`) | `backup:database` (daily + monthly `--verify`) and `monitor:metrics` (every 15 min) scheduled; local disk only, no off-host copy; alerting covers queue/job/crawl/parser metrics only, not the full `docs/16` list |
 | `app/Domains/*` modules | `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment`, `Themes`, `Ratings` present; ranking stays in `Sentiment`; `Rankings` and `Moderation` not implemented as separate modules |
 
 The repository's `.env.example` now carries the PostgreSQL + Redis baseline. Tests retain isolated

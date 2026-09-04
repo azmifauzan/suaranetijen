@@ -8,6 +8,28 @@ interface CategoryItem {
     id: number;
     name: string;
     slug: string;
+    entities_count?: number;
+}
+
+interface TopEntityItem {
+    id: number;
+    name: string;
+    slug: string;
+    type_label: string;
+    category_name: string;
+    score: number;
+    opinion_count: number;
+}
+
+interface RecentEntityItem {
+    id: number;
+    name: string;
+    slug: string;
+    type_label: string;
+    category_name: string;
+    score: number | null;
+    opinion_count: number;
+    updated_at?: string;
 }
 
 interface AutocompleteItem {
@@ -24,6 +46,8 @@ interface AutocompleteItem {
 
 defineProps<{
     categories: CategoryItem[];
+    topEntities?: TopEntityItem[];
+    recentEntities?: RecentEntityItem[];
 }>();
 
 const searchQuery = ref('');
@@ -323,19 +347,103 @@ const trendingKeywords = [
                     <Link
                         v-for="cat in categories"
                         :key="cat.id"
-                        :href="`/search?category=${cat.slug}`"
+                        :href="`/category/${cat.slug}`"
                         class="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-4 transition-all hover:border-emerald-300 hover:shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-emerald-700"
                     >
-                        <span
-                            class="text-sm font-medium text-neutral-900 dark:text-neutral-100"
-                        >
-                            {{ cat.name }}
-                        </span>
-                        <span
-                            class="mt-2 text-xs text-emerald-600 dark:text-emerald-400"
-                        >
+                        <div>
+                            <span class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                {{ cat.name }}
+                            </span>
+                            <div v-if="cat.entities_count !== undefined" class="mt-0.5 text-[11px] text-neutral-400">
+                                {{ cat.entities_count }} entitas
+                            </div>
+                        </div>
+                        <span class="mt-3 text-xs text-emerald-600 dark:text-emerald-400">
                             Jelajahi →
                         </span>
+                    </Link>
+                </div>
+            </div>
+
+            <!-- Top Sentiment Entities Section per docs/04 -->
+            <div v-if="topEntities && topEntities.length > 0" class="mt-16 w-full">
+                <div class="mb-4 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-sm font-semibold tracking-wider text-neutral-400 uppercase dark:text-neutral-500">
+                            Sentimen Tertinggi
+                        </h2>
+                        <p class="text-xs text-neutral-500">
+                            Entitas dengan sentimen positif tertinggi (minimal 30 opini dianalisis)
+                        </p>
+                    </div>
+                    <Link
+                        href="/search"
+                        class="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                    >
+                        Lihat Semua →
+                    </Link>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                    <Link
+                        v-for="item in topEntities"
+                        :key="item.id"
+                        :href="`/e/${item.slug}`"
+                        class="flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-4 transition-all hover:border-emerald-400 hover:shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+                    >
+                        <div>
+                            <div class="font-bold text-neutral-900 dark:text-neutral-100">
+                                {{ item.name }}
+                            </div>
+                            <div class="mt-1 text-xs text-neutral-400">
+                                {{ item.category_name }} • {{ item.opinion_count }} opini
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-flex items-center rounded-lg bg-emerald-100 px-2.5 py-1 text-sm font-black text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                {{ item.score }}
+                            </span>
+                        </div>
+                    </Link>
+                </div>
+            </div>
+
+            <!-- Recently Updated Entities Section per docs/04 -->
+            <div v-if="recentEntities && recentEntities.length > 0" class="mt-16 w-full">
+                <div class="mb-4 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-sm font-semibold tracking-wider text-neutral-400 uppercase dark:text-neutral-500">
+                            Pembaruan Terkini
+                        </h2>
+                        <p class="text-xs text-neutral-500">
+                            Entitas yang baru saja dianalisis oleh pipeline crawler
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                    <Link
+                        v-for="item in recentEntities"
+                        :key="item.id"
+                        :href="`/e/${item.slug}`"
+                        class="flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-4 transition-all hover:border-emerald-400 hover:shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+                    >
+                        <div>
+                            <div class="font-bold text-neutral-900 dark:text-neutral-100">
+                                {{ item.name }}
+                            </div>
+                            <div class="mt-1 text-xs text-neutral-400">
+                                {{ item.category_name }} • {{ item.opinion_count }} opini
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span v-if="item.score !== null" class="inline-flex items-center rounded-lg bg-neutral-100 px-2.5 py-1 text-xs font-bold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                                {{ item.score }}/100
+                            </span>
+                            <span v-else class="text-xs text-neutral-400">
+                                Baru
+                            </span>
+                        </div>
                     </Link>
                 </div>
             </div>
@@ -343,21 +451,22 @@ const trendingKeywords = [
 
         <!-- Footer -->
         <footer
-            class="border-t border-neutral-200 bg-white py-6 text-center text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400"
+            class="border-t border-neutral-200 bg-white py-8 text-center text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400"
         >
             <div
-                class="mx-auto flex max-w-5xl flex-col items-center justify-between gap-2 px-4 sm:flex-row sm:px-6"
+                class="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6"
             >
                 <div>
                     © 2026 SuaraNetijen. Platform Indeks Sentimen Publik
                     Indonesia.
                 </div>
-                <div class="flex items-center gap-4">
-                    <Link href="/search" class="hover:underline"
-                        >Pencarian</Link
-                    >
-                    <span>•</span>
-                    <span class="text-neutral-400">Metodologi</span>
+                <div class="flex flex-wrap items-center gap-4">
+                    <Link href="/search" class="hover:underline">Pencarian</Link>
+                    <Link href="/methodology" class="hover:underline">Metodologi</Link>
+                    <Link href="/sources" class="hover:underline">Sumber Data</Link>
+                    <Link href="/about" class="hover:underline">Tentang Kami</Link>
+                    <Link href="/terms" class="hover:underline">Ketentuan</Link>
+                    <Link href="/privacy" class="hover:underline">Privasi</Link>
                 </div>
             </div>
         </footer>

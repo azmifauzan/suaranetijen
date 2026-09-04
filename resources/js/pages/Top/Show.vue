@@ -90,7 +90,7 @@ function switchPeriod(p: string) {
                     {{ category.name }} dengan Sentimen Netijen Tertinggi
                 </h1>
                 <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-                    Daftar entitas dalam kategori {{ category.name }} yang diurutkan berdasarkan agregat opini netijen publik (minimal 100 opini terverifikasi).
+                    Daftar entitas dalam kategori {{ category.name }} yang diurutkan berdasarkan agregat opini netijen publik (minimal 100 opini dianalisis).
                 </p>
             </div>
 

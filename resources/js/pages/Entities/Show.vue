@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useHttp } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { login } from '@/routes';
 import { destroy as deleteRating, update as updateRating } from '@/routes/api/entities/rating';
 
@@ -96,6 +96,16 @@ interface RelatedEntity {
     type_label: string;
 }
 
+interface TrendPoint {
+    date: string;
+    label: string;
+    score: number | null;
+    opinion_count: number;
+    positive_count: number;
+    neutral_count: number;
+    negative_count: number;
+}
+
 const props = defineProps<{
     entity: EntityData;
     period: string;
@@ -104,11 +114,42 @@ const props = defineProps<{
     rating: RatingData;
     themes: ThemesData;
     relatedEntities: RelatedEntity[];
+    trend?: TrendPoint[];
 }>();
 
 const ratingData = ref<RatingData>({ ...props.rating });
 const ratingForm = useHttp<{ rating: number }, RatingMutationResponse>({
     rating: props.rating.user_rating ?? 0,
+});
+
+const pageTitle = computed(() => `${props.entity.name}: Sentimen & Rating Netijen | SuaraNetijen`);
+const metaDescription = computed(() => {
+    if (props.sentiment.is_eligible && props.sentiment.score !== null) {
+        return `Skor Sentimen Netijen untuk ${props.entity.name} adalah ${props.sentiment.score}/100 berdasarkan analisis ${props.sentiment.opinion_count} opini publik. Simak rangkuman sentimen dan rating pengguna di SuaraNetijen.`;
+    }
+    return `Indeks sentimen dan review publik untuk ${props.entity.name} di SuaraNetijen.`;
+});
+
+const jsonLd = computed(() => {
+    const data: Record<string, unknown> = {
+        '@context': 'https://schema.org',
+        '@type': props.entity.type === 'service' ? 'Service' : (props.entity.type === 'brand' ? 'Organization' : 'Product'),
+        'name': props.entity.name,
+        'description': props.entity.description || `${props.entity.name} di SuaraNetijen`,
+    };
+
+    // AggregateRating schema used ONLY for first-party rating, NEVER for Sentimen Netijen (docs/13, ADR-007)
+    if (ratingData.value.rating_count > 0 && ratingData.value.rating_average !== null) {
+        data.aggregateRating = {
+            '@type': 'AggregateRating',
+            'ratingValue': ratingData.value.rating_average,
+            'reviewCount': ratingData.value.rating_count,
+            'bestRating': 5,
+            'worstRating': 1,
+        };
+    }
+
+    return data;
 });
 
 const periodLabels: Record<string, string> = {
@@ -180,7 +221,14 @@ async function removeRating(): Promise<void> {
 </script>
 
 <template>
-    <Head :title="`${entity.name} - Sentimen Netijen & Review`" />
+    <Head :title="pageTitle">
+        <meta name="description" :content="metaDescription" />
+        <meta v-if="!sentiment.is_eligible" name="robots" content="noindex, follow" />
+        <meta v-else name="robots" content="index, follow" />
+        <component :is="'script'" type="application/ld+json">
+            {{ JSON.stringify(jsonLd) }}
+        </component>
+    </Head>
 
     <div class="min-h-screen bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
         <!-- Header / Navigation -->
@@ -383,6 +431,72 @@ async function removeRating(): Promise<void> {
                     </div>
                     <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                         {{ sentiment.empty_state_message || 'Crawler opini publik belum mengumpulkan minimal 30 opini netijen untuk entitas ini. Skor agregat publik akan dihitung otomatis saat pipeline observasi aktif.' }}
+                    </p>
+                </div>
+
+                <!-- Methodology & Source Transparency Disclosure per docs/04 -->
+                <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 pt-4 text-xs text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+                    <div>
+                        Skor independen dihitung agregat tanpa bobot sponsor.
+                    </div>
+                    <div class="flex items-center gap-3 font-medium">
+                        <Link href="/methodology" class="text-emerald-600 hover:underline dark:text-emerald-400">
+                            Metodologi Skor →
+                        </Link>
+                        <span>•</span>
+                        <Link href="/sources" class="text-emerald-600 hover:underline dark:text-emerald-400">
+                            Sumber Data →
+                        </Link>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trend Chart Sederhana (Element 8 per docs/04) -->
+            <div class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8 dark:border-neutral-800 dark:bg-neutral-900">
+                <div class="flex items-center justify-between border-b border-neutral-100 pb-4 dark:border-neutral-800">
+                    <div>
+                        <h2 class="text-lg font-bold text-neutral-900 dark:text-neutral-100">
+                            Tren Sentimen Harian
+                        </h2>
+                        <p class="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+                            Riwayat skor dan volume opini netijen dari waktu ke waktu.
+                        </p>
+                    </div>
+                    <span v-if="trend && trend.length > 0" class="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+                        {{ trend.length }} hari tercatat
+                    </span>
+                </div>
+
+                <div v-if="trend && trend.length > 0" class="mt-6">
+                    <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <div
+                            v-for="pt in trend.slice(-8)"
+                            :key="pt.date"
+                            class="rounded-xl border border-neutral-100 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-800/50"
+                        >
+                            <div class="text-[11px] font-medium text-neutral-400">{{ pt.label }}</div>
+                            <div class="mt-1 flex items-baseline gap-1">
+                                <span
+                                    class="text-lg font-black"
+                                    :class="{
+                                        'text-emerald-600 dark:text-emerald-400': (pt.score ?? 0) >= 70,
+                                        'text-amber-600 dark:text-amber-400': (pt.score ?? 0) >= 50 && (pt.score ?? 0) < 70,
+                                        'text-rose-600 dark:text-rose-400': (pt.score ?? 0) < 50,
+                                    }"
+                                >
+                                    {{ pt.score !== null ? pt.score : '—' }}
+                                </span>
+                                <span v-if="pt.score !== null" class="text-[10px] text-neutral-400">/100</span>
+                            </div>
+                            <div class="mt-1 text-[10px] text-neutral-500">
+                                {{ pt.opinion_count }} opini ({{ pt.positive_count }} pos / {{ pt.negative_count }} neg)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-else class="mt-6 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center dark:border-neutral-700 dark:bg-neutral-800/40">
+                    <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                        Data tren harian sedang dikumpulkan oleh pipeline crawler.
                     </p>
                 </div>
             </div>
@@ -623,5 +737,22 @@ async function removeRating(): Promise<void> {
                 </div>
             </div>
         </main>
+
+        <!-- Footer -->
+        <footer class="mt-16 border-t border-neutral-200 bg-white py-8 text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
+            <div class="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6">
+                <div>
+                    © 2026 SuaraNetijen. Indeks Sentimen Publik Indonesia.
+                </div>
+                <div class="flex flex-wrap items-center gap-4">
+                    <Link href="/search" class="hover:underline">Pencarian</Link>
+                    <Link href="/methodology" class="hover:underline">Metodologi</Link>
+                    <Link href="/sources" class="hover:underline">Sumber Data</Link>
+                    <Link href="/about" class="hover:underline">Tentang Kami</Link>
+                    <Link href="/terms" class="hover:underline">Ketentuan</Link>
+                    <Link href="/privacy" class="hover:underline">Privasi</Link>
+                </div>
+            </div>
+        </footer>
     </div>
 </template>

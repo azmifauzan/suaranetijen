@@ -4,6 +4,7 @@ namespace App\Domains\Ingestion\Jobs;
 
 use App\Domains\Entities\Services\EntityMatcher;
 use App\Domains\Sources\Enums\ProcessingState;
+use App\Domains\Sources\Models\IngestionFailure;
 use App\Domains\Sources\Models\RawPayload;
 use App\Domains\Sources\Models\SourceItem;
 use App\Domains\Sources\Models\UnmatchedMention;
@@ -34,6 +35,13 @@ class MatchEntitiesJob implements ShouldQueue
 
         if (! is_string($payload) || $payload === '') {
             $item->update(['processing_state' => ProcessingState::Failed]);
+            IngestionFailure::record(
+                $item->source_id,
+                'match',
+                'Raw payload missing or expired for source item',
+                $item->source_document_id,
+                $item->id
+            );
 
             return;
         }

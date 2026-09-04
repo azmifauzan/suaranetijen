@@ -274,6 +274,13 @@ return [
             'supervisor-maintenance' => [],
         ],
 
+        'staging' => [
+            'supervisor-critical' => [],
+            'supervisor-crawl' => [],
+            'supervisor-analysis' => [],
+            'supervisor-maintenance' => [],
+        ],
+
         'local' => [
             'supervisor-critical' => [],
             'supervisor-crawl' => [],

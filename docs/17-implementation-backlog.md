@@ -320,6 +320,22 @@ epic's DoD.
 **Definition of done:** acceptance criterion 9 from `docs/02` PRD passes (usable at 360px
 viewport); Lighthouse/SEO smoke check confirms no thin/noindex entity page is in the sitemap.
 
+**Implementation status (verified 4 September 2026):** complete locally against real PostgreSQL.
+Homepage, entity page (all eleven `docs/04` elements), category page, `/top/{slug}`, and the five
+static/trust pages are implemented. `<meta name="robots" content="noindex, follow">` is emitted on
+`Entities/Show.vue` for entities below the public-score threshold and `index, follow` above it,
+closing the gap tracked since Epic 8/12; `SitemapController` independently excludes the same
+below-threshold entities from `/sitemap.xml` (`SitemapAndTrustPagesTest`), so a thin entity page is
+neither indexed nor listed. `AggregateRating` JSON-LD is emitted only when a first-party
+`RatingSnapshot` exists, never for Sentimen Netijen (ADR-007/011). A gap found and fixed during
+this pass: `SitemapController`'s eligibility check (`whereHas('sentimentSnapshots', ...)`) did not
+restrict to the `365d`/`all` periods the rest of the app treats as the public default, so an entity
+eligible only on a `30d`/`90d` snapshot could pass the check while the eager-loaded snapshot used
+for `lastmod` came back empty — scoped the check to match. **Known gap, not fixed here:**
+acceptance criterion 9 (360px usability) was checked by pattern consistency (same responsive
+container/grid classes as the already-verified `Entities/Show.vue`/`Top/Show.vue`), not a live
+Lighthouse/browser run — do a manual pass before launch.
+
 ## Epic 11 - Operations
 
 - Admin views over `crawl_states`, `ingestion_failures`, `unmatched_mentions` — this is what
@@ -335,6 +351,30 @@ viewport); Lighthouse/SEO smoke check confirms no thin/noindex entity page is in
 **Definition of done:** acceptance criterion 10 from `docs/02` PRD passes (every queue/crawler
 failure is visible in Horizon or the admin panel); a kill-switch toggle is verified to stop a
 running adapter without a deploy.
+
+**Implementation status (verified 4 September 2026):** complete locally against real PostgreSQL.
+`AdminOperationsController` gives admin views over `crawl_states`, `ingestion_failures`, and
+`unmatched_mentions` with per-item (`replayItem`) and per-failure (`retryFailure`) replay; every
+job that records an `IngestionFailure` also rethrows, so the same failure lands in Horizon's failed
+jobs too, satisfying PRD acceptance criterion 10 through either surface.
+`AdminSourceController::toggleStatus` flips `sources.enabled`, and both
+`DiscoverSourceDocumentsJob` and `FetchSourceDocumentJob` check it before doing any work, so a
+kill-switched source stops within the next job run with no deploy (confirmed with
+`Queue::fake()` — a disabled source pushes zero jobs). `BackupDatabaseCommand` produces an
+encrypted daily `pg_dump`-based backup with 7 daily + 4 weekly retention pruning and a `--verify`
+mode; `CheckSystemMetricsCommand` (`monitor:metrics`) checks queue depth/age, 24h job failure
+count, per-source crawl/preflight success rate, and 24h parser failure rate against `docs/16`'s
+alert list. Both commands are scheduled (`backup:database` daily, `monitor:metrics` every 15
+minutes). A gap found and fixed during this pass: `retryFailure` only handled failures carrying a
+`source_item_id` or `source_document_id` — a `discovery`-stage failure has neither, so retrying one
+silently marked it resolved without re-queuing anything; added a fallback that re-dispatches
+`DiscoverSourceDocumentsJob` for the failure's source. A second gap: `docs/16`'s backup requirement
+includes a monthly restore test, but only the daily backup was scheduled with no periodic
+`--verify` run — added a monthly `backup:database --verify` schedule. **Known gaps, not fixed
+here:** backups are local-disk only (`storage/app/backups`), acceptable for the single-VPS MVP
+baseline but not off-host; `monitor:metrics` covers queue/job/crawl/parser metrics from `docs/16`'s
+list but not opinions/day, unmatched-candidate rate, classifier latency, aggregate freshness,
+search latency, or page p95 — those need real APM/tracing, not a console command.
 
 ## Definition of Done (applies to every epic)
 

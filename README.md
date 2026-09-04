@@ -5,10 +5,10 @@
 Search-first public sentiment index for Indonesia. Search a brand, product, or service and see
 whether public conversation about it leans positive or negative.
 
-**Baseline:** 3 September 2026 · **Market:** Indonesia · **Status:** Phase 0 (foundation), Phase 1
+**Baseline:** 4 September 2026 · **Market:** Indonesia · **Status:** Phase 0 (foundation), Phase 1
 (search), Phase 2 (sentiment substrate), Phase 3 (first observations), Phase 4 (public score),
-Phase 5 (coverage expansion), and Phase 6 (first-party rating) verified locally against
-PostgreSQL/Redis
+Phase 5 (coverage expansion), Phase 6 (first-party rating), and Phase 7 (public launch readiness)
+verified locally against PostgreSQL/Redis
 
 ## Product definition
 
@@ -95,8 +95,9 @@ composer ci:check    # npm check + vue-tsc + test
 ## Current implementation status
 
 **Phase 0 (foundation), Phase 1 (search), Phase 2 (sentiment substrate), Phase 3 (first
-observations), Phase 4 (public score), Phase 5 (coverage expansion), and Phase 6 (first-party
-rating)** are implemented and verified against real PostgreSQL and Redis, not just SQLite tests.
+observations), Phase 4 (public score), Phase 5 (coverage expansion), Phase 6 (first-party
+rating), and Phase 7 (public launch readiness)** are implemented and verified against real
+PostgreSQL and Redis, not just SQLite tests.
 Admin access uses an authenticated `access-admin` Gate,
 non-admin users receive 403, the ~200-entity seed CSV imports cleanly (209 entities), and local
 lint, static analysis, and tests pass.
@@ -140,9 +141,8 @@ schema.org markup, and Top Suara Netijen shows theme frequency with the correct 
 below threshold, no numeric per-theme score. A gap was found and fixed during this pass:
 `ThemeExtractor` derived a theme's sentiment purely from its canonical-key suffix with no negation
 handling, mis-stamping negated mentions (e.g. "servernya gak cepat sama sekali") as positive —
-fixed with an Indonesian negation-marker check. **Known gap, not fixed here:** no `noindex`
-mechanism exists anywhere in the app for below-threshold entities (`docs/13`) — app-wide
-SEO-infrastructure work, tracked for Epic 10.
+fixed with an Indonesian negation-marker check. The `noindex` gap noted here for below-threshold
+entities was closed in Phase 7 (Epic 10).
 
 Epic 6 (source adapters wave 2) implements `docs/17`'s Definition of Done: `KaskusAdapter`,
 `YouTubeAdapter`, and `LowEndTalkAdapter` all reach `healthy` preflight and produce at least one
@@ -166,6 +166,20 @@ the rating request's `authorize()`. No admin UI toggles the flag yet (Epic 11's 
 crawl/source operations, not users). The unique constraint was confirmed to reject a duplicate
 insert with `UniqueConstraintViolationException` live on Postgres.
 
+Epic 10 (UX/SEO) and Epic 11 (Operations) implement `docs/17`'s Definition of Done: `noindex`
+meta on below-threshold entity pages plus a `/sitemap.xml` that excludes the same entities, the
+category page and static/trust pages, admin diagnostics (`crawl_states`, `ingestion_failures`,
+`unmatched_mentions`) with failure replay, a source kill switch that stops discovery/fetch with no
+deploy, and encrypted daily Postgres backups plus a scheduled `monitor:metrics` alert command.
+Three gaps were found and fixed during this pass: the sitemap's eligibility check wasn't scoped to
+the same `365d`/`all` periods used for `lastmod`, so a `30d`/`90d`-only eligible entity could slip
+through inconsistently; a `discovery`-stage ingestion failure had no retry path in the admin panel
+(neither a document nor an item exists yet at that stage) and silently marked itself resolved
+without re-queuing anything; and `docs/16`'s monthly restore-test requirement had no scheduled
+`--verify` run. **Known gaps, not fixed here:** backups are local-disk only, and PRD acceptance
+criterion 9 (360px usability) was checked by pattern consistency with already-verified pages, not
+a live Lighthouse/browser run.
+
 The `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment`, `Themes`, and `Ratings`
 domain modules are present. Implementation order lives in `docs/17-implementation-backlog.md`.
 
@@ -182,7 +196,7 @@ Phases and epic mapping match `docs/18-roadmap.md`.
 | 4. Public score | 8, 12 | Done |
 | 5. Coverage expansion | 6 | Done |
 | 6. First-party rating | 9 | Done |
-| 7. Public launch readiness | 10, 11 | Not started |
+| 7. Public launch readiness | 10, 11 | Done |
 
 ## Documentation
 

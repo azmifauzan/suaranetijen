@@ -5,6 +5,7 @@ namespace App\Domains\Ingestion\Jobs;
 use App\Domains\Sentiment\Jobs\UpsertSentimentObservationJob;
 use App\Domains\Sentiment\Services\SentimentClassifier;
 use App\Domains\Sources\Enums\ProcessingState;
+use App\Domains\Sources\Models\IngestionFailure;
 use App\Domains\Sources\Models\RawPayload;
 use App\Domains\Sources\Models\SourceItem;
 use App\Domains\Sources\Models\UnmatchedMention;
@@ -35,6 +36,13 @@ class ClassifySentimentJob implements ShouldQueue
             ->value('payload');
         if (! is_string($payload) || $payload === '') {
             $item->update(['processing_state' => ProcessingState::Failed]);
+            IngestionFailure::record(
+                $item->source_id,
+                'classify',
+                'Raw payload missing or expired for source item',
+                $item->source_document_id,
+                $item->id
+            );
 
             return;
         }
