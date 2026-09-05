@@ -369,7 +369,7 @@ const clearSearch = () => {
 
                             <!-- Arrow indicator -->
                             <div
-                                class="hidden items-center gap-1 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5 sm:flex"
+                                class="pointer-events-none hidden items-center gap-1 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5 sm:flex"
                             >
                                 <span>Lihat detail</span>
                                 <svg
