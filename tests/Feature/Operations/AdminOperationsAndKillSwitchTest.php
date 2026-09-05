@@ -184,6 +184,9 @@ test('admin can retry a discovery-stage failure with no document or item yet', f
 });
 
 test('backup and monitor metrics commands execute successfully', function () {
+    $this->artisan('backup:database')
+        ->assertExitCode(0);
+
     $this->artisan('backup:database', ['--verify' => true])
         ->assertExitCode(0);
 

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "72f41dda6804e439c78ad8fc73a8d89b",
+    "content-hash": "cb171e23f2b876a4e021e8039c4a44ab",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -1209,16 +1209,16 @@
         },
         {
             "name": "inertiajs/inertia-laravel",
-            "version": "v3.3.1",
+            "version": "v3.3.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/inertiajs/inertia-laravel.git",
-                "reference": "7bfd75e352938b703180574b943d81963555a0aa"
+                "reference": "42dccee77d7df6b2e152965434a89cafc35a2961"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/inertiajs/inertia-laravel/zipball/7bfd75e352938b703180574b943d81963555a0aa",
-                "reference": "7bfd75e352938b703180574b943d81963555a0aa",
+                "url": "https://api.github.com/repos/inertiajs/inertia-laravel/zipball/42dccee77d7df6b2e152965434a89cafc35a2961",
+                "reference": "42dccee77d7df6b2e152965434a89cafc35a2961",
                 "shasum": ""
             },
             "require": {
@@ -1275,9 +1275,9 @@
             ],
             "support": {
                 "issues": "https://github.com/inertiajs/inertia-laravel/issues",
-                "source": "https://github.com/inertiajs/inertia-laravel/tree/v3.3.1"
+                "source": "https://github.com/inertiajs/inertia-laravel/tree/v3.3.3"
             },
-            "time": "2026-08-04T21:58:51+00:00"
+            "time": "2026-09-04T13:56:39+00:00"
         },
         {
             "name": "laravel/chisel",
@@ -2272,16 +2272,16 @@
         },
         {
             "name": "league/flysystem",
-            "version": "3.35.3",
+            "version": "3.36.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thephpleague/flysystem.git",
-                "reference": "5fc8404762179ae514678487b23494fd69b2309c"
+                "reference": "f7fb152932f30072d573510cbd4dd657d6475b25"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/thephpleague/flysystem/zipball/5fc8404762179ae514678487b23494fd69b2309c",
-                "reference": "5fc8404762179ae514678487b23494fd69b2309c",
+                "url": "https://api.github.com/repos/thephpleague/flysystem/zipball/f7fb152932f30072d573510cbd4dd657d6475b25",
+                "reference": "f7fb152932f30072d573510cbd4dd657d6475b25",
                 "shasum": ""
             },
             "require": {
@@ -2349,9 +2349,9 @@
             ],
             "support": {
                 "issues": "https://github.com/thephpleague/flysystem/issues",
-                "source": "https://github.com/thephpleague/flysystem/tree/3.35.3"
+                "source": "https://github.com/thephpleague/flysystem/tree/3.36.0"
             },
-            "time": "2026-08-22T12:55:54+00:00"
+            "time": "2026-09-02T08:00:27+00:00"
         },
         {
             "name": "league/flysystem-local",
@@ -2642,16 +2642,16 @@
         },
         {
             "name": "monolog/monolog",
-            "version": "3.10.0",
+            "version": "3.11.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Seldaek/monolog.git",
-                "reference": "b321dd6749f0bf7189444158a3ce785cc16d69b0"
+                "reference": "147f303310f06334f03f409e49d7ad1e275ff05a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Seldaek/monolog/zipball/b321dd6749f0bf7189444158a3ce785cc16d69b0",
-                "reference": "b321dd6749f0bf7189444158a3ce785cc16d69b0",
+                "url": "https://api.github.com/repos/Seldaek/monolog/zipball/147f303310f06334f03f409e49d7ad1e275ff05a",
+                "reference": "147f303310f06334f03f409e49d7ad1e275ff05a",
                 "shasum": ""
             },
             "require": {
@@ -2729,7 +2729,7 @@
             ],
             "support": {
                 "issues": "https://github.com/Seldaek/monolog/issues",
-                "source": "https://github.com/Seldaek/monolog/tree/3.10.0"
+                "source": "https://github.com/Seldaek/monolog/tree/3.11.0"
             },
             "funding": [
                 {
@@ -2741,7 +2741,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-01-02T08:56:05+00:00"
+            "time": "2026-09-02T12:39:56+00:00"
         },
         {
             "name": "nesbot/carbon",
@@ -9841,11 +9841,11 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.2.12",
+            "version": "2.2.13",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/174b0d88710f00a42598886504dd7a146f91ace5",
-                "reference": "174b0d88710f00a42598886504dd7a146f91ace5",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/9ba9ac76ee9c5cf5b56d58eb5deec6315b7a0260",
+                "reference": "9ba9ac76ee9c5cf5b56d58eb5deec6315b7a0260",
                 "shasum": ""
             },
             "require": {
@@ -9901,20 +9901,20 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-08-31T19:09:43+00:00"
+            "time": "2026-09-03T20:38:19+00:00"
         },
         {
             "name": "phpunit/php-code-coverage",
-            "version": "14.3.1",
+            "version": "14.3.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/php-code-coverage.git",
-                "reference": "6ce313bb110384148d1dc7695a99175f59529069"
+                "reference": "93d62632fb675b76c9b941fdcfcfa10ffb9dea75"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/php-code-coverage/zipball/6ce313bb110384148d1dc7695a99175f59529069",
-                "reference": "6ce313bb110384148d1dc7695a99175f59529069",
+                "url": "https://api.github.com/repos/sebastianbergmann/php-code-coverage/zipball/93d62632fb675b76c9b941fdcfcfa10ffb9dea75",
+                "reference": "93d62632fb675b76c9b941fdcfcfa10ffb9dea75",
                 "shasum": ""
             },
             "require": {
@@ -9933,7 +9933,7 @@
                 "theseer/tokenizer": "^2.0.1"
             },
             "require-dev": {
-                "phpunit/phpunit": "^13.3.1"
+                "phpunit/phpunit": "^13.3.2"
             },
             "suggest": {
                 "ext-pcov": "PHP extension that provides line coverage",
@@ -9971,7 +9971,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/php-code-coverage/issues",
                 "security": "https://github.com/sebastianbergmann/php-code-coverage/security/policy",
-                "source": "https://github.com/sebastianbergmann/php-code-coverage/tree/14.3.1"
+                "source": "https://github.com/sebastianbergmann/php-code-coverage/tree/14.3.2"
             },
             "funding": [
                 {
@@ -9991,7 +9991,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-16T05:23:47+00:00"
+            "time": "2026-09-04T03:46:43+00:00"
         },
         {
             "name": "phpunit/php-file-iterator",
@@ -11731,5 +11731,9 @@
         "php": "^8.3"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "platform-overrides": {
+        "ext-pcntl": "8.4",
+        "ext-posix": "8.4"
+    },
+    "plugin-api-version": "2.6.0"
 }
