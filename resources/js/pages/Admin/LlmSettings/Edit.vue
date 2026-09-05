@@ -96,6 +96,7 @@ function save() {
                             type="number"
                             class="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
                         />
+                        <p v-if="form.errors.max_tokens" class="mt-1 text-xs text-rose-500">{{ form.errors.max_tokens }}</p>
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-neutral-700 dark:text-neutral-300">Temperature</label>
@@ -105,6 +106,7 @@ function save() {
                             step="0.1"
                             class="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
                         />
+                        <p v-if="form.errors.temperature" class="mt-1 text-xs text-rose-500">{{ form.errors.temperature }}</p>
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-neutral-700 dark:text-neutral-300">Timeout (s)</label>
@@ -113,6 +115,7 @@ function save() {
                             type="number"
                             class="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
                         />
+                        <p v-if="form.errors.timeout_seconds" class="mt-1 text-xs text-rose-500">{{ form.errors.timeout_seconds }}</p>
                     </div>
                 </div>
 
