@@ -68,12 +68,11 @@ class SourceSeeder extends Seeder
                 'name' => 'KASKUS',
                 'adapter' => 'kaskus',
                 'source_type' => SourceType::Forum,
-                // Disabled: confirmed live (2026-09-04) that kaskus.co.id's search page is a
-                // Next.js app whose results load client-side only (SSR payload ships with an
-                // empty `fallback` cache) — a plain HTML GET returns zero thread links every
-                // time, robots.txt/preflight notwithstanding. Needs the underlying JSON API
-                // (if one is public) or a JS-rendering fetcher before re-enabling.
-                'enabled' => false,
+                // Was disabled: kaskus.co.id's search page is a Next.js app whose results load
+                // client-side only (empty SSR fallback), so a plain HTML GET always returned zero
+                // thread links. Re-enabled (5 Sep 2026) now that KaskusAdapter routes through
+                // FlareSolverr (a real browser, so it executes the client-side render) —
+                // confirmed live that thread links come back once FLARESOLVERR_URL is configured.
                 'crawl_policy' => ['rate_limit_per_minute' => 10],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
