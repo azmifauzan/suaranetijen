@@ -7,6 +7,37 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@layer base {
+    .public-site {
+        color-scheme: light;
+        --color-neutral-50: #fafaf7;
+        --color-neutral-100: #f0f3ec;
+        --color-neutral-200: #e0e6dc;
+        --color-neutral-300: #cbd5c7;
+        --color-neutral-400: #778575;
+        --color-neutral-500: #677563;
+        --color-neutral-600: #53664f;
+        --color-neutral-700: #3e553d;
+        --color-neutral-800: #2c462f;
+        --color-neutral-900: #193c2c;
+        --color-emerald-600: #087f5b;
+        --color-emerald-700: #066446;
+    }
+
+    .public-site :is(a, button, input, select):focus-visible {
+        outline: 2px solid #087f5b;
+        outline-offset: 4px;
+    }
+
+    .public-site button {
+        cursor: pointer;
+    }
+
+    .public-site main > nav {
+        flex-wrap: wrap;
+    }
+}
+
 @theme inline {
     --font-sans:
         Instrument Sans, ui-sans-serif, system-ui, sans-serif,

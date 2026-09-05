@@ -1,8 +1,15 @@
 <script setup lang="ts">
+import PublicLayout from '@/layouts/PublicLayout.vue';
+import { home, methodology, sources } from '@/routes';
+import { show as showEntity } from '@/routes/entities';
+import { show as showRanking } from '@/routes/rankings';
 import { Head, Link, router, useHttp } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { login } from '@/routes';
-import { destroy as deleteRating, update as updateRating } from '@/routes/api/entities/rating';
+import {
+    destroy as deleteRating,
+    update as updateRating,
+} from '@/routes/api/entities/rating';
 
 interface CategoryData {
     id: number;
@@ -122,7 +129,9 @@ const ratingForm = useHttp<{ rating: number }, RatingMutationResponse>({
     rating: props.rating.user_rating ?? 0,
 });
 
-const pageTitle = computed(() => `${props.entity.name}: Sentimen & Rating Netijen | SuaraNetijen`);
+const pageTitle = computed(
+    () => `${props.entity.name}: Sentimen & Rating Netijen | SuaraNetijen`,
+);
 const metaDescription = computed(() => {
     if (props.sentiment.is_eligible && props.sentiment.score !== null) {
         return `Skor Sentimen Netijen untuk ${props.entity.name} adalah ${props.sentiment.score}/100 berdasarkan analisis ${props.sentiment.opinion_count} opini publik. Simak rangkuman sentimen dan rating pengguna di SuaraNetijen.`;
@@ -133,19 +142,28 @@ const metaDescription = computed(() => {
 const jsonLd = computed(() => {
     const data: Record<string, unknown> = {
         '@context': 'https://schema.org',
-        '@type': props.entity.type === 'service' ? 'Service' : (props.entity.type === 'brand' ? 'Organization' : 'Product'),
-        'name': props.entity.name,
-        'description': props.entity.description || `${props.entity.name} di SuaraNetijen`,
+        '@type':
+            props.entity.type === 'service'
+                ? 'Service'
+                : props.entity.type === 'brand'
+                  ? 'Organization'
+                  : 'Product',
+        name: props.entity.name,
+        description:
+            props.entity.description || `${props.entity.name} di SuaraNetijen`,
     };
 
     // AggregateRating schema used ONLY for first-party rating, NEVER for Sentimen Netijen (docs/13, ADR-007)
-    if (ratingData.value.rating_count > 0 && ratingData.value.rating_average !== null) {
+    if (
+        ratingData.value.rating_count > 0 &&
+        ratingData.value.rating_average !== null
+    ) {
         data.aggregateRating = {
             '@type': 'AggregateRating',
-            'ratingValue': ratingData.value.rating_average,
-            'reviewCount': ratingData.value.rating_count,
-            'bestRating': 5,
-            'worstRating': 1,
+            ratingValue: ratingData.value.rating_average,
+            reviewCount: ratingData.value.rating_count,
+            bestRating: 5,
+            worstRating: 1,
         };
     }
 
@@ -156,11 +174,15 @@ const periodLabels: Record<string, string> = {
     '30d': '30 Hari',
     '90d': '90 Hari',
     '365d': '1 Tahun',
-    'all': 'Semua Waktu',
+    all: 'Semua Waktu',
 };
 
 function switchPeriod(p: string) {
-    router.get(`/e/${props.entity.slug}`, { period: p }, { preserveScroll: true });
+    router.get(
+        showEntity.url(props.entity.slug),
+        { period: p },
+        { preserveScroll: true },
+    );
 }
 
 function updateRatingData(response: RatingMutationResponse): void {
@@ -217,99 +239,111 @@ async function removeRating(): Promise<void> {
         }
     }
 }
-
 </script>
 
 <template>
-    <Head :title="pageTitle">
-        <meta name="description" :content="metaDescription" />
-        <meta v-if="!sentiment.is_eligible" name="robots" content="noindex, follow" />
-        <meta v-else name="robots" content="index, follow" />
-        <component :is="'script'" type="application/ld+json">
-            {{ JSON.stringify(jsonLd) }}
-        </component>
-    </Head>
-
-    <div class="min-h-screen bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
-        <!-- Header / Navigation -->
-        <header class="border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-            <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
-                <Link href="/" class="flex items-center gap-2 text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                    <span>SuaraNetijen</span>
-                </Link>
-                <div class="flex items-center gap-4 text-sm">
-                    <Link
-                        href="/search"
-                        class="flex items-center gap-1.5 text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
-                    >
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <span>Cari Entitas</span>
-                    </Link>
-                </div>
-            </div>
-        </header>
+    <PublicLayout>
+        <Head :title="pageTitle">
+            <meta name="description" :content="metaDescription" />
+            <meta
+                v-if="!sentiment.is_eligible"
+                name="robots"
+                content="noindex, follow"
+            />
+            <meta v-else name="robots" content="index, follow" />
+            <component :is="'script'" type="application/ld+json">
+                {{ JSON.stringify(jsonLd) }}
+            </component>
+        </Head>
 
         <!-- Main Content -->
-        <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
             <!-- Breadcrumbs -->
-            <nav class="mb-4 flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
-                <Link href="/" class="hover:underline">Beranda</Link>
+            <nav class="mb-4 flex items-center gap-2 text-xs text-neutral-500">
+                <Link :href="home()" class="hover:underline">Beranda</Link>
                 <span>/</span>
-                <Link :href="`/top/${entity.category.slug}`" class="hover:underline">{{ entity.category.name }}</Link>
+                <Link
+                    :href="showRanking.url(entity.category.slug)"
+                    class="hover:underline"
+                    >{{ entity.category.name }}</Link
+                >
                 <template v-if="entity.parent">
                     <span>/</span>
-                    <Link :href="`/e/${entity.parent.slug}`" class="hover:underline">
+                    <Link
+                        :href="showEntity.url(entity.parent.slug)"
+                        class="hover:underline"
+                    >
                         {{ entity.parent.name }}
                     </Link>
                 </template>
                 <span>/</span>
-                <span class="font-medium text-neutral-800 dark:text-neutral-200">{{ entity.name }}</span>
+                <span class="font-medium text-neutral-800">{{
+                    entity.name
+                }}</span>
             </nav>
 
             <!-- Entity Header Card -->
-            <div class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8 dark:border-neutral-800 dark:bg-neutral-900">
+            <div
+                class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
+            >
                 <div class="flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <div class="flex items-center gap-3">
-                            <h1 class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl dark:text-neutral-100">
+                            <h1
+                                class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl"
+                            >
                                 {{ entity.name }}
                             </h1>
                             <span
                                 class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wider uppercase"
                                 :class="{
-                                    'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300': entity.type === 'brand',
-                                    'bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-300': entity.type === 'product',
-                                    'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300': entity.type === 'service',
+                                    'bg-blue-100 text-blue-800':
+                                        entity.type === 'brand',
+                                    'bg-purple-100 text-purple-800':
+                                        entity.type === 'product',
+                                    'bg-amber-100 text-amber-800':
+                                        entity.type === 'service',
                                 }"
                             >
                                 {{ entity.type_label }}
                             </span>
                         </div>
 
-                        <div class="mt-2 flex flex-wrap items-center gap-4 text-sm text-neutral-500 dark:text-neutral-400">
+                        <div
+                            class="mt-2 flex flex-wrap items-center gap-4 text-sm text-neutral-500"
+                        >
                             <div>
                                 Kategori:
-                                <Link :href="`/top/${entity.category.slug}`" class="font-medium text-neutral-700 hover:text-emerald-600 hover:underline dark:text-neutral-300 dark:hover:text-emerald-400">
+                                <Link
+                                    :href="
+                                        showRanking.url(entity.category.slug)
+                                    "
+                                    class="font-medium text-neutral-700 hover:text-emerald-600 hover:underline"
+                                >
                                     {{ entity.category.name }}
                                 </Link>
                             </div>
                             <div v-if="entity.parent">
                                 Brand / Induk:
-                                <Link :href="`/e/${entity.parent.slug}`" class="font-medium text-emerald-600 hover:underline dark:text-emerald-400">
+                                <Link
+                                    :href="showEntity.url(entity.parent.slug)"
+                                    class="font-medium text-emerald-600 hover:underline"
+                                >
                                     {{ entity.parent.name }}
                                 </Link>
                             </div>
                         </div>
 
-                        <p v-if="entity.description" class="mt-4 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
+                        <p
+                            v-if="entity.description"
+                            class="mt-4 text-sm leading-relaxed text-neutral-600"
+                        >
                             {{ entity.description }}
                         </p>
                     </div>
 
                     <!-- Period Selector -->
-                    <div class="inline-flex rounded-lg bg-neutral-100 p-1 dark:bg-neutral-800">
+                    <div class="inline-flex rounded-lg bg-neutral-100 p-1">
                         <button
                             v-for="p in availablePeriods"
                             :key="p"
@@ -317,8 +351,10 @@ async function removeRating(): Promise<void> {
                             @click="switchPeriod(p)"
                             class="rounded-md px-3 py-1 text-xs font-medium transition-colors"
                             :class="{
-                                'bg-white text-neutral-900 shadow-sm dark:bg-neutral-900 dark:text-neutral-100': period === p,
-                                'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200': period !== p
+                                'bg-white text-neutral-900 shadow-sm':
+                                    period === p,
+                                'text-neutral-600 hover:text-neutral-900':
+                                    period !== p,
                             }"
                         >
                             {{ periodLabels[p] || p }}
@@ -327,15 +363,20 @@ async function removeRating(): Promise<void> {
                 </div>
 
                 <!-- Aliases list -->
-                <div v-if="entity.aliases.length > 0" class="mt-6 border-t border-neutral-100 pt-4 dark:border-neutral-800">
-                    <div class="text-xs font-medium tracking-wider text-neutral-400 uppercase">
+                <div
+                    v-if="entity.aliases.length > 0"
+                    class="mt-6 border-t border-neutral-100 pt-4"
+                >
+                    <div
+                        class="text-xs font-medium tracking-wider text-neutral-400 uppercase"
+                    >
                         Nama Alternatif / Alias:
                     </div>
                     <div class="mt-2 flex flex-wrap gap-1.5">
                         <span
                             v-for="alias in entity.aliases"
                             :key="alias.id"
-                            class="rounded-md bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+                            class="rounded-md bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600"
                         >
                             {{ alias.alias }}
                         </span>
@@ -344,78 +385,133 @@ async function removeRating(): Promise<void> {
             </div>
 
             <!-- Sentimen Netijen Card -->
-            <div class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8 dark:border-neutral-800 dark:bg-neutral-900">
-                <div class="flex items-center justify-between border-b border-neutral-100 pb-4 dark:border-neutral-800">
-                    <h2 class="text-lg font-bold text-neutral-900 dark:text-neutral-100">
+            <div
+                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
+            >
+                <div
+                    class="flex items-center justify-between border-b border-neutral-100 pb-4"
+                >
+                    <h2 class="text-lg font-bold text-neutral-900">
                         Sentimen Netijen
                     </h2>
-                    <span class="text-xs text-neutral-500 dark:text-neutral-400">
+                    <span class="text-xs text-neutral-500">
                         Periode: {{ periodLabels[period] || period }}
                     </span>
                 </div>
 
                 <!-- Above threshold score view -->
-                <div v-if="sentiment.is_eligible && sentiment.score !== null && sentiment.distribution" class="mt-6">
+                <div
+                    v-if="
+                        sentiment.is_eligible &&
+                        sentiment.score !== null &&
+                        sentiment.distribution
+                    "
+                    class="mt-6"
+                >
                     <div class="grid gap-6 sm:grid-cols-2">
                         <!-- Score Display -->
-                        <div class="flex flex-col justify-center rounded-xl bg-neutral-50 p-6 dark:bg-neutral-800/50">
-                            <span class="text-xs font-semibold text-neutral-500 uppercase tracking-wider dark:text-neutral-400">
+                        <div
+                            class="flex flex-col justify-center rounded-xl bg-neutral-50 p-6"
+                        >
+                            <span
+                                class="text-xs font-semibold tracking-wider text-neutral-500 uppercase"
+                            >
                                 Skor Agregat Publik
                             </span>
                             <div class="mt-2 flex items-baseline gap-2">
                                 <span
                                     class="text-5xl font-black tracking-tight"
                                     :class="{
-                                        'text-emerald-600 dark:text-emerald-400': sentiment.score >= 70,
-                                        'text-amber-600 dark:text-amber-400': sentiment.score >= 50 && sentiment.score < 70,
-                                        'text-rose-600 dark:text-rose-400': sentiment.score < 50,
+                                        'text-emerald-600':
+                                            sentiment.score >= 70,
+                                        'text-amber-600':
+                                            sentiment.score >= 50 &&
+                                            sentiment.score < 70,
+                                        'text-rose-600': sentiment.score < 50,
                                     }"
                                 >
                                     {{ sentiment.score }}
                                 </span>
-                                <span class="text-lg font-medium text-neutral-400">/100</span>
+                                <span
+                                    class="text-lg font-medium text-neutral-400"
+                                    >/100</span
+                                >
                             </div>
-                            <div class="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
-                                <strong>{{ sentiment.opinion_count.toLocaleString() }}</strong> opini netijen dianalisis
+                            <div class="mt-3 text-xs text-neutral-500">
+                                <strong>{{
+                                    sentiment.opinion_count.toLocaleString()
+                                }}</strong>
+                                opini netijen dianalisis
                             </div>
                         </div>
 
                         <!-- Sentiment Distribution -->
-                        <div class="flex flex-col justify-center rounded-xl bg-neutral-50 p-6 dark:bg-neutral-800/50">
-                            <span class="text-xs font-semibold text-neutral-500 uppercase tracking-wider dark:text-neutral-400">
+                        <div
+                            class="flex flex-col justify-center rounded-xl bg-neutral-50 p-6"
+                        >
+                            <span
+                                class="text-xs font-semibold tracking-wider text-neutral-500 uppercase"
+                            >
                                 Distribusi Sentimen
                             </span>
 
                             <!-- Distribution bar -->
-                            <div class="mt-3 flex h-3 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700">
-                                <div class="bg-emerald-500" :style="{ width: `${sentiment.distribution.positive_pct}%` }" />
-                                <div class="bg-neutral-400" :style="{ width: `${sentiment.distribution.neutral_pct}%` }" />
-                                <div class="bg-rose-500" :style="{ width: `${sentiment.distribution.negative_pct}%` }" />
+                            <div
+                                class="mt-3 flex h-3 overflow-hidden rounded-full bg-neutral-200"
+                            >
+                                <div
+                                    class="bg-emerald-500"
+                                    :style="{
+                                        width: `${sentiment.distribution.positive_pct}%`,
+                                    }"
+                                />
+                                <div
+                                    class="bg-neutral-400"
+                                    :style="{
+                                        width: `${sentiment.distribution.neutral_pct}%`,
+                                    }"
+                                />
+                                <div
+                                    class="bg-rose-500"
+                                    :style="{
+                                        width: `${sentiment.distribution.negative_pct}%`,
+                                    }"
+                                />
                             </div>
 
                             <!-- Legend -->
-                            <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-                                <div class="rounded-lg bg-emerald-50 p-2 dark:bg-emerald-950/30">
-                                    <div class="font-bold text-emerald-700 dark:text-emerald-300">
-                                        {{ sentiment.distribution.positive_pct }}%
+                            <div
+                                class="mt-4 grid grid-cols-3 gap-2 text-center text-xs"
+                            >
+                                <div class="rounded-lg bg-emerald-50 p-2">
+                                    <div class="font-bold text-emerald-700">
+                                        {{
+                                            sentiment.distribution.positive_pct
+                                        }}%
                                     </div>
-                                    <div class="text-[10px] text-emerald-600/80 dark:text-emerald-400">
+                                    <div
+                                        class="text-[10px] text-emerald-600/80"
+                                    >
                                         Positif ({{ sentiment.positive_count }})
                                     </div>
                                 </div>
-                                <div class="rounded-lg bg-neutral-100 p-2 dark:bg-neutral-800">
-                                    <div class="font-bold text-neutral-700 dark:text-neutral-300">
-                                        {{ sentiment.distribution.neutral_pct }}%
+                                <div class="rounded-lg bg-neutral-100 p-2">
+                                    <div class="font-bold text-neutral-700">
+                                        {{
+                                            sentiment.distribution.neutral_pct
+                                        }}%
                                     </div>
                                     <div class="text-[10px] text-neutral-500">
                                         Netral ({{ sentiment.neutral_count }})
                                     </div>
                                 </div>
-                                <div class="rounded-lg bg-rose-50 p-2 dark:bg-rose-950/30">
-                                    <div class="font-bold text-rose-700 dark:text-rose-300">
-                                        {{ sentiment.distribution.negative_pct }}%
+                                <div class="rounded-lg bg-rose-50 p-2">
+                                    <div class="font-bold text-rose-700">
+                                        {{
+                                            sentiment.distribution.negative_pct
+                                        }}%
                                     </div>
-                                    <div class="text-[10px] text-rose-600/80 dark:text-rose-400">
+                                    <div class="text-[10px] text-rose-600/80">
                                         Negatif ({{ sentiment.negative_count }})
                                     </div>
                                 </div>
@@ -425,26 +521,40 @@ async function removeRating(): Promise<void> {
                 </div>
 
                 <!-- Below threshold empty state notice -->
-                <div v-else class="mt-6 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center dark:border-neutral-700 dark:bg-neutral-800/40">
-                    <div class="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                <div
+                    v-else
+                    class="mt-6 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center"
+                >
+                    <div class="text-sm font-semibold text-neutral-700">
                         Sentimen Netijen Belum Tersedia
                     </div>
-                    <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                        {{ sentiment.empty_state_message || 'Crawler opini publik belum mengumpulkan minimal 30 opini netijen untuk entitas ini. Skor agregat publik akan dihitung otomatis saat pipeline observasi aktif.' }}
+                    <p class="mt-1 text-xs text-neutral-500">
+                        {{
+                            sentiment.empty_state_message ||
+                            'Crawler opini publik belum mengumpulkan minimal 30 opini netijen untuk entitas ini. Skor agregat publik akan dihitung otomatis saat pipeline observasi aktif.'
+                        }}
                     </p>
                 </div>
 
                 <!-- Methodology & Source Transparency Disclosure per docs/04 -->
-                <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 pt-4 text-xs text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+                <div
+                    class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 pt-4 text-xs text-neutral-500"
+                >
                     <div>
                         Skor independen dihitung agregat tanpa bobot sponsor.
                     </div>
                     <div class="flex items-center gap-3 font-medium">
-                        <Link href="/methodology" class="text-emerald-600 hover:underline dark:text-emerald-400">
+                        <Link
+                            :href="methodology()"
+                            class="text-emerald-600 hover:underline"
+                        >
                             Metodologi Skor →
                         </Link>
                         <span>•</span>
-                        <Link href="/sources" class="text-emerald-600 hover:underline dark:text-emerald-400">
+                        <Link
+                            :href="sources()"
+                            class="text-emerald-600 hover:underline"
+                        >
                             Sumber Data →
                         </Link>
                     </div>
@@ -452,17 +562,25 @@ async function removeRating(): Promise<void> {
             </div>
 
             <!-- Trend Chart Sederhana (Element 8 per docs/04) -->
-            <div class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8 dark:border-neutral-800 dark:bg-neutral-900">
-                <div class="flex items-center justify-between border-b border-neutral-100 pb-4 dark:border-neutral-800">
+            <div
+                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
+            >
+                <div
+                    class="flex items-center justify-between border-b border-neutral-100 pb-4"
+                >
                     <div>
-                        <h2 class="text-lg font-bold text-neutral-900 dark:text-neutral-100">
+                        <h2 class="text-lg font-bold text-neutral-900">
                             Tren Sentimen Harian
                         </h2>
-                        <p class="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-                            Riwayat skor dan volume opini netijen dari waktu ke waktu.
+                        <p class="mt-0.5 text-xs text-neutral-500">
+                            Riwayat skor dan volume opini netijen dari waktu ke
+                            waktu.
                         </p>
                     </div>
-                    <span v-if="trend && trend.length > 0" class="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+                    <span
+                        v-if="trend && trend.length > 0"
+                        class="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600"
+                    >
                         {{ trend.length }} hari tercatat
                     </span>
                 </div>
@@ -472,49 +590,63 @@ async function removeRating(): Promise<void> {
                         <div
                             v-for="pt in trend.slice(-8)"
                             :key="pt.date"
-                            class="rounded-xl border border-neutral-100 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-800/50"
+                            class="rounded-xl border border-neutral-100 bg-neutral-50 p-3"
                         >
-                            <div class="text-[11px] font-medium text-neutral-400">{{ pt.label }}</div>
+                            <div
+                                class="text-[11px] font-medium text-neutral-400"
+                            >
+                                {{ pt.label }}
+                            </div>
                             <div class="mt-1 flex items-baseline gap-1">
                                 <span
                                     class="text-lg font-black"
                                     :class="{
-                                        'text-emerald-600 dark:text-emerald-400': (pt.score ?? 0) >= 70,
-                                        'text-amber-600 dark:text-amber-400': (pt.score ?? 0) >= 50 && (pt.score ?? 0) < 70,
-                                        'text-rose-600 dark:text-rose-400': (pt.score ?? 0) < 50,
+                                        'text-emerald-600':
+                                            (pt.score ?? 0) >= 70,
+                                        'text-amber-600':
+                                            (pt.score ?? 0) >= 50 &&
+                                            (pt.score ?? 0) < 70,
+                                        'text-rose-600': (pt.score ?? 0) < 50,
                                     }"
                                 >
                                     {{ pt.score !== null ? pt.score : '—' }}
                                 </span>
-                                <span v-if="pt.score !== null" class="text-[10px] text-neutral-400">/100</span>
+                                <span
+                                    v-if="pt.score !== null"
+                                    class="text-[10px] text-neutral-400"
+                                    >/100</span
+                                >
                             </div>
                             <div class="mt-1 text-[10px] text-neutral-500">
-                                {{ pt.opinion_count }} opini ({{ pt.positive_count }} pos / {{ pt.negative_count }} neg)
+                                {{ pt.opinion_count }} opini ({{
+                                    pt.positive_count
+                                }}
+                                pos / {{ pt.negative_count }} neg)
                             </div>
                         </div>
                     </div>
                 </div>
-                <div v-else class="mt-6 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center dark:border-neutral-700 dark:bg-neutral-800/40">
-                    <p class="text-xs text-neutral-500 dark:text-neutral-400">
-                        Data tren harian sedang dikumpulkan oleh pipeline crawler.
+                <div
+                    v-else
+                    class="mt-6 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center"
+                >
+                    <p class="text-xs text-neutral-500">
+                        Data tren harian sedang dikumpulkan oleh pipeline
+                        crawler.
                     </p>
                 </div>
             </div>
 
             <!-- Rating Netijen Card -->
             <div
-                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8 dark:border-neutral-800 dark:bg-neutral-900"
+                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
             >
                 <div class="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                        <h2
-                            class="text-lg font-bold text-neutral-900 dark:text-neutral-100"
-                        >
+                        <h2 class="text-lg font-bold text-neutral-900">
                             Rating Netijen
                         </h2>
-                        <p
-                            class="mt-1 text-xs text-neutral-500 dark:text-neutral-400"
-                        >
+                        <p class="mt-1 text-xs text-neutral-500">
                             Rating dari pengguna SuaraNetijen, terpisah dari
                             Sentimen Netijen.
                         </p>
@@ -529,9 +661,7 @@ async function removeRating(): Promise<void> {
                                 >/5</span
                             >
                         </div>
-                        <div
-                            class="text-xs text-neutral-500 dark:text-neutral-400"
-                        >
+                        <div class="text-xs text-neutral-500">
                             {{ ratingData.rating_count.toLocaleString() }}
                             rating
                         </div>
@@ -540,7 +670,7 @@ async function removeRating(): Promise<void> {
 
                 <div
                     v-if="$page.props.auth.user"
-                    class="mt-6 border-t border-neutral-100 pt-5 dark:border-neutral-800"
+                    class="mt-6 border-t border-neutral-100 pt-5"
                 >
                     <div
                         class="flex flex-wrap items-center justify-between gap-4"
@@ -548,7 +678,7 @@ async function removeRating(): Promise<void> {
                         <div>
                             <div
                                 id="rating-label"
-                                class="text-sm font-semibold text-neutral-800 dark:text-neutral-200"
+                                class="text-sm font-semibold text-neutral-800"
                             >
                                 {{
                                     ratingData.user_rating === null
@@ -569,7 +699,7 @@ async function removeRating(): Promise<void> {
                                     :class="
                                         star <= ratingForm.rating
                                             ? 'text-amber-500'
-                                            : 'text-neutral-300 dark:text-neutral-600'
+                                            : 'text-neutral-300'
                                     "
                                     :aria-label="`Beri rating ${star} dari 5`"
                                     :aria-pressed="star === ratingForm.rating"
@@ -582,7 +712,7 @@ async function removeRating(): Promise<void> {
                         <div class="flex flex-wrap gap-2">
                             <button
                                 type="button"
-                                class="min-h-10 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+                                class="min-h-10 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                                 :disabled="
                                     ratingForm.processing ||
                                     ratingForm.rating < 1
@@ -598,7 +728,7 @@ async function removeRating(): Promise<void> {
                             <button
                                 v-if="ratingData.user_rating !== null"
                                 type="button"
-                                class="min-h-10 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                                class="min-h-10 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
                                 :disabled="ratingForm.processing"
                                 @click="removeRating"
                             >
@@ -608,18 +738,18 @@ async function removeRating(): Promise<void> {
                     </div>
                     <p
                         v-if="ratingForm.errors.rating"
-                        class="mt-2 text-xs text-rose-600 dark:text-rose-400"
+                        class="mt-2 text-xs text-rose-600"
                     >
                         {{ ratingForm.errors.rating }}
                     </p>
                 </div>
                 <div
                     v-else
-                    class="mt-6 border-t border-neutral-100 pt-5 text-sm text-neutral-600 dark:border-neutral-800 dark:text-neutral-300"
+                    class="mt-6 border-t border-neutral-100 pt-5 text-sm text-neutral-600"
                 >
                     <Link
                         :href="login()"
-                        class="font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
+                        class="font-semibold text-emerald-600 hover:underline"
                     >
                         Masuk untuk memberi rating
                     </Link>
@@ -627,13 +757,17 @@ async function removeRating(): Promise<void> {
             </div>
 
             <!-- Top Suara Netijen (Theme Index per docs/25) -->
-            <div class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8 dark:border-neutral-800 dark:bg-neutral-900">
-                <div class="border-b border-neutral-100 pb-4 dark:border-neutral-800">
-                    <h2 class="text-lg font-bold text-neutral-900 dark:text-neutral-100">
+            <div
+                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
+            >
+                <div class="border-b border-neutral-100 pb-4">
+                    <h2 class="text-lg font-bold text-neutral-900">
                         Top Suara Netijen
                     </h2>
-                    <p class="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-                        Tema dan kata kunci yang paling sering dibahas netijen mengenai entitas ini (frekuensi tema, bukan skor numerik).
+                    <p class="mt-0.5 text-xs text-neutral-500">
+                        Tema dan kata kunci yang paling sering dibahas netijen
+                        mengenai entitas ini (frekuensi tema, bukan skor
+                        numerik).
                     </p>
                 </div>
 
@@ -641,24 +775,30 @@ async function removeRating(): Promise<void> {
                 <div v-if="themes.has_enough_data" class="mt-6 space-y-6">
                     <!-- Ranked List -->
                     <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                        <h3
+                            class="text-xs font-semibold tracking-wider text-neutral-500 uppercase"
+                        >
                             Top 5 Tema Paling Sering Muncul
                         </h3>
                         <div class="mt-3 space-y-2.5">
                             <div
                                 v-for="(theme, index) in themes.top_themes"
                                 :key="theme.id"
-                                class="flex items-center justify-between rounded-lg bg-neutral-50 px-4 py-2.5 dark:bg-neutral-800/60"
+                                class="flex items-center justify-between rounded-lg bg-neutral-50 px-4 py-2.5"
                             >
                                 <div class="flex items-center gap-3">
-                                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-neutral-200 text-xs font-bold text-neutral-700 dark:bg-neutral-700 dark:text-neutral-300">
+                                    <span
+                                        class="flex h-6 w-6 items-center justify-center rounded-full bg-neutral-200 text-xs font-bold text-neutral-700"
+                                    >
                                         {{ index + 1 }}
                                     </span>
-                                    <span class="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+                                    <span
+                                        class="text-sm font-semibold text-neutral-800"
+                                    >
                                         {{ theme.display_label }}
                                     </span>
                                 </div>
-                                <span class="text-xs text-neutral-500 dark:text-neutral-400">
+                                <span class="text-xs text-neutral-500">
                                     {{ theme.observation_count }} opini
                                 </span>
                             </div>
@@ -666,19 +806,26 @@ async function removeRating(): Promise<void> {
                     </div>
 
                     <!-- Groups: Paling Suka & Sering Dikeluhkan -->
-                    <div class="grid gap-4 sm:grid-cols-2 pt-2">
+                    <div class="grid gap-4 pt-2 sm:grid-cols-2">
                         <!-- Netijen Paling Suka -->
-                        <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20">
-                            <div class="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                        <div
+                            class="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-4"
+                        >
+                            <div class="text-xs font-bold text-emerald-800">
                                 Netijen Paling Suka
                             </div>
-                            <div v-if="themes.positive_themes.length > 0" class="mt-2.5 flex flex-wrap gap-1.5">
+                            <div
+                                v-if="themes.positive_themes.length > 0"
+                                class="mt-2.5 flex flex-wrap gap-1.5"
+                            >
                                 <span
                                     v-for="t in themes.positive_themes"
                                     :key="t.id"
-                                    class="inline-flex items-center rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200"
+                                    class="inline-flex items-center rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800"
                                 >
-                                    {{ t.display_label }} ({{ t.observation_count }})
+                                    {{ t.display_label }} ({{
+                                        t.observation_count
+                                    }})
                                 </span>
                             </div>
                             <div v-else class="mt-2 text-xs text-neutral-400">
@@ -687,17 +834,24 @@ async function removeRating(): Promise<void> {
                         </div>
 
                         <!-- Paling Sering Dikeluhkan -->
-                        <div class="rounded-xl border border-rose-200/80 bg-rose-50/40 p-4 dark:border-rose-900/40 dark:bg-rose-950/20">
-                            <div class="text-xs font-bold text-rose-800 dark:text-rose-300">
+                        <div
+                            class="rounded-xl border border-rose-200/80 bg-rose-50/40 p-4"
+                        >
+                            <div class="text-xs font-bold text-rose-800">
                                 Paling Sering Dikeluhkan
                             </div>
-                            <div v-if="themes.negative_themes.length > 0" class="mt-2.5 flex flex-wrap gap-1.5">
+                            <div
+                                v-if="themes.negative_themes.length > 0"
+                                class="mt-2.5 flex flex-wrap gap-1.5"
+                            >
                                 <span
                                     v-for="t in themes.negative_themes"
                                     :key="t.id"
-                                    class="inline-flex items-center rounded-md bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-800 dark:bg-rose-900/60 dark:text-rose-200"
+                                    class="inline-flex items-center rounded-md bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-800"
                                 >
-                                    {{ t.display_label }} ({{ t.observation_count }})
+                                    {{ t.display_label }} ({{
+                                        t.observation_count
+                                    }})
                                 </span>
                             </div>
                             <div v-else class="mt-2 text-xs text-neutral-400">
@@ -708,51 +862,47 @@ async function removeRating(): Promise<void> {
                 </div>
 
                 <!-- Below threshold empty state -->
-                <div v-else class="mt-6 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center dark:border-neutral-700 dark:bg-neutral-800/40">
-                    <p class="text-xs text-neutral-500 dark:text-neutral-400">
-                        {{ themes.empty_state_message || 'Belum cukup opini untuk merangkum Suara Netijen.' }}
+                <div
+                    v-else
+                    class="mt-6 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center"
+                >
+                    <p class="text-xs text-neutral-500">
+                        {{
+                            themes.empty_state_message ||
+                            'Belum cukup opini untuk merangkum Suara Netijen.'
+                        }}
                     </p>
                 </div>
             </div>
 
             <!-- Related Entities -->
-            <div v-if="relatedEntities.length > 0" class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-                <h3 class="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+            <div
+                v-if="relatedEntities.length > 0"
+                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
+            >
+                <h3 class="text-sm font-bold text-neutral-900">
                     Entitas Terkait dalam Kategori {{ entity.category.name }}
                 </h3>
                 <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <Link
                         v-for="rel in relatedEntities"
                         :key="rel.id"
-                        :href="`/e/${rel.slug}`"
-                        class="rounded-xl border border-neutral-100 bg-neutral-50 p-3 text-center transition hover:border-emerald-500 hover:bg-emerald-50/20 dark:border-neutral-800 dark:bg-neutral-800/40"
+                        :href="showEntity.url(rel.slug)"
+                        class="rounded-xl border border-neutral-100 bg-neutral-50 p-3 text-center transition hover:border-emerald-500 hover:bg-emerald-50/20"
                     >
-                        <div class="text-xs font-bold text-neutral-800 hover:text-emerald-600 dark:text-neutral-200 dark:hover:text-emerald-400">
+                        <div
+                            class="text-xs font-bold text-neutral-800 hover:text-emerald-600"
+                        >
                             {{ rel.name }}
                         </div>
-                        <span class="mt-1 inline-block text-[10px] text-neutral-400 uppercase">
+                        <span
+                            class="mt-1 inline-block text-[10px] text-neutral-400 uppercase"
+                        >
                             {{ rel.type_label }}
                         </span>
                     </Link>
                 </div>
             </div>
         </main>
-
-        <!-- Footer -->
-        <footer class="mt-16 border-t border-neutral-200 bg-white py-8 text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
-            <div class="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6">
-                <div>
-                    © 2026 SuaraNetijen. Indeks Sentimen Publik Indonesia.
-                </div>
-                <div class="flex flex-wrap items-center gap-4">
-                    <Link href="/search" class="hover:underline">Pencarian</Link>
-                    <Link href="/methodology" class="hover:underline">Metodologi</Link>
-                    <Link href="/sources" class="hover:underline">Sumber Data</Link>
-                    <Link href="/about" class="hover:underline">Tentang Kami</Link>
-                    <Link href="/terms" class="hover:underline">Ketentuan</Link>
-                    <Link href="/privacy" class="hover:underline">Privasi</Link>
-                </div>
-            </div>
-        </footer>
-    </div>
+    </PublicLayout>
 </template>
