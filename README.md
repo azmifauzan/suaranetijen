@@ -58,7 +58,7 @@ becomes ranking-eligible at >= 100 (`examples/score-config.yaml`).
 - PostgreSQL as source of truth and as the MVP search engine (`pg_trgm` + FTS).
 - Redis from day one for queue, cache, locks, and rate limits; Horizon for queue observability.
 - Source adapters: YouTube, KASKUS, DiskusiWebHosting, SerayaMotor, IndoForum (selective),
-  Bluesky, LowEndTalk (targeted), MediaKonsumen, plus first-party ratings.
+  Bluesky, LowEndTalk (targeted), MediaKonsumen, Mojok.co (esai), plus first-party ratings.
 - Top Suara Netijen: theme extraction/normalization and Top 5 frequency ranking per entity
   (`docs/25`) — no numeric per-theme score, no per-category aspect taxonomy.
 - Out: specification database, price comparison, aspect scores, expert scores, benchmarks,

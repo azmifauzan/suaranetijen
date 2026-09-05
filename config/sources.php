@@ -28,4 +28,9 @@ return [
         'feed_url' => env('MEDIAKONSUMEN_FEED_URL', 'https://mediakonsumen.com/feed'),
     ],
 
+    'mojok' => [
+        'base_url' => env('MOJOK_BASE_URL', 'https://mojok.co'),
+        'feed_url' => env('MOJOK_FEED_URL', 'https://mojok.co/esai/feed'),
+    ],
+
 ];

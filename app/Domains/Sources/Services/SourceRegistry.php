@@ -9,6 +9,7 @@ use App\Domains\Sources\Adapters\IndoForumAdapter;
 use App\Domains\Sources\Adapters\KaskusAdapter;
 use App\Domains\Sources\Adapters\LowEndTalkAdapter;
 use App\Domains\Sources\Adapters\MediaKonsumenAdapter;
+use App\Domains\Sources\Adapters\MojokAdapter;
 use App\Domains\Sources\Adapters\SerayaMotorAdapter;
 use App\Domains\Sources\Adapters\YouTubeAdapter;
 use App\Domains\Sources\Contracts\SourceAdapter;
@@ -48,6 +49,9 @@ class SourceRegistry
         'mediakonsumen' => MediaKonsumenAdapter::class,
         'MediaKonsumenAdapter' => MediaKonsumenAdapter::class,
         'App\\Domains\\Sources\\Adapters\\MediaKonsumenAdapter' => MediaKonsumenAdapter::class,
+        'mojok' => MojokAdapter::class,
+        'MojokAdapter' => MojokAdapter::class,
+        'App\\Domains\\Sources\\Adapters\\MojokAdapter' => MojokAdapter::class,
     ];
 
     /**
