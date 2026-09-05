@@ -94,11 +94,20 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
             return $this->requestViaFlareSolverr($url, $query, $flareSolverrUrl);
         }
 
-        return Http::timeout(15)
-            ->withHeaders([
-                'User-Agent' => 'SuaraNetijen/1.0 (+https://suaranetijen.id/sources)',
-            ])
-            ->get($url, $query);
+        $pendingRequest = Http::timeout(15)->withHeaders([
+            'User-Agent' => 'SuaraNetijen/1.0 (+https://suaranetijen.id/sources)',
+        ]);
+
+        // Illuminate\Http\Client\PendingRequest::get() only omits Guzzle's
+        // 'query' request option when called with a single argument
+        // (func_num_args() === 1) — passing $query explicitly, even as an
+        // empty array, sets 'query' => [] and Guzzle replaces the URL's own
+        // query string with nothing. Every adapter builds its paginated URLs
+        // by appending ?page=/?paged=/etc. directly onto $url with no
+        // $query array (pageUrl(), offsetUrl(), and every adapter's own
+        // ad-hoc pagination), so this silently discarded every page/cursor
+        // parameter and re-fetched page 1 forever until it was caught here.
+        return $query === [] ? $pendingRequest->get($url) : $pendingRequest->get($url, $query);
     }
 
     /**
@@ -232,7 +241,8 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
             './/blockquote | .//script | .//style | .//nav | .//form | .//header | .//footer | '
             .'.//*[contains(@class, "quote")] | .//*[contains(@class, "signature")] | '
             .'.//*[contains(@class, "promo")] | .//*[contains(@class, "advert")] | '
-            .'.//*[contains(@class, "navigation")] | .//*[contains(@id, "signature")]'
+            .'.//*[contains(@class, "navigation")] | .//*[contains(@id, "signature")] | '
+            .'.//*[contains(@class, "disclaim")]'
         );
 
         if ($removable !== false) {
