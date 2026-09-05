@@ -3,9 +3,10 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 import { home, methodology, sources } from '@/routes';
 import { show as showEntity } from '@/routes/entities';
 import { show as showRanking } from '@/routes/rankings';
-import { Head, Link, router, useHttp } from '@inertiajs/vue3';
+import { Link, router, useHttp } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { login } from '@/routes';
+import PublicSeo from '@/components/PublicSeo.vue';
 import {
     destroy as deleteRating,
     update as updateRating,
@@ -130,13 +131,13 @@ const ratingForm = useHttp<{ rating: number }, RatingMutationResponse>({
 });
 
 const pageTitle = computed(
-    () => `${props.entity.name}: Sentimen & Rating Netijen | SuaraNetijen`,
+    () => `${props.entity.name}: Sentimen dan Rating Netizen`,
 );
 const metaDescription = computed(() => {
     if (props.sentiment.is_eligible && props.sentiment.score !== null) {
-        return `Skor Sentimen Netijen untuk ${props.entity.name} adalah ${props.sentiment.score}/100 berdasarkan analisis ${props.sentiment.opinion_count} opini publik. Simak rangkuman sentimen dan rating pengguna di SuaraNetijen.`;
+        return `Skor Sentimen Netizen untuk ${props.entity.name} adalah ${props.sentiment.score}/100 berdasarkan analisis ${props.sentiment.opinion_count} opini publik. Simak rangkuman sentimen dan rating pengguna di SuaraNetijen.`;
     }
-    return `Indeks sentimen dan review publik untuk ${props.entity.name} di SuaraNetijen.`;
+    return `Indeks sentimen dan opini netizen untuk ${props.entity.name} di SuaraNetijen.`;
 });
 
 const jsonLd = computed(() => {
@@ -243,18 +244,18 @@ async function removeRating(): Promise<void> {
 
 <template>
     <PublicLayout>
-        <Head :title="pageTitle">
-            <meta name="description" :content="metaDescription" />
-            <meta
-                v-if="!sentiment.is_eligible"
-                name="robots"
-                content="noindex, follow"
-            />
-            <meta v-else name="robots" content="index, follow" />
+        <PublicSeo
+            :title="pageTitle"
+            :description="metaDescription"
+            :canonical-path="`/e/${entity.slug}`"
+            :robots="
+                sentiment.is_eligible ? 'index, follow' : 'noindex, follow'
+            "
+        >
             <component :is="'script'" type="application/ld+json">
                 {{ JSON.stringify(jsonLd) }}
             </component>
-        </Head>
+        </PublicSeo>
 
         <!-- Main Content -->
         <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -441,7 +442,7 @@ async function removeRating(): Promise<void> {
                                 <strong>{{
                                     sentiment.opinion_count.toLocaleString()
                                 }}</strong>
-                                opini netijen dianalisis
+                                opini netizen dianalisis
                             </div>
                         </div>
 
@@ -531,7 +532,7 @@ async function removeRating(): Promise<void> {
                     <p class="mt-1 text-xs text-neutral-500">
                         {{
                             sentiment.empty_state_message ||
-                            'Crawler opini publik belum mengumpulkan minimal 30 opini netijen untuk entitas ini. Skor agregat publik akan dihitung otomatis saat pipeline observasi aktif.'
+                            'Crawler opini publik belum mengumpulkan minimal 30 opini netizen untuk entitas ini. Skor agregat publik akan dihitung otomatis saat pipeline observasi aktif.'
                         }}
                     </p>
                 </div>
@@ -573,7 +574,7 @@ async function removeRating(): Promise<void> {
                             Tren Sentimen Harian
                         </h2>
                         <p class="mt-0.5 text-xs text-neutral-500">
-                            Riwayat skor dan volume opini netijen dari waktu ke
+                            Riwayat skor dan volume opini netizen dari waktu ke
                             waktu.
                         </p>
                     </div>
@@ -765,7 +766,7 @@ async function removeRating(): Promise<void> {
                         Top Suara Netijen
                     </h2>
                     <p class="mt-0.5 text-xs text-neutral-500">
-                        Tema dan kata kunci yang paling sering dibahas netijen
+                        Tema dan kata kunci yang paling sering dibahas netizen
                         mengenai entitas ini (frekuensi tema, bukan skor
                         numerik).
                     </p>
@@ -812,7 +813,7 @@ async function removeRating(): Promise<void> {
                             class="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-4"
                         >
                             <div class="text-xs font-bold text-emerald-800">
-                                Netijen Paling Suka
+                                Netizen Paling Suka
                             </div>
                             <div
                                 v-if="themes.positive_themes.length > 0"

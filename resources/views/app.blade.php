@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"  @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+<html lang="id" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -38,7 +38,21 @@
 
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
         <x-inertia::head>
-            <title>{{ config('app.name', 'Laravel') }}</title>
+            <title data-inertia="title">SuaraNetijen — Indeks Sentimen Publik Indonesia</title>
+            <meta data-inertia="description" name="description" content="Cari tahu opini netizen tentang brand, produk, dan layanan di Indonesia lewat sentimen publik dan rating pengguna di SuaraNetijen.">
+            <meta data-inertia="robots" name="robots" content="index, follow">
+            <link data-inertia="canonical" rel="canonical" href="{{ url()->current() }}">
+            <meta data-inertia="og:title" property="og:title" content="SuaraNetijen — Indeks Sentimen Publik Indonesia">
+            <meta data-inertia="og:description" property="og:description" content="Cari tahu opini netizen tentang brand, produk, dan layanan di Indonesia lewat sentimen publik dan rating pengguna di SuaraNetijen.">
+            <meta data-inertia="og:url" property="og:url" content="{{ url()->current() }}">
+            <meta data-inertia="og:type" property="og:type" content="website">
+            <meta data-inertia="og:site_name" property="og:site_name" content="{{ config('app.name', 'SuaraNetijen') }}">
+            <meta data-inertia="og:locale" property="og:locale" content="id_ID">
+            <meta data-inertia="og:image" property="og:image" content="{{ rtrim(config('app.url'), '/') }}/logo.svg">
+            <meta data-inertia="twitter:card" name="twitter:card" content="summary">
+            <meta data-inertia="twitter:title" name="twitter:title" content="SuaraNetijen — Indeks Sentimen Publik Indonesia">
+            <meta data-inertia="twitter:description" name="twitter:description" content="Cari tahu opini netizen tentang brand, produk, dan layanan di Indonesia lewat sentimen publik dan rating pengguna di SuaraNetijen.">
+            <meta data-inertia="twitter:image" name="twitter:image" content="{{ rtrim(config('app.url'), '/') }}/logo.svg">
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">

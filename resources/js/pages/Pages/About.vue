@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { home } from '@/routes';
-import { Head, Link } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
+import PublicSeo from '@/components/PublicSeo.vue';
 </script>
 
 <template>
     <PublicLayout>
-        <Head title="Tentang SuaraNetijen - Indeks Sentimen Publik Indonesia">
-            <meta
-                name="description"
-                content="Mengenal SuaraNetijen, platform indeks opini dan sentimen publik berbasis agregasi crawler untuk brand, produk, dan layanan di Indonesia."
-            />
-        </Head>
+        <PublicSeo
+            title="Tentang SuaraNetijen"
+            description="Mengenal SuaraNetijen, indeks opini dan sentimen publik dari percakapan netizen untuk brand, produk, dan layanan di Indonesia."
+            canonical-path="/about"
+        />
 
         <!-- Main Content -->
         <main class="mx-auto max-w-4xl px-4 py-12 sm:px-6">
@@ -36,7 +36,7 @@ import { Head, Link } from '@inertiajs/vue3';
                         SuaraNetijen hadir untuk menjawab pertanyaan mendasar
                         setiap konsumen di Indonesia:
                         <em
-                            >"Apa sebenarnya kata netijen tentang produk atau
+                            >"Apa sebenarnya kata netizen tentang produk atau
                             layanan ini?"</em
                         >
                     </p>
@@ -67,7 +67,7 @@ import { Head, Link } from '@inertiajs/vue3';
                         </li>
                         <li>
                             <strong>Dua Sisi yang Adil:</strong> Kami
-                            menampilkan apa yang disukai netijen sekaligus apa
+                            menampilkan apa yang disukai netizen sekaligus apa
                             yang paling sering dikeluhkan, memberikan gambaran
                             utuh sebelum Anda memutuskan membeli atau
                             menggunakan layanan.

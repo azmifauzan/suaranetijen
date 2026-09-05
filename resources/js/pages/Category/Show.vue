@@ -4,8 +4,9 @@ import { home } from '@/routes';
 import { show as showEntity } from '@/routes/entities';
 import { show as showCategory } from '@/routes/categories';
 import { show as showRanking } from '@/routes/rankings';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import PublicSeo from '@/components/PublicSeo.vue';
 
 interface CategoryData {
     id: number;
@@ -91,12 +92,12 @@ function handleSearch() {
 
 <template>
     <PublicLayout>
-        <Head :title="`${category.name}: Sentimen Netijen & Review`">
-            <meta
-                name="description"
-                :content="`Indeks sentimen dan opini netijen publik untuk brand, produk, dan layanan dalam kategori ${category.name} di SuaraNetijen.`"
-            />
-        </Head>
+        <PublicSeo
+            :title="`${category.name}: Sentimen Netizen dan Review`"
+            :description="`Lihat sentimen publik, opini netizen, dan entitas dalam kategori ${category.name} di SuaraNetijen.`"
+            :canonical-path="`/category/${category.slug}`"
+            :robots="searchQuery ? 'noindex, follow' : 'index, follow'"
+        />
 
         <!-- Main Content -->
         <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -128,7 +129,7 @@ function handleSearch() {
                             {{ category.name }}
                         </h1>
                         <p class="mt-2 text-sm text-neutral-600">
-                            Indeks sentimen dan opini netijen publik untuk
+                            Indeks sentimen dan opini publik dari netizen untuk
                             {{ category.total_entities }} entitas dalam kategori
                             {{ category.name }}.
                         </p>
@@ -278,7 +279,7 @@ function handleSearch() {
                         class="rounded-xl border border-dashed border-neutral-300 bg-white p-6 text-center text-xs text-neutral-500"
                     >
                         Belum ada entitas di kategori ini yang memenuhi batas
-                        minimal 30 opini netijen.
+                        minimal 30 opini netizen.
                     </div>
                 </div>
 

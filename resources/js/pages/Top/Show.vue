@@ -3,7 +3,8 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 import { home } from '@/routes';
 import { show as showEntity } from '@/routes/entities';
 import { show as showRanking } from '@/routes/rankings';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
+import PublicSeo from '@/components/PublicSeo.vue';
 
 interface CategoryData {
     id: number;
@@ -59,7 +60,11 @@ function switchPeriod(p: string) {
 
 <template>
     <PublicLayout>
-        <Head :title="`${category.name} dengan Sentimen Netijen Tertinggi`" />
+        <PublicSeo
+            :title="`${category.name} dengan Sentimen Netizen Tertinggi`"
+            :description="`Ranking ${category.name} dengan sentimen netizen tertinggi berdasarkan opini publik yang dianalisis SuaraNetijen.`"
+            :canonical-path="`/top/${category.slug}`"
+        />
 
         <!-- Main Content -->
         <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -83,8 +88,8 @@ function switchPeriod(p: string) {
                 </h1>
                 <p class="mt-2 text-sm text-neutral-600">
                     Daftar entitas dalam kategori {{ category.name }} yang
-                    diurutkan berdasarkan agregat opini netijen publik (minimal
-                    100 opini dianalisis).
+                    diurutkan berdasarkan agregat opini publik dari netizen
+                    (minimal 100 opini dianalisis).
                 </p>
             </div>
 
@@ -159,7 +164,7 @@ function switchPeriod(p: string) {
                 </h3>
                 <p class="mt-1 text-sm text-neutral-500">
                     Belum ada entitas di kategori {{ category.name }} yang
-                    memenuhi batas minimal 100 opini netijen untuk ranking
+                    memenuhi batas minimal 100 opini netizen untuk ranking
                     publik.
                 </p>
             </div>

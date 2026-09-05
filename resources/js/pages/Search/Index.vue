@@ -2,9 +2,10 @@
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { index as searchPage } from '@/routes/search';
 import { show as showEntity } from '@/routes/entities';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
+import PublicSeo from '@/components/PublicSeo.vue';
 
 interface CategoryItem {
     id: number;
@@ -107,11 +108,18 @@ const clearSearch = () => {
 
 <template>
     <PublicLayout>
-        <Head
+        <PublicSeo
             :title="
+                query ? `Pencarian ${query}` : 'Cari Brand, Produk, dan Layanan'
+            "
+            :description="
                 query
-                    ? `Pencarian: ${query} | SuaraNetijen`
-                    : 'Cari Entitas | SuaraNetijen'
+                    ? `Hasil pencarian ${query} di SuaraNetijen: temukan entitas dan ringkasan opini netizen.`
+                    : 'Cari brand, produk, dan layanan di Indonesia untuk melihat sentimen publik dan opini netizen.'
+            "
+            canonical-path="/search"
+            :robots="
+                query || selectedCategory ? 'noindex, follow' : 'index, follow'
             "
         />
 
@@ -121,7 +129,7 @@ const clearSearch = () => {
                 <p
                     class="mb-2 text-xs font-semibold tracking-widest text-emerald-600 uppercase"
                 >
-                    Cari tahu. Dengar netijen.
+                    Sebelum pilih, cek kata netizen.
                 </p>
                 <h2 class="mb-5 text-2xl font-bold tracking-tight sm:text-3xl">
                     Temukan yang ingin kamu kenali.

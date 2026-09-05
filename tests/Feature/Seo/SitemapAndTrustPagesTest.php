@@ -29,6 +29,22 @@ test('static trust and legal pages render successfully', function () {
     $this->get('/privacy')->assertOk()->assertInertia(fn (Assert $page) => $page->component('Pages/Privacy'));
 });
 
+test('public document shell exposes Indonesian SEO defaults', function () {
+    $response = $this->get('/');
+
+    $response
+        ->assertOk()
+        ->assertSee('<html lang="id"', false)
+        ->assertSee('<title data-inertia="title">SuaraNetijen — Indeks Sentimen Publik Indonesia</title>', false)
+        ->assertSee('name="description"', false)
+        ->assertSee('opini netizen', false)
+        ->assertSee('name="robots" content="index, follow"', false)
+        ->assertSee('rel="canonical"', false)
+        ->assertSee('property="og:locale" content="id_ID"', false);
+
+    expect(substr_count($response->getContent(), '<title'))->toBe(1);
+});
+
 test('category overview page renders with top sentiment and discussed lists', function () {
     $category = Category::query()->create([
         'name' => 'Web Hosting',
@@ -150,6 +166,44 @@ test('sitemap indexes only active entities that clear public score threshold and
         'calculated_at' => now(),
     ]);
 
+    // The page prefers an existing 365-day snapshot even when the all-time
+    // snapshot would clear the threshold, so this entity must stay out too.
+    $mismatchedEntity = Entity::query()->create([
+        'name' => 'Indeks Tidak Selaras',
+        'slug' => 'indeks-tidak-selaras',
+        'type' => EntityType::Brand,
+        'status' => EntityStatus::Active,
+        'category_id' => $category->id,
+        'searchable' => true,
+        'rankable' => true,
+    ]);
+
+    SentimentSnapshot::query()->create([
+        'entity_id' => $mismatchedEntity->id,
+        'period' => Period::OneYear->value,
+        'score' => null,
+        'opinion_count' => 12,
+        'positive_count' => 8,
+        'neutral_count' => 2,
+        'negative_count' => 2,
+        'sentiment_model_version' => 'v1',
+        'score_formula_version' => 'v1',
+        'calculated_at' => now(),
+    ]);
+
+    SentimentSnapshot::query()->create([
+        'entity_id' => $mismatchedEntity->id,
+        'period' => Period::All->value,
+        'score' => 80.0,
+        'opinion_count' => 45,
+        'positive_count' => 36,
+        'neutral_count' => 5,
+        'negative_count' => 4,
+        'sentiment_model_version' => 'v1',
+        'score_formula_version' => 'v1',
+        'calculated_at' => now(),
+    ]);
+
     $response = $this->get('/sitemap.xml');
 
     $response->assertOk();
@@ -165,6 +219,7 @@ test('sitemap indexes only active entities that clear public score threshold and
 
     // MUST NOT include an entity eligible only on a non-public-default period
     expect($content)->not->toContain('/e/flip-baru');
+    expect($content)->not->toContain('/e/indeks-tidak-selaras');
 
     // Must include category & top ranking
     expect($content)->toContain('/category/fintech');

@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { home } from '@/routes';
-import { Head, Link } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
+import PublicSeo from '@/components/PublicSeo.vue';
 </script>
 
 <template>
     <PublicLayout>
-        <Head title="Kebijakan Privasi - SuaraNetijen">
-            <meta
-                name="description"
-                content="Kebijakan privasi SuaraNetijen. Prinsip minimalisasi data dan kepatuhan UU PDP dalam pengumpulan opini publik."
-            />
-        </Head>
+        <PublicSeo
+            title="Kebijakan Privasi"
+            description="Kebijakan privasi SuaraNetijen tentang minimalisasi data dan perlindungan informasi pengguna."
+            canonical-path="/privacy"
+        />
 
         <!-- Main Content -->
         <main class="mx-auto max-w-4xl px-4 py-12 sm:px-6">

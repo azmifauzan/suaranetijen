@@ -12,7 +12,16 @@ const page = vi.hoisted(() => ({
 vi.mock('@inertiajs/vue3', () => ({
     usePage: () => page,
     router: { get: vi.fn(), visit: vi.fn() },
-    Head: defineComponent({ setup: () => () => null }),
+    Head: defineComponent({
+        props: { title: String },
+        setup:
+            (props, { slots }) =>
+            () =>
+                h('head', [
+                    props.title ? h('title', props.title) : null,
+                    ...(slots.default?.() ?? []),
+                ]),
+    }),
     Link: defineComponent({
         props: ['href'],
         setup:
@@ -43,7 +52,12 @@ it('keeps search accessible and shows an honest empty state before opinions exis
     expect(html).toContain('role="search"');
     expect(html).toContain('role="combobox"');
     expect(html).toContain('Cari brand, produk, atau layanan');
-    expect(html).toContain('Cari tahu. Dengar netijen.');
+    expect(html).toContain('Sebelum pilih, cek kata netizen.');
+    expect(html).toContain(
+        '<title>Sentimen Publik Brand, Produk, dan Layanan Indonesia | SuaraNetijen</title>',
+    );
+    expect(html).toContain('name="description"');
+    expect(html).toContain('opini netizen');
     expect(html).toContain('Belum ada entitas dengan data yang cukup');
     expect(html).not.toContain('Baru diperbarui');
     expect(html).toContain('href="/register"');

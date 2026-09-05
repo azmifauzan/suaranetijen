@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { home } from '@/routes';
-import { Head, Link } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
+import PublicSeo from '@/components/PublicSeo.vue';
 
 defineProps<{
     scoring: {
@@ -14,12 +15,11 @@ defineProps<{
 
 <template>
     <PublicLayout>
-        <Head title="Metodologi Skor & Transparansi - SuaraNetijen">
-            <meta
-                name="description"
-                content="Pelajari metodologi penghitungan Sentimen Netijen, threshold opini publik, pemisahan Rating Netijen, dan prinsip crawler independen di SuaraNetijen."
-            />
-        </Head>
+        <PublicSeo
+            title="Metodologi Sentimen Netizen"
+            description="Pelajari cara SuaraNetijen menghitung sentimen publik dari opini netizen, menetapkan ambang opini, dan memisahkan rating pengguna."
+            canonical-path="/methodology"
+        />
 
         <!-- Main Content -->
         <main class="mx-auto max-w-4xl px-4 py-12 sm:px-6">
@@ -96,7 +96,7 @@ defineProps<{
                                     Tema & Topik
                                 </div>
                                 <div class="mt-1 text-xs text-neutral-500">
-                                    Frekuensi tema/keluhan netijen (bukan skor
+                                    Frekuensi tema/keluhan netizen (bukan skor
                                     angka).
                                 </div>
                             </div>

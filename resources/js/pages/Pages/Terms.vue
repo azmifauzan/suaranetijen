@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { home } from '@/routes';
-import { Head, Link } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
+import PublicSeo from '@/components/PublicSeo.vue';
 </script>
 
 <template>
     <PublicLayout>
-        <Head title="Syarat & Ketentuan - SuaraNetijen">
-            <meta
-                name="description"
-                content="Syarat dan ketentuan penggunaan platform SuaraNetijen, indeks opini publik Indonesia."
-            />
-        </Head>
+        <PublicSeo
+            title="Syarat dan Ketentuan"
+            description="Syarat dan ketentuan penggunaan platform SuaraNetijen, indeks opini publik Indonesia."
+            canonical-path="/terms"
+        />
 
         <!-- Main Content -->
         <main class="mx-auto max-w-4xl px-4 py-12 sm:px-6">
@@ -47,7 +47,7 @@ import { Head, Link } from '@inertiajs/vue3';
                         SuaraNetijen menyajikan skor sentimen publik yang
                         dihasilkan melalui crawling terotomasi dan pemrosesan
                         komputasi atas percakapan di ruang publik digital. Skor
-                        ini mencerminkan persepsi dan sentimen netijen, bukan
+                        ini mencerminkan persepsi dan sentimen netizen, bukan
                         rekomendasi profesional atau jaminan kualitas mutlak.
                     </p>
 

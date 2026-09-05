@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import {
     ArrowRight,
     ArrowUpRight,
@@ -23,6 +23,7 @@ import {
 import { computed } from 'vue';
 import EntitySearch from '@/components/EntitySearch.vue';
 import PublicEntityCard from '@/components/PublicEntityCard.vue';
+import PublicSeo from '@/components/PublicSeo.vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { methodology, sources } from '@/routes';
 import { show as showCategory } from '@/routes/categories';
@@ -77,12 +78,11 @@ function categoryIcon(name: string) {
 
 <template>
     <PublicLayout>
-        <Head title="Cari tahu. Dengar netijen.">
-            <meta
-                name="description"
-                content="Apa kata netijen tentang brand, produk, dan layanan pilihanmu? Cari dan jelajahi sentimen publik, topik percakapan, serta rating pengguna di SuaraNetijen."
-            />
-        </Head>
+        <PublicSeo
+            title="Sentimen Publik Brand, Produk, dan Layanan Indonesia"
+            description="Cari tahu opini netizen tentang brand, produk, dan layanan di Indonesia lewat sentimen publik dan rating pengguna di SuaraNetijen."
+            canonical-path="/"
+        />
         <main>
             <section class="relative border-b border-[#e0e9dd] bg-[#eff7eb]">
                 <div
@@ -122,14 +122,14 @@ function categoryIcon(name: string) {
                         class="text-[42px] leading-[1.08] font-bold tracking-[-2px] text-[#193e2d] sm:text-6xl sm:tracking-[-3px] lg:text-7xl"
                     >
                         Cari tahu.<br /><span class="text-[#087f5b]"
-                            >Dengar netijen.</span
+                            >Sebelum pilih, cek kata netizen.</span
                         >
                     </h1>
                     <p
                         class="mx-auto mt-6 max-w-lg text-base leading-7 text-[#61725f] sm:text-lg"
                     >
                         Mau pilih brand, produk, atau layanan?<br />
-                        Cari dulu, lihat apa kata netijen.
+                        Cari dulu, lihat apa kata netizen.
                     </p>
                     <div class="mx-auto mt-8 max-w-2xl"><EntitySearch /></div>
                     <div

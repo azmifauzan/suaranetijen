@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { home } from '@/routes';
-import { Head, Link } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
+import PublicSeo from '@/components/PublicSeo.vue';
 
 interface SourceItem {
     id: number;
@@ -21,12 +22,11 @@ defineProps<{
 
 <template>
     <PublicLayout>
-        <Head title="Sumber Data & Transparansi Crawler - SuaraNetijen">
-            <meta
-                name="description"
-                content="Daftar sumber data terbuka, forum diskusi, dan status crawler publik yang digunakan oleh indeks sentimen SuaraNetijen."
-            />
-        </Head>
+        <PublicSeo
+            title="Sumber Data dan Transparansi"
+            description="Lihat sumber data terbuka dan status crawler yang digunakan SuaraNetijen untuk mengolah opini netizen."
+            canonical-path="/sources"
+        />
 
         <!-- Main Content -->
         <main class="mx-auto max-w-4xl px-4 py-12 sm:px-6">
@@ -47,7 +47,7 @@ defineProps<{
                 </h1>
                 <p class="mt-3 text-base leading-relaxed text-neutral-600">
                     SuaraNetijen memprioritaskan transparansi penuh mengenai
-                    asal muasal data opini netijen. Sumber data kami mencakup
+                    asal muasal data opini netizen. Sumber data kami mencakup
                     forum komunitas independen, media sosial terdesentralisasi,
                     dan platform diskusi terbuka di Indonesia.
                 </p>
