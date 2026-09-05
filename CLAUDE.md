@@ -928,6 +928,7 @@ Current implementation boundary:
 | Staging environment | live at `https://suaranetijen.web.id`; see staging deployment notes above for the bugs found and fixed getting there |
 | Entity candidate pipeline (`docs/23` "Growth") | implemented (5 Sep 2026), not yet deployed to staging — closes the previously-untouched gap where zero-result search queries were logged but nothing turned that into new-entity candidates |
 | Shared LLM settings (`llm_settings`, `/admin/llm-settings`) | implemented — OpenAI-compatible chat completions over plain HTTP, no new SDK dependency; meant to be the one place any future LLM feature (e.g. the still-unimplemented `docs/10` ambiguous-entity-matching fallback) resolves its client through |
+| Tokoh Publik category / `person` entity type (ADR-010 override) | `EntityType::Person` + Tokoh Publik category tree implemented, 25 seed entities added, generic pipeline unchanged; `kaskus_politik` Source seeded `enabled: false` pending live check; not yet deployed to staging |
 
 The repository's `.env.example` now carries the PostgreSQL + Redis baseline. Tests retain isolated
 SQLite/array/sync defaults (with the trigram shim above) unless an explicit integration run
@@ -1084,6 +1085,55 @@ it returned `score: null, opinion_count: 0` for every result, contradicting the 
   `"score":72.12,"opinion_count":1632`, matching the database exactly.
 - This shipped with the redeploy in the distributed-worker session above — only the main app host
   needed it (search is web-facing, not something the crawl/analysis workers touch).
+
+## Tokoh Publik category (5 September 2026)
+
+Added a `person` entity type and a Tokoh Publik category (children: Politisi, Selebriti & Artis,
+Atlet, Pengusaha, Kreator Konten) at explicit operator request, **overriding ADR-010** (politics
+was previously deferred — see the override note on ADR-010 in `docs/21` and the corresponding
+`docs/18`/`docs/02` updates). No separate political-entity module or compliance review was built;
+`person` entities run through the same generic entity-centric pipeline as `brand`/`product`/
+`service` (matching, sentiment, scoring, ranking), unchanged.
+
+- `SeedEntityImporter::$categoryTaxonomy` and `ensureCategoriesExist()` gained the 5 new
+  child categories under a new `Tokoh Publik` parent; 25 seed entities (type `person`) were added
+  to `database/data/seed_entities.csv` across all 5 subcategories, aliases included, same CSV
+  format as every existing row. `SeedEntityImporterTest`'s `>=` count assertions cover the larger
+  totals without needing changes.
+- **Source research, evaluated against the working-adapter pattern (native comments/threads, SSR,
+  no AI-crawl ban) before building anything:** Kompasiana rejected (robots.txt blocks
+  `/komentar/*` and explicitly disallows ClaudeBot/GPTBot/anthropic-ai with an AI/LLM-mining
+  prohibition). Okezone's dedicated "Tokoh" RSS feed rejected (dead since 2017, and it's static
+  bio profiles, not netizen opinion). Kapanlagi.com and IDN Times both checked live: permissive
+  robots.txt, SSR article pages, but **no comment section at all** on either — pure third-person
+  journalism, no netizen opinion signal to extract, so neither is adapter-grade despite passing
+  the robots/SSR checks. Kumparan explicitly allows ClaudeBot/GPTBot in robots.txt (unusual,
+  favorable) but is CSR (`Sedang memuat...` shell, same problem class as the original Kaskus
+  Next.js finding) — flagged as a real future candidate once FlareSolverr-based selectors are
+  actually verified live, not built blind.
+- **Chosen source: `kaskus_politik`**, a new `Source` row (`SourceSeeder.php`) reusing the
+  existing `KaskusAdapter` unchanged — `crawl_policy.listing_url` scopes it to the confirmed-real
+  "Berita dan Politik Indonesia" subforum (`kaskus.co.id/komunitas/1167/berita-dan-politik-indonesia`),
+  same scoping pattern as LowEndTalk's `category_urls`. No new adapter class. Seeded
+  `enabled: false` pending a live operator check, same DoD gate as every other source added this
+  project.
+- **Bug found and fixed, without which the above is moot:** `YouTubeAdapter`/`KaskusAdapter`
+  auto-search every active+searchable entity's name (`DiscoverSourceDocumentsJob`). YouTube
+  rotates through them correctly, but `KaskusAdapter::discover()` only ever read
+  `queries[0]` and then baked the resulting search URL into `metadata['listing_url']` on the
+  first cycle — from then on the persisted `listing_url` short-circuited any re-derivation from
+  `queries`, so Kaskus's generic entity-name search has been stuck on a single entity's name
+  forever, since it first launched. Same root-cause shape as the earlier IndoForum/SerayaMotor
+  `forum_ids[0]`-only bug. Fixed by splitting `discover()` into an explicit-listing-url path
+  (unchanged behavior, used by `kaskus_politik` and any future single-category Kaskus source) and
+  a query-rotation path (`query_index`, rotates on an empty results page, wraps back to the first
+  query — mirrors `IndoForumAdapter`'s `forum_index` fix exactly). Regression tests added to
+  `WaveTwoAdapterTest.php` (rotate, wrap, and explicit-listing-url-ignores-queries cases). Without
+  this fix, adding Tokoh Publik entities would not actually have gotten them searched via Kaskus.
+- **Not yet deployed to staging** — needs a redeploy (build+push image, pull, recreate, migrate)
+  same as every other change this session, plus running `php artisan db:seed --class=SourceSeeder`
+  (or the full seeder) to pick up the new `kaskus_politik` row, and re-running the entity seed
+  import to pick up the 25 new `person` entities.
 
 ## Document map
 

@@ -83,7 +83,8 @@ Membuktikan bahwa user memperoleh value dari flow **search entity -> melihat Sen
   theme *frequency*, never a theme *score* — it does not reopen this exclusion.
 - Influencer/user reputation weighting.
 - Demographic inference.
-- Political entities.
+- ~~Political entities.~~ Overridden 5 September 2026 (see ADR-010, `docs/21`) - politisi are now
+  tracked via the `person` entity type under Tokoh Publik.
 - B2B dashboard/API.
 - Native mobile apps.
 

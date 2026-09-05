@@ -7,6 +7,7 @@ enum EntityType: string
     case Brand = 'brand';
     case Product = 'product';
     case Service = 'service';
+    case Person = 'person';
 
     /**
      * Get a human-readable label for the entity type.
@@ -17,6 +18,7 @@ enum EntityType: string
             self::Brand => 'Brand',
             self::Product => 'Product',
             self::Service => 'Service',
+            self::Person => 'Person',
         };
     }
 }

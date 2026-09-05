@@ -9,6 +9,9 @@ Semua objek yang bisa dicari dan diberi sentimen direpresentasikan sebagai `enti
 - `brand` - contoh Biznet Gio, Samsung, Telkomsel.
 - `product` - contoh Samsung Galaxy A57, Honda HR-V.
 - `service` - contoh VPS Biznet Gio, Hosting IDCloudHost, IndiHome.
+- `person` - tokoh publik individual, contoh Joko Widodo, Raffi Ahmad, Jonatan Christie. Ditambahkan
+  5 September 2026 untuk kategori Tokoh Publik (lihat ADR-010 di `docs/21` untuk override cakupan
+  politik).
 
 ## Parent-child
 
@@ -40,6 +43,12 @@ Opini `Biznet Gio bagus` masuk ke Biznet Gio. Opini `VPS Biznet Gio bagus` masuk
   - Digital Finance (opsional seed terbatas)
 - Consumer Brands
   - Brand Umum
+- Tokoh Publik
+  - Politisi
+  - Selebriti & Artis
+  - Atlet
+  - Pengusaha
+  - Kreator Konten
 
 ## Entity fields minimum
 

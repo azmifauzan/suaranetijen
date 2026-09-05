@@ -31,6 +31,11 @@ class SeedEntityImporter
         'Ride Hailing' => 'Digital Services',
         'Logistics' => 'Digital Services',
         'Brand Umum' => 'Consumer Brands',
+        'Politisi' => 'Tokoh Publik',
+        'Selebriti & Artis' => 'Tokoh Publik',
+        'Atlet' => 'Tokoh Publik',
+        'Pengusaha' => 'Tokoh Publik',
+        'Kreator Konten' => 'Tokoh Publik',
     ];
 
     /**
@@ -207,6 +212,7 @@ class SeedEntityImporter
             'Automotive' => 'automotive',
             'Digital Services' => 'digital-services',
             'Consumer Brands' => 'consumer-brands',
+            'Tokoh Publik' => 'tokoh-publik',
         ];
 
         $parentIdMap = [];

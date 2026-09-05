@@ -86,18 +86,23 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
             return new DiscoveryBatch($documents, null, false);
         }
 
-        $query = trim((string) ($cursor->metadata['query'] ?? $cursor->metadata['queries'][0] ?? ''));
-        $listingUrl = trim((string) ($cursor->metadata['listing_url']
+        $explicitListingUrl = trim((string) ($cursor->metadata['listing_url']
             ?? $cursor->metadata['category_url']
             ?? config('sources.kaskus.listing_url', '')));
-        if ($listingUrl === '' && $query !== '') {
-            $listingUrl = rtrim((string) config('sources.kaskus.base_url'), '/').'/search?q='.rawurlencode($query);
+
+        if ($explicitListingUrl !== '') {
+            return $this->discoverExplicitListing($cursor, $explicitListingUrl);
         }
 
-        if ($listingUrl === '') {
-            return new DiscoveryBatch([], null, false);
-        }
+        return $this->discoverByQuery($cursor);
+    }
 
+    /**
+     * Single fixed listing/subforum (e.g. a scoped Source config) — paginates
+     * the same URL forever, same behaviour as LowEndTalk's category scoping.
+     */
+    private function discoverExplicitListing(CrawlCursor $cursor, string $listingUrl): DiscoveryBatch
+    {
         $page = max(1, (int) ($cursor->metadata['page'] ?? 1));
         $response = $this->request($this->pageUrl($listingUrl, $page));
         $response->throw();
@@ -120,6 +125,77 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
             ),
             hasMore: $documents !== []
         );
+    }
+
+    /**
+     * Site-wide search by tracked entity name/alias (auto-populated by
+     * DiscoverSourceDocumentsJob). Rotates through every query instead of
+     * paginating the first one forever — same fix as IndoForumAdapter's
+     * forum_index rotation, for the same root cause (an index that never
+     * advanced past 0).
+     */
+    private function discoverByQuery(CrawlCursor $cursor): DiscoveryBatch
+    {
+        $queries = $this->queries($cursor);
+
+        if ($queries === []) {
+            return new DiscoveryBatch([], null, false);
+        }
+
+        $queryCount = count($queries);
+        $queryIndex = max(0, (int) ($cursor->metadata['query_index'] ?? 0)) % $queryCount;
+        $query = $queries[$queryIndex];
+        $listingUrl = rtrim((string) config('sources.kaskus.base_url'), '/').'/search?q='.rawurlencode($query);
+
+        $page = max(1, (int) ($cursor->metadata['page'] ?? 1));
+        $response = $this->request($this->pageUrl($listingUrl, $page));
+        $response->throw();
+        $documents = $this->parseHtmlDocumentLinks(
+            $response->body(),
+            $cursor->sourceKey,
+            $listingUrl,
+            '~/thread/~i'
+        );
+
+        // An empty results page means this query is exhausted at this cursor
+        // position — move to the next tracked entity name rather than paging
+        // the same search forever.
+        $nextQueryIndex = $queryIndex;
+        $nextPage = $page + 1;
+        if ($documents === []) {
+            $nextQueryIndex = ($queryIndex + 1) % $queryCount;
+            $nextPage = 1;
+        }
+
+        return new DiscoveryBatch(
+            documents: $documents,
+            nextCursor: new CrawlCursor(
+                sourceKey: $cursor->sourceKey,
+                cursorKey: $cursor->cursorKey,
+                cursorValue: 'query_'.$nextQueryIndex.'_page_'.$nextPage,
+                lastExternalId: $documents !== [] ? end($documents)->externalId : $cursor->lastExternalId,
+                lastCrawledAt: now()->toImmutable(),
+                metadata: [
+                    ...$cursor->metadata,
+                    'queries' => $queries,
+                    'query_index' => $nextQueryIndex,
+                    'page' => $nextPage,
+                ]
+            ),
+            hasMore: $documents !== []
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function queries(CrawlCursor $cursor): array
+    {
+        if (is_string($cursor->metadata['query'] ?? null) && trim($cursor->metadata['query']) !== '') {
+            return [trim($cursor->metadata['query'])];
+        }
+
+        return $this->stringList($cursor->metadata['queries'] ?? []);
     }
 
     public function fetch(SourceDocumentRef $ref): FetchedDocument

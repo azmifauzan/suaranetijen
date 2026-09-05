@@ -77,6 +77,22 @@ class SourceSeeder extends Seeder
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
             [
+                'key' => 'kaskus_politik',
+                'name' => 'KASKUS Berita dan Politik',
+                'adapter' => 'kaskus',
+                'source_type' => SourceType::Forum,
+                // Added for the Tokoh Publik category (5 Sep 2026): scoped to a single
+                // subforum via 'listing_url', same pattern as LowEndTalk's category_urls
+                // scoping — reuses KaskusAdapter unchanged, no new adapter class. Seeded
+                // disabled pending a live operator check, same DoD as every other source.
+                'enabled' => false,
+                'crawl_policy' => [
+                    'rate_limit_per_minute' => 10,
+                    'listing_url' => 'https://www.kaskus.co.id/komunitas/1167/berita-dan-politik-indonesia',
+                ],
+                'retention_policy' => ['raw_ttl_hours' => 72],
+            ],
+            [
                 'key' => 'lowendtalk',
                 'name' => 'LowEndTalk',
                 'adapter' => 'lowendtalk',

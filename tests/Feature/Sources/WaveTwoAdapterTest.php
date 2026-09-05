@@ -128,6 +128,70 @@ it('reports KASKUS as policy_disabled when robots disallows all user agents', fu
         ->and($health->message)->toContain('robots.txt');
 });
 
+it('rotates to the next tracked entity name once the current KASKUS search has no threads', function () {
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) {
+        return match (true) {
+            $request->url() === 'https://www.kaskus.co.id/' => Http::response('ok'),
+            str_contains($request->url(), 'q=Samsung') => Http::response('<html><body>no threads here</body></html>'),
+            str_contains($request->url(), 'q=Anies') => Http::response(waveTwoSourceFixture('kaskus', 'listing.html')),
+            default => throw new RuntimeException("Unexpected KASKUS request [{$request->url()}]."),
+        };
+    });
+
+    $adapter = new KaskusAdapter;
+    $firstBatch = $adapter->discover(new CrawlCursor('kaskus', metadata: ['queries' => ['Samsung', 'Anies']]));
+    $secondBatch = $adapter->discover($firstBatch->nextCursor);
+
+    expect($firstBatch->documents)->toBe([])
+        ->and($firstBatch->nextCursor->metadata['query_index'])->toBe(1)
+        ->and($firstBatch->nextCursor->metadata['page'])->toBe(1)
+        ->and($secondBatch->documents)->toHaveCount(2);
+});
+
+it('wraps KASKUS query rotation back to the first entity name instead of searching forever', function () {
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) {
+        return match (true) {
+            $request->url() === 'https://www.kaskus.co.id/' => Http::response('ok'),
+            str_contains($request->url(), 'q=Anies') => Http::response('<html><body>no threads here</body></html>'),
+            default => throw new RuntimeException("Unexpected KASKUS request [{$request->url()}]."),
+        };
+    });
+
+    $adapter = new KaskusAdapter;
+    $batch = $adapter->discover(new CrawlCursor('kaskus', metadata: [
+        'queries' => ['Samsung', 'Anies'],
+        'query_index' => 1,
+        'page' => 5,
+    ]));
+
+    expect($batch->documents)->toBe([])
+        ->and($batch->nextCursor->metadata['query_index'])->toBe(0)
+        ->and($batch->nextCursor->metadata['page'])->toBe(1);
+});
+
+it('keeps a KASKUS source with an explicit listing_url scoped to that subforum, ignoring tracked entity queries', function () {
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) {
+        return match (true) {
+            $request->url() === 'https://www.kaskus.co.id/' => Http::response('ok'),
+            str_contains($request->url(), '/komunitas/1167/berita-dan-politik-indonesia') => Http::response(waveTwoSourceFixture('kaskus', 'listing.html')),
+            default => throw new RuntimeException("Unexpected KASKUS request [{$request->url()}]."),
+        };
+    });
+
+    $adapter = new KaskusAdapter;
+    $batch = $adapter->discover(new CrawlCursor('kaskus', metadata: [
+        'listing_url' => 'https://www.kaskus.co.id/komunitas/1167/berita-dan-politik-indonesia',
+        'queries' => ['Samsung'],
+    ]));
+
+    expect($batch->documents)->toHaveCount(2)
+        ->and($batch->nextCursor->metadata['listing_url'])->toBe('https://www.kaskus.co.id/komunitas/1167/berita-dan-politik-indonesia')
+        ->and($batch->nextCursor->metadata['page'])->toBe(2);
+});
+
 it('runs the LowEndTalk adapter only across Reviews, Providers, and Outages', function () {
     Http::preventStrayRequests();
     Http::fake(function (Request $request) {

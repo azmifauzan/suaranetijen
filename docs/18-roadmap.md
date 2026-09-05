@@ -94,6 +94,8 @@ Only when measured (`docs/05` extraction trigger), not speculatively:
 
 ## Long horizon
 
-Political/candidate sentiment is intentionally not part of MVP or near roadmap. If revisited near
-an election cycle, treat it as a separately reviewed product/compliance module rather than
-silently enabling existing generic entity functionality.
+Political/candidate sentiment was intentionally not part of MVP or near roadmap. **Overridden
+5 September 2026** (see ADR-010 in `docs/21`): politisi are now tracked via the generic `person`
+entity type under the Tokoh Publik category, at explicit operator request, without a separate
+compliance review. If broader election-cycle coverage is considered later, still treat that as a
+separately reviewed product/compliance module rather than silently expanding scope further.

@@ -40,6 +40,13 @@
 **Decision:** no political entity module in MVP/near roadmap.  
 **Why:** not needed to validate current product and creates separate compliance surface.
 
+**Overridden 5 September 2026:** politisi are now in scope as part of the `person` entity type
+and the Tokoh Publik category, at explicit operator request. The generic entity-centric pipeline
+(matching, sentiment, scoring, ranking) applies unchanged - no separate political-entity module was
+built, and no compliance review was performed as part of this override. Same standing constraints
+(precision-over-recall matching, no aspect scoring, data minimization - rate the public figure, not
+private individuals) apply to `person` entities as to any other type.
+
 ## ADR-011 - Theme Index is a second derived layer, not aspect scoring
 **Decision:** Top Suara Netijen (`docs/25`) adds a theme-frequency index alongside Sentimen
 Netijen, sourced from the same relevant-opinion stream. It shows theme + observation count only —
