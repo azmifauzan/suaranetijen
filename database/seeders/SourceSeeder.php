@@ -86,6 +86,19 @@ class SourceSeeder extends Seeder
                 'crawl_policy' => ['rate_limit_per_minute' => 10],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
+            [
+                'key' => 'mediakonsumen',
+                'name' => 'MediaKonsumen',
+                'adapter' => 'mediakonsumen',
+                'source_type' => SourceType::Rss,
+                // Disabled pending a live operator check (same DoD as every other wave
+                // before it is turned on for backfill). robots.txt allows crawling and
+                // /feed works (confirmed 5 Sep 2026), but this adapter has not yet run
+                // against real production traffic.
+                'enabled' => false,
+                'crawl_policy' => ['rate_limit_per_minute' => 20],
+                'retention_policy' => ['raw_ttl_hours' => 72],
+            ],
         ];
 
         foreach ($sources as $attributes) {

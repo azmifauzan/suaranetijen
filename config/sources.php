@@ -23,4 +23,9 @@ return [
         ],
     ],
 
+    'mediakonsumen' => [
+        'base_url' => env('MEDIAKONSUMEN_BASE_URL', 'https://mediakonsumen.com'),
+        'feed_url' => env('MEDIAKONSUMEN_FEED_URL', 'https://mediakonsumen.com/feed'),
+    ],
+
 ];

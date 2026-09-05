@@ -8,6 +8,7 @@ use App\Domains\Sources\Adapters\FakeSourceAdapter;
 use App\Domains\Sources\Adapters\IndoForumAdapter;
 use App\Domains\Sources\Adapters\KaskusAdapter;
 use App\Domains\Sources\Adapters\LowEndTalkAdapter;
+use App\Domains\Sources\Adapters\MediaKonsumenAdapter;
 use App\Domains\Sources\Adapters\SerayaMotorAdapter;
 use App\Domains\Sources\Adapters\YouTubeAdapter;
 use App\Domains\Sources\Contracts\SourceAdapter;
@@ -44,6 +45,9 @@ class SourceRegistry
         'lowendtalk' => LowEndTalkAdapter::class,
         'LowEndTalkAdapter' => LowEndTalkAdapter::class,
         'App\\Domains\\Sources\\Adapters\\LowEndTalkAdapter' => LowEndTalkAdapter::class,
+        'mediakonsumen' => MediaKonsumenAdapter::class,
+        'MediaKonsumenAdapter' => MediaKonsumenAdapter::class,
+        'App\\Domains\\Sources\\Adapters\\MediaKonsumenAdapter' => MediaKonsumenAdapter::class,
     ];
 
     /**

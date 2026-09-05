@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+	<title>Media Konsumen</title>
+	<link>https://mediakonsumen.com/</link>
+	<description>Situs Konsumen No.1 di Indonesia</description>
+	<language>id</language>
+	<item>
+		<title>Layanan Internet Contoh Provider Lambat Berminggu-Minggu Tanpa Solusi</title>
+		<link>https://mediakonsumen.com/2026/09/01/surat-pembaca/layanan-internet-contoh-provider-lambat</link>
+		<comments>https://mediakonsumen.com/2026/09/01/surat-pembaca/layanan-internet-contoh-provider-lambat#respond</comments>
+		<pubDate>Tue, 01 Sep 2026 03:00:00 +0000</pubDate>
+		<category><![CDATA[Surat Pembaca]]></category>
+		<category><![CDATA[Contoh Provider]]></category>
+		<guid isPermaLink="false">https://mediakonsumen.com/?p=100001</guid>
+		<description><![CDATA[<p>Ringkasan singkat keluhan pelanggan.</p>]]></description>
+	</item>
+	<item>
+		<title>Tanggapan perihal &#8220;Layanan Internet Contoh Provider Lambat&#8221;</title>
+		<link>https://mediakonsumen.com/2026/09/02/tanggapan/tanggapan-layanan-internet-contoh-provider</link>
+		<comments>https://mediakonsumen.com/2026/09/02/tanggapan/tanggapan-layanan-internet-contoh-provider#respond</comments>
+		<pubDate>Wed, 02 Sep 2026 03:00:00 +0000</pubDate>
+		<category><![CDATA[Tanggapan]]></category>
+		<category><![CDATA[Contoh Provider]]></category>
+		<guid isPermaLink="false">https://mediakonsumen.com/?p=100002</guid>
+		<description><![CDATA[<p>Ringkasan singkat tanggapan resmi.</p>]]></description>
+	</item>
+</channel>
+</rss>
