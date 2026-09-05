@@ -90,11 +90,9 @@ class SourceSeeder extends Seeder
                 'name' => 'MediaKonsumen',
                 'adapter' => 'mediakonsumen',
                 'source_type' => SourceType::Rss,
-                // Disabled pending a live operator check (same DoD as every other wave
-                // before it is turned on for backfill). robots.txt allows crawling and
-                // /feed works (confirmed 5 Sep 2026), but this adapter has not yet run
-                // against real production traffic.
-                'enabled' => false,
+                // Enabled for live operator check (5 Sep 2026): robots.txt allows
+                // crawling, /feed works, fixture tests pass. Same DoD gate as
+                // YouTube/LowEndTalk before them — watch the first backfill cycle.
                 'crawl_policy' => ['rate_limit_per_minute' => 20],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
