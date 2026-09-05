@@ -768,8 +768,7 @@ above.
   earlier this session. Fixed: only pass `$query` to `Http::get()` when non-empty. Recorded as a
   durable rule (`.ai/rules/adapters.md`) and the new `AbstractHttpSourceAdapterTest.php` asserts
   exact request URLs rather than `str_contains()`, specifically to catch a regression of this class
-  again. **Not yet verified live on staging** — needs a redeploy, same as the IndoForum/LowEndTalk
-  fixes above.
+  again.
 - Added `MediaKonsumenAdapter` (`app/Domains/Sources/Adapters/MediaKonsumenAdapter.php`): mirrors
   `DiskusiWebHostingAdapter`'s RSS-feed discovery pattern via the existing
   `parseFeedDocuments()`/`extractHtmlOpinions()` helpers. One WordPress-specific quirk: feed
@@ -780,6 +779,49 @@ above.
   mentioning seeded entities by name (a live Biznet complaint + the company's own reply, both
   through the same feed). Seeded `enabled: false` in `SourceSeeder`, same DoD as every other wave —
   not yet run against real production traffic.
+
+**Redeploy and live verification (5 September 2026, same session):** built and pushed a new
+`azmifauzan/suaranetijen:latest` image containing every fix above, pulled it on staging, and
+recreated `suaranetijen-app`/`-horizon`/`-scheduler` (`horizon:terminate` first for a graceful
+stop, per the process note above). No pending migrations.
+
+- **New operational gotcha, not previously documented:** the redeploy caused a live 502 —
+  `nginx-proxy`'s generated vhost config uses a static `proxy_pass http://suaranetijen-app:80;`
+  with no `resolver` directive, so nginx resolves and caches that hostname's IP once and doesn't
+  re-resolve on its own. `--force-recreate` gives the container a new internal Docker network IP,
+  and because the vhost config *text* didn't change, nginx-proxy's docker-gen watcher didn't detect
+  a diff and skipped its usual auto-reload — leaving nginx routing to a dead IP. Fixed with
+  `docker exec nginx-proxy nginx -t && docker exec nginx-proxy nginx -s reload` (a zero-downtime
+  reload, not a restart — confirmed the co-hosted `satsetops.com` stayed up throughout). **Add this
+  reload as an explicit step in any future redeploy that recreates `suaranetijen-app`.**
+- **LowEndTalk's cursor-bug fix needed a one-time data repair on top of the code fix**, discovered
+  when the first post-redeploy `sources:backfill` cycle left `LowEndTalk`'s `crawl_states` row
+  exactly as frozen as before. Root cause: the row's `metadata` had been written by the *old, buggy*
+  code before this session's fix existed, so it already contained the poisoned singular
+  `category_url` key with no `category_urls` — the fixed read-side code (`?? $cursor->metadata['category_url'] ?? config(...)`)
+  still resolves the stale singular string first and short-circuits before ever reaching
+  `config()`, exactly like the original bug, just for a different reason (legacy data, not the
+  write-back logic). The code fix only prevents *new* poisoning; it can't retroactively heal a row
+  already poisoned by the pre-fix code. One-time fix: reset that row's `metadata` to `{}` (and
+  `cursor_value`/`last_external_id` to null) so the next cycle falls through to `config()` cleanly,
+  same as a fresh source's first-ever run. **Confirmed live**: the very next `sources:backfill`
+  cycle (2026-09-05 06:00 UTC) advanced `LowEndTalk`'s cursor to `page_2` for the first time since
+  2026-09-04 09:43, and `source_items` for it went 674 → 829 (+155 real new items, not
+  re-discovered duplicates — confirmed via `source_documents`'s unique constraint dedup).
+- **Confirmed live**: `IndoForumAdapter`'s rotation/wraparound fix is working exactly as designed —
+  its cursor cycled `forum_139_page_1` → `forum_107_page_1` → (next cycle) `forum_139_page_1` again
+  across three consecutive `sources:backfill` runs, i.e. it tried 139, got zero threads, rotated to
+  107, got zero threads, wrapped back to 139 rather than paginating one forum forever. Still
+  produces **zero** `source_documents`, as expected — the code-level bugs are fixed, but
+  `forum.or.id`'s bot-challenge itself is still up, so this genuinely needs FlareSolverr deployed
+  before it produces data, not further adapter changes.
+- `DiskusiWebHosting` and `YouTube` kept growing normally through the redeploy (613 and 96,557
+  `source_items` respectively at last check) — no regression from any of this session's changes.
+- **Not yet done**: FlareSolverr itself is still not deployed anywhere (needs a service added to
+  staging's external `docker-compose.yml` plus `FLARESOLVERR_URL` set), so Kaskus/SerayaMotor/
+  IndoForum remain unable to produce data regardless of the adapter-level fixes; `MediaKonsumen`
+  stays seeded `enabled: false` pending a live operator check (its code has never run against
+  production, only sanitized fixtures and a manual `curl` of the real site).
 
 Current implementation boundary:
 
@@ -792,9 +834,9 @@ Current implementation boundary:
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
-| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `SerayaMotorAdapter`/`IndoForumAdapter` have their code-level bugs fixed (forum rotation, page wraparound, and the global pagination query-string bug below) and now route through FlareSolverr when configured, but still need FlareSolverr actually deployed as a staging sidecar before they unblock live; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
-| Wave-2 adapters (Epic 6) | `YouTubeAdapter` enabled and dominant producer on staging; `LowEndTalkAdapter`'s cold-start cursor bug is fixed (5 Sep 2026) — needs a staging redeploy to take effect, not yet confirmed live; `KaskusAdapter` stays `enabled: false` but now routes through FlareSolverr when configured (covers its Next.js CSR case too, once deployed) |
-| Pagination query-string bug (all adapters) | Fixed (5 Sep 2026) — `AbstractHttpSourceAdapter::request()` was silently discarding every paginated request's query string on every adapter; see the crawler-status notes below. Needs a staging redeploy to take effect. |
+| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `IndoForumAdapter`'s forum-rotation/wraparound fix is deployed and confirmed live (cycles 139→107→139 correctly) but still produces zero data — `forum.or.id`'s bot-challenge itself needs FlareSolverr, not further code changes; `SerayaMotorAdapter` same FlareSolverr dependency for its Cloudflare 403; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
+| Wave-2 adapters (Epic 6) | `YouTubeAdapter` enabled and dominant producer on staging; `LowEndTalkAdapter`'s cold-start cursor bug is fixed and deployed, plus a one-time `crawl_states` data repair for the row it had already poisoned — confirmed live (674→829 `source_items`, first cursor advance since 2026-09-04); `KaskusAdapter` stays `enabled: false` but now routes through FlareSolverr when configured (covers its Next.js CSR case too, once deployed) |
+| Pagination query-string bug (all adapters) | Fixed and deployed (5 Sep 2026) — `AbstractHttpSourceAdapter::request()` was silently discarding every paginated request's query string on every adapter; see the crawler-status notes below. |
 | MediaKonsumen adapter | Added (5 Sep 2026), seeded `enabled: false` pending a live operator check, same DoD as every other wave — new source found via the alternative-data-source research below |
 | Entity matching, relevance, sentiment classifier (Epic 7) | implemented and verified for the Phase 3 slice; LLM fallback for ambiguous candidates not implemented |
 | Public score (Epic 8) | implemented and verified against real PostgreSQL |
