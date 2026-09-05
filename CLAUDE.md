@@ -7,7 +7,7 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 
 ## Foundational Context
 
-This application is a Laravel application running on PHP 8.5. You are an expert with the Laravel ecosystem. Always use the APIs that match the installed major version of each package — do not assume a version.
+This application is a Laravel application running on PHP 8.4. You are an expert with the Laravel ecosystem. Always use the APIs that match the installed major version of each package — do not assume a version.
 
 Before relying on a package's API, confirm its installed version:
 - PHP packages: run `composer show --direct` to list direct dependencies with versions, or `composer show <vendor/package>` for a single package.
@@ -638,19 +638,86 @@ inside the running container before recreating it would let in-flight jobs finis
 being interrupted and requeued. Not done consistently this session; worth scripting into whatever
 deploy step replaces manual `docker compose pull && up -d` next.
 
+**Crawler status check (5 September 2026):** live connectivity and pipeline health verified
+against staging (`https://suaranetijen.web.id`, SSH to the Docker host) — this is an operational
+check, not a code change, except where noted.
+
+- Connectivity: `/` and `/up` both 200, TLS cert valid (Let's Encrypt, expires 3 Dec 2026), SSH to
+  the shared Docker host confirmed. All `suaranetijen-*` containers (`app`, `horizon`, `scheduler`,
+  `redis`) up 14-15h with no restart loop. Horizon running, all six queues (`critical`,
+  `discovery`, `crawl`, `analysis`, `aggregate`, `maintenance`) at 0 pending — the `analysis`
+  backlog flagged above (~4.3k pending) has fully drained since.
+- Pipeline snapshot at check time: `source_items` 92,860, `sentiment_observations` 3,216,
+  `unmatched_mentions` 89,644 (`entity_not_resolved` 70,056, `not_an_evaluation` 19,588),
+  `ingestion_failures` 146 (all unresolved, awaiting admin replay per Epic 11 design),
+  `crawl_states` 7 rows (one per active source).
+- Per-source: `DiskusiWebHosting` and `YouTube` are healthy and actively producing
+  (`YouTube`'s comment fan-out accounts for 91,717 of the 92,860 total `source_items`).
+  `SerayaMotor` is correctly stalled — every discovery attempt gets an HTTP 403 Cloudflare
+  "Just a moment…" challenge page (30 failures logged, `health_state=policy_disabled`; arguably
+  should read `blocked` per the `docs/08` health-state enum, but the practical effect — crawling
+  halted, no silent bad data — is correct either way). `Bluesky` and `KASKUS` remain disabled per
+  the already-documented gaps above.
+- **New finding — `IndoForumAdapter` has produced zero `source_items` since staging launch,
+  despite reporting `health_state=healthy` and its `crawl_states` row advancing every cycle
+  (`page_1` → `page_33` over ~15h with no errors).** Root cause, confirmed by fetching
+  `forum.or.id` live: the site now serves a bot-challenge interstitial ("Validating browser…",
+  HTTP 200, `robots: noindex,nofollow,noarchive`) on every page, page 1 included — so
+  `parseHtmlDocumentLinks()`'s thread-link regex always matches zero links. `preflight()` only
+  checks HTTP reachability (200 OK), not that the body contains real content, so this failure mode
+  is invisible in the health dashboard — the same blind spot already known for `KaskusAdapter`
+  (`docs/24`), just silent instead of loud. Tracing this also surfaced two adapter bugs in
+  `IndoForumAdapter::discover()` (`app/Domains/Sources/Adapters/IndoForumAdapter.php:29-67`),
+  independent of the site-side challenge: (a) it only ever reads `$forumIds[0]`, so the configured
+  `107` (`info-terbaru-reviews`) and `93` (`computer-stuff`) forums are never crawled even once;
+  (b) the page cursor always advances to `page + 1` regardless of `hasMore`/documents found, so it
+  can never wrap back to page 1 to pick up newly posted threads. Not fixed here — needs a
+  JS-rendering or challenge-solving fetch path (see below) before the parser bugs are worth fixing.
+- **New finding — `LowEndTalkAdapter` (enabled, `health_state=healthy`) has not advanced past its
+  initial backfill.** Its `crawl_states` row (674 `source_items` produced) hasn't updated since
+  2026-09-04 09:43, ~22h stale, versus `DiskusiWebHosting`/`IndoForum`/`YouTube` which all ran
+  again at 2026-09-05 00:00 via the `sources:backfill` scheduler (`*/30 * * * *`,
+  `app/Domains/Sources/Commands/BackfillSourcesCommand.php`). `LowEndTalk` satisfies
+  `Source::operational()` (enabled + healthy), so it should be included in every run. The 53
+  `ingestion_failures` on record for it are all from the original backfill burst
+  (`MaxAttemptsExceededException`, already fixed by the rate-limit decoupling above) — nothing
+  since. Not root-caused in this pass — dispatching a manual `sources:backfill lowendtalk` on
+  staging to reproduce was blocked by the harness's write-action classifier, since it mutates live
+  state. Needs a follow-up session with explicit permission to dispatch a test job, or a review of
+  Horizon's `supervisor-crawl` logs around the 30-minute mark.
+- **Fix applied:** `config/horizon.php`'s `staging` environment left `supervisor-analysis` at the
+  `defaults` block's `maxProcesses => 1`, closing the loop on the "known gap, not fully diagnosed"
+  note above. Raised to `maxProcesses => 3` in the repo config, then hot-patched onto both the
+  running `suaranetijen-app` and `suaranetijen-horizon` containers and applied with
+  `horizon:terminate` (graceful — in-flight jobs finished, container restarted itself under
+  Docker's restart policy). Confirmed via `horizon:supervisors`: `supervisor-analysis` is running
+  and will auto-scale up to 3 workers under load (`autoScalingStrategy: time`); it sits at 1 while
+  the queue is empty, which is expected. **The container patch is a live hot-fix, not yet built
+  into a pushed image** — the next full `docker build`/push/redeploy cycle will pick up the repo
+  change directly, but if that cycle is skipped, the hand-patch would be lost on a
+  `--force-recreate` and need to be reapplied.
+- **Not implemented, recommended for the sources actually blocked by anti-bot/JS-rendering
+  (`KaskusAdapter`, `SerayaMotorAdapter`, and now `IndoForumAdapter`):** don't hand-roll a headless
+  browser or challenge solver. `spatie/browsershot` (Puppeteer/Chrome wrapper, already
+  Laravel-ecosystem standard) covers Kaskus's client-rendered Next.js payload; `FlareSolverr`
+  (self-hosted proxy sidecar purpose-built for Cloudflare/anti-bot challenge pages) covers
+  SerayaMotor's 403 and IndoForum's 200-but-challenge response. Both would plug into
+  `AbstractHttpSourceAdapter` as an alternate `fetch()` path used only by the affected adapters —
+  no core pipeline change, consistent with the "adapter guardrails, not product logic" constraint.
+
 Current implementation boundary:
 
 | Target per docs | Repository today |
 |---|---|
 | PostgreSQL | default runtime connection; full suite verified locally |
 | Redis queue, cache, locks, rate limits | default runtime drivers; verified locally |
-| Horizon supervisors | four documented supervisor groups configured and started locally and on staging (`config/horizon.php` now has a `staging` environment entry) |
+| Horizon supervisors | four documented supervisor groups configured and started locally and on staging (`config/horizon.php` has a `staging` environment entry); `supervisor-analysis` raised from `maxProcesses=1` to `3` on staging (5 Sep 2026 crawler status check) after the analysis-queue backlog noted above |
 | `pg_trgm` search | implemented and verified against real PostgreSQL |
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
-| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter`, `SerayaMotorAdapter`, `IndoForumAdapter` live and producing real observations on staging; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
-| Wave-2 adapters (Epic 6) | `YouTubeAdapter` and `LowEndTalkAdapter` enabled and verified against live staging traffic; `KaskusAdapter` stays `enabled: false` — kaskus.co.id search is client-rendered (Next.js, empty SSR fallback), needs its JSON API or a JS-rendering fetcher |
+| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `SerayaMotorAdapter` correctly halted by a live Cloudflare 403 challenge; `IndoForumAdapter` reports `healthy` but has produced zero `source_items` since launch — `forum.or.id` now serves a bot-challenge interstitial on every page (5 Sep 2026 crawler status check), plus two independent adapter bugs (only crawls `forum_ids[0]`, cursor never wraps to page 1) found while diagnosing it; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
+| Wave-2 adapters (Epic 6) | `YouTubeAdapter` enabled and dominant producer on staging; `LowEndTalkAdapter` enabled but stuck since its initial backfill — `crawl_states` hasn't advanced in ~22h despite passing `Source::operational()`, not yet root-caused (5 Sep 2026 crawler status check); `KaskusAdapter` stays `enabled: false` — kaskus.co.id search is client-rendered (Next.js, empty SSR fallback), needs its JSON API or a JS-rendering fetcher |
 | Entity matching, relevance, sentiment classifier (Epic 7) | implemented and verified for the Phase 3 slice; LLM fallback for ambiguous candidates not implemented |
 | Public score (Epic 8) | implemented and verified against real PostgreSQL |
 | Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds |
