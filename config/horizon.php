@@ -291,16 +291,20 @@ return [
             'supervisor-maintenance' => [],
         ],
 
-        // Distributed crawl workers (5 Sep 2026): dedicated hosts that only
+        // Distributed crawl workers (5 Sep 2026): dedicated hosts that mainly
         // help drain the crawl/analysis bottleneck — they don't serve web
-        // traffic, run the scheduler, or need supervisor-critical/maintenance
-        // (those stay centralized on the main "staging" host). Same Redis/DB
-        // as staging, just a different APP_ENV so Horizon gives them their
-        // own worker allocation instead of the main host's.
+        // traffic or run the scheduler. Same Redis/DB as staging, just a
+        // different APP_ENV so Horizon gives them their own worker
+        // allocation instead of the main host's. Horizon requires
+        // minProcesses >= 1 for every supervisor in every environment (0 is
+        // rejected at boot — confirmed live, it crash-loops Horizon on
+        // *every* host reading this file, not just the one selecting this
+        // environment), so supervisor-critical/maintenance can only be
+        // minimized to a single idle worker here, not fully disabled.
         'staging-worker' => [
             'supervisor-critical' => [
-                'minProcesses' => 0,
-                'maxProcesses' => 0,
+                'minProcesses' => 1,
+                'maxProcesses' => 1,
             ],
             'supervisor-crawl' => [
                 'maxProcesses' => 4,
@@ -309,8 +313,8 @@ return [
                 'maxProcesses' => 2,
             ],
             'supervisor-maintenance' => [
-                'minProcesses' => 0,
-                'maxProcesses' => 0,
+                'minProcesses' => 1,
+                'maxProcesses' => 1,
             ],
         ],
 
