@@ -953,6 +953,39 @@ logging half.
   external LLM endpoint configured by default; `services.llm.base_url` defaults to
   `api.openai.com/v1` but `LLM_API_KEY` is blank).
 
+## Extended crawler monitoring, second worker-starvation bug (5 September 2026)
+
+Continued monitoring after the FlareSolverr rollout (several more hours, matching the earlier
+"pantau lagi beberapa jam" ask) surfaced one more real bug, distinct from the FlareSolverr
+reliability findings above.
+
+- **Bug found and fixed: staging's `crawl` queue backed up to 924 pending (oldest 39 minutes),
+  starving fast sources behind slow ones.** `FetchSourceDocumentJob` for every source shares one
+  `crawl` queue; FlareSolverr-routed fetches (SerayaMotor/Kaskus/IndoForum) take far longer per job
+  than a plain HTTP fetch, and `supervisor-crawl` was still on staging's default 2-worker cap.
+  `DiskusiWebHosting` had 20 documents stuck in `discovered` state for hours — not failing, just
+  queued behind hundreds of slower jobs; `source_documents.last_seen_at` kept advancing every
+  discovery cycle (proving discovery still found them fine) while `state` never moved past
+  `discovered`. Fixed by raising `supervisor-crawl` to `maxProcesses: 6` on staging (`config/horizon.php`,
+  matching production's existing value) and hot-patching both live containers the same way as the
+  earlier `supervisor-analysis` fix. **Confirmed live**: DiskusiWebHosting went from 20 stuck
+  documents to 0 (56/56 `fetched`) within minutes of the extra workers coming online.
+- **Not a bug, a volume/rate-limit characteristic worth knowing about: Kaskus's 9 documents stayed
+  in `discovered` state even after the fix**, while SerayaMotor (also FlareSolverr-routed) grew
+  from 0 to 6,406 `source_items` in the same window. Confirmed Kaskus isn't actively rate-limited
+  (`source_crawl_limiter:6` key doesn't exist — `TTL` returns `-2`) — it's queue-position
+  starvation, not a lock. Kaskus's `crawl_policy.rate_limit_per_minute` is 10, the lowest of any
+  enabled source, and YouTube's comment fan-out dispatches such high volume into the same shared
+  `crawl` queue (the backlog refilled to 820 within minutes of draining to 0) that a source with
+  only a handful of jobs and a tight rate limit can end up waiting a long time for its turn purely
+  on FIFO position, even with plenty of workers running. **Not fixed here** — a real fix would mean
+  segregating high-volume sources (YouTube) onto their own queue so low-volume sources don't
+  compete with them for the same worker pool, a bigger topology change than this session's
+  worker-count tuning; `examples/queue-topology.yaml`'s single shared `crawl` queue was a deliberate
+  design choice, not an oversight, so this needs a real discussion before changing, not a quick
+  patch. Worth revisiting if Kaskus (or any other low-rate-limit source) stays starved for days
+  rather than hours.
+
 ## Document map
 
 | File | Purpose |
