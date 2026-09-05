@@ -4,6 +4,7 @@ namespace App\Domains\Themes\Jobs;
 
 use App\Domains\Sentiment\Enums\SentimentClass;
 use App\Domains\Themes\Models\ThemeObservation;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -32,7 +33,7 @@ class UpsertThemeObservationJob implements ShouldQueue
     {
         // Enforce deduplication: same entity, theme, and source item never duplicates
         if ($this->sourceItemId !== null) {
-            return ThemeObservation::query()->updateOrCreate(
+            $observation = ThemeObservation::query()->updateOrCreate(
                 [
                     'entity_id' => $this->entityId,
                     'theme_id' => $this->themeId,
@@ -46,17 +47,23 @@ class UpsertThemeObservationJob implements ShouldQueue
                     'published_at' => $this->publishedAt,
                 ]
             );
+        } else {
+            $observation = ThemeObservation::query()->create([
+                'entity_id' => $this->entityId,
+                'theme_id' => $this->themeId,
+                'source_id' => $this->sourceId,
+                'source_item_id' => null,
+                'source_document_hash' => $this->sourceDocumentHash,
+                'sentiment' => $this->sentiment,
+                'confidence' => $this->confidence,
+                'published_at' => $this->publishedAt,
+            ]);
         }
 
-        return ThemeObservation::query()->create([
-            'entity_id' => $this->entityId,
-            'theme_id' => $this->themeId,
-            'source_id' => $this->sourceId,
-            'source_item_id' => null,
-            'source_document_hash' => $this->sourceDocumentHash,
-            'sentiment' => $this->sentiment,
-            'confidence' => $this->confidence,
-            'published_at' => $this->publishedAt,
-        ]);
+        $observedAt = $this->publishedAt ?? CarbonImmutable::now();
+        AggregateDailyThemeJob::dispatch($this->entityId, $observedAt);
+        RefreshThemeSnapshotJob::dispatch($this->entityId);
+
+        return $observation;
     }
 }

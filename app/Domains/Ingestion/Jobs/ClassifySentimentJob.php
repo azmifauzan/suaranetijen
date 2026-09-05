@@ -9,6 +9,7 @@ use App\Domains\Sources\Models\IngestionFailure;
 use App\Domains\Sources\Models\RawPayload;
 use App\Domains\Sources\Models\SourceItem;
 use App\Domains\Sources\Models\UnmatchedMention;
+use App\Domains\Themes\Jobs\ExtractThemesJob;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -63,5 +64,17 @@ class ClassifySentimentJob implements ShouldQueue
         }
 
         UpsertSentimentObservationJob::dispatch($item->id, $this->entityId, $sentiment);
+
+        // Theme extraction is a second, independent branch off the same relevant-opinion
+        // output (docs/25) — it never blocks, and is never blocked by, sentiment classification.
+        ExtractThemesJob::dispatch(
+            entityId: $this->entityId,
+            sourceId: $item->source_id,
+            sourceItemId: $item->id,
+            text: $payload,
+            sourceDocumentHash: $item->content_hash,
+            contextSentiment: $sentiment,
+            publishedAt: $item->published_at
+        );
     }
 }

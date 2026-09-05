@@ -81,6 +81,8 @@ test('UpsertThemeObservationJob creates observation idempotently', function () {
 
     $theme = Theme::create(['slug' => 'cepat', 'display_label' => 'Cepat', 'canonical_key' => 'speed_fast']);
 
+    Queue::fake();
+
     $job = new UpsertThemeObservationJob(
         entityId: $entity->id,
         themeId: $theme->id,
@@ -97,6 +99,9 @@ test('UpsertThemeObservationJob creates observation idempotently', function () {
         ->and($obs->entity_id)->toBe($entity->id)
         ->and($obs->theme_id)->toBe($theme->id)
         ->and($obs->sentiment)->toBe(SentimentClass::Positive);
+
+    Queue::assertPushed(AggregateDailyThemeJob::class, fn ($pushedJob) => $pushedJob->entityId === $entity->id);
+    Queue::assertPushed(RefreshThemeSnapshotJob::class, fn ($pushedJob) => $pushedJob->entityId === $entity->id);
 });
 
 test('AggregateDailyThemeJob and RefreshThemeSnapshotJob are dispatched on aggregate queue', function () {
