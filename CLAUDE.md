@@ -622,6 +622,23 @@ dedicated GCP project (`suaranetijen`) and an API-restricted key
 307 in this session, `source_items` to ~12k (YouTube's per-video comment pagination — up to
 `YOUTUBE_MAX_COMMENT_PAGES=3` pages per video — accounts for most of that volume).
 
+`MediaKonsumenAdapter` (RSS-based) was built earlier this session but not yet deployed or seeded
+on staging; both were done now (5 Sep 2026) — image rebuilt/pushed, staging recreated, `SourceSeeder`
+run, `sources.mediakonsumen.enabled` confirmed `true`, 0 `IngestionFailure` rows in the 15 minutes
+after enabling.
+
+**Bug found and fixed while doing this: re-running `SourceSeeder` on staging is not safe as a
+generic "add one source" operation.** `youtube` and `lowendtalk` were flipped to `enabled: true`
+directly in the staging DB earlier this session (live operator check, Epic 6's DoD), but the
+seeder file itself still had `'enabled' => false` for both — `Source::updateOrCreate()` overwrites
+`enabled` on every run, so seeding MediaKonsumen silently reset both back to disabled. Caught by
+diffing `Source::all()->pluck('enabled','key')` right after the seed instead of assuming it was a
+no-op for unrelated rows; fixed live (re-flipped both to `true`) and fixed the seeder file itself
+(dropped the stale `enabled: false` lines, added a dated comment) so the seeder is idempotent with
+actual live state going forward. Lesson: after any live-state DB fix made outside the seeder
+(admin toggle, tinker, direct SQL), the seeder file must be updated in the same session — otherwise
+it silently reverts on the next reseed, with no error or warning.
+
 **Known gap, not fully diagnosed:** the `analysis` queue grew faster than `supervisor-analysis`'s
 single worker (staging's Horizon env mirrors `local`'s minimal 1-process default) could drain it
 — observed ~2.8k → ~3.9k pending in a few minutes, ~4.3k at last check. Most likely explanation is
@@ -816,8 +833,10 @@ stop, per the process note above). No pending migrations.
   bot-challenge, covered below.
 - `DiskusiWebHosting` and `YouTube` kept growing normally through the redeploy (613 and 96,557
   `source_items` respectively at last check) — no regression from any of this session's changes.
-- `MediaKonsumen` stays seeded `enabled: false` pending a live operator check — its code has never
-  run against production, only sanitized fixtures and a manual `curl` of the real site.
+- `MediaKonsumen` stayed seeded `enabled: false` pending a live operator check at the time this
+  note was written; enabled later the same day (see the entry above the "known gap" note further
+  below) — its code had never run against production before that, only sanitized fixtures and a
+  manual `curl` of the real site.
 
 **FlareSolverr deployment and per-source reliability (5 September 2026, same session):** added a
 `suaranetijen-flaresolverr` service (`ghcr.io/flaresolverr/flaresolverr:latest`) to staging's
@@ -881,7 +900,7 @@ Current implementation boundary:
 | Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `SerayaMotorAdapter` also had a dormant forum-rotation bug (fixed alongside FlareSolverr) — confirmed live producing real data (0→1,956 `source_items` over two cycles); `IndoForumAdapter`'s bot-detection (non-Cloudflare, FlareSolverr doesn't recognize it) makes it unreliable but not blocked — confirmed live at 0→68 `source_items` via the ~25% pass-through rate; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
 | Wave-2 adapters (Epic 6) | `YouTubeAdapter` enabled and dominant producer on staging; `LowEndTalkAdapter`'s cold-start cursor bug is fixed and deployed, plus a one-time `crawl_states` data repair for the row it had already poisoned — confirmed live (674→829 `source_items`, first cursor advance since 2026-09-04); `KaskusAdapter` re-enabled (5 Sep 2026) — FlareSolverr-deployed and reliable (3/3 in live testing), its block was never Cloudflare, just the Next.js client-side render |
 | Pagination query-string bug (all adapters) | Fixed and deployed (5 Sep 2026) — `AbstractHttpSourceAdapter::request()` was silently discarding every paginated request's query string on every adapter; see the crawler-status notes below. |
-| MediaKonsumen adapter | Added (5 Sep 2026), seeded `enabled: false` pending a live operator check, same DoD as every other wave — new source found via the alternative-data-source research below |
+| MediaKonsumen adapter | Added and enabled on staging (5 Sep 2026) after passing fixture tests and a live check (0 `IngestionFailure` in the first 15 minutes) — new source found via the alternative-data-source research below |
 | Entity matching, relevance, sentiment classifier (Epic 7) | implemented and verified for the Phase 3 slice; LLM fallback for ambiguous candidates not implemented |
 | Public score (Epic 8) | implemented and verified against real PostgreSQL |
 | Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds |
