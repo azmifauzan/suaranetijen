@@ -1135,6 +1135,80 @@ was previously deferred — see the override note on ADR-010 in `docs/21` and th
   (or the full seeder) to pick up the new `kaskus_politik` row, and re-running the entity seed
   import to pick up the 25 new `person` entities.
 
+## Admin UX and LLM pipeline fixes (5 September 2026, same session)
+
+Follow-up after the theme-pipeline fix above: user reported the search-result click-through still
+felt broken, couldn't find the LLM settings menu, and admin saves gave no feedback. All confirmed
+live and fixed.
+
+- **Admin sidebar had no navigation at all beyond "Dashboard".** Every admin page (entities,
+  categories, sources, operations, entity candidates, LLM settings) was only reachable by typing
+  the URL directly or clicking through `/admin`'s dashboard cards — `AppSidebar.vue`'s
+  `mainNavItems` was still the unmodified starter-kit default. Added an "Admin" nav group (shown
+  only when `auth.user.is_admin`) linking to every admin sub-page.
+- **Every admin controller's save gave zero visible feedback — the actual root cause of "LLM
+  settings save looks like it does nothing."** `AdminCategoryController`, `AdminEntityController`,
+  `AdminEntityAliasController`, `AdminSourceController`, `AdminEntityCandidatesController`,
+  `AdminOperationsController`, and `AdminLlmSettingsController` all used
+  `redirect()->back()->with('success', '...')` — a plain session flash key that
+  `HandleInertiaRequests` never shared as an Inertia prop and no frontend code ever read. Confirmed
+  live: an LLM settings save returned a clean 303 with no error, but the row was never
+  persisted, and there was no toast either to reveal the silent failure. Switched every one of
+  these to `Inertia::flash('toast', [...])` — the mechanism already working correctly in
+  `Settings/ProfileController`/`SecurityController` (Inertia v3's `flash()` + the existing
+  `initializeFlashToast()` + vue-sonner wiring, `router.on('flash', ...)`).
+- **The Max Tokens/Temperature/Timeout fields had no error display at all**, unlike Base
+  URL/Model/API Key. Confirmed live: submitting `max_tokens: 1000000` (over the 128000 cap)
+  correctly failed validation server-side (`props.errors.max_tokens` present in the raw Inertia
+  response) and the new `onError` toast fired, but nothing pointed at *which* field was wrong — no
+  `<p v-if="form.errors.max_tokens">` existed for that field group. Added it for all three fields.
+  `max_tokens` is the per-request completion output cap, not a model's context window — the 128000
+  ceiling is intentional and wasn't raised; a user hitting it should lower the value, not expect a
+  bigger cap.
+- **Toast position moved from bottom-right to top-right** (`components/ui/sonner/Sonner.vue`
+  default) — the user reported never seeing the bottom-right toast on their screen.
+- **The click-through fix from earlier in this session (`Search/Index.vue`'s `pointer-events-none`
+  on the "Lihat detail" arrow) was verified live via real browser automation, not just
+  `elementFromPoint()` reasoning**: before the fix, a click centered exactly on the "Lihat detail"
+  text resolved to a plain `<span>` inside the arrow-indicator `<div>` (not the stretched-link
+  overlay), confirming the hover-triggered `group-hover:translate-x-0.5` transform really was
+  promoting that decorative element above the link. After the fix redeployed, the same click
+  resolved to the overlay `SPAN.absolute.inset-0` and navigated to `/e/samsung` correctly.
+- **`APP_KEY` stability check (asked directly, since `llm_settings.api_key` is the first `encrypted`-cast
+  column in production):** confirmed no `key:generate` call anywhere in `Dockerfile`/
+  `docker-entrypoint.sh`, confirmed `APP_KEY` lives in staging's host-side `.env`
+  (`/home/dev/compose/suaranetijen/.env`, outside the image, untouched by `--force-recreate`), and
+  functionally confirmed by decrypting a saved `api_key` across several redeploys in this session.
+  **Known gap, not fixed**: `backup:database` only backs up Postgres, never `.env`/`APP_KEY` — if
+  the host is ever lost, the DB backup alone cannot recover any `encrypted`-cast column (just
+  `llm_settings.api_key` today) since ciphertext is useless without the matching key. `APP_KEY`
+  should be stored somewhere separate from this host (password manager/secrets vault).
+- **Entity candidate approval crashed with a 500** (`POST /admin/entity-candidates/{id}/approve`)
+  the first time it was exercised against a real LLM-enriched candidate ("XLSMART"): the
+  suggested-aliases list included the entity's own name, and `approve()` always created a primary
+  alias from `name` first, then blindly inserted every suggested alias afterward — colliding with
+  `entity_aliases`' `(entity_id, normalized_alias)` unique constraint mid-transaction (rolled back
+  cleanly, no orphaned data, but the candidate stayed stuck `pending`). Fixed by tracking normalized
+  aliases already inserted (seeded with the primary) and skipping any later one — from the LLM or a
+  same-request duplicate — that normalizes the same. Regression test added
+  (`AdminEntityCandidatesTest.php`).
+- **First live LLM connectivity + `entities:scan-candidates` run, real credentials
+  (`https://ai.sumopod.com`, `qwen3.7-flash-2026-07-15`)**: raw `/chat/completions` call returns
+  200 with a real completion (confirmed the model also returns a `reasoning_content` field
+  alongside `content` — `LlmClient` only reads `choices.0.message.content`, so this is harmless,
+  just worth knowing if debugging why a response "looks empty" when tested with a non-JSON prompt,
+  since `LlmClient::chat()` always attempts `json_decode` on the content and returns `[]` on
+  anything that isn't valid JSON — expected for its structured-extraction design, not a
+  connectivity problem). The scan created 34 pending candidates.
+  **New finding, not yet acted on:** `GoogleTrendsCandidateSource`'s top-ranked candidates by
+  `frequency_score` are almost entirely sports-match and transit-schedule noise ("Man City vs
+  Coventry City" at 20,000, "Jadwal KRL Solo Jogja" at 200) drowning out genuine brand candidates
+  like XLSMART (score 1) — Google's Daily Trends feed has no brand/product filter, so any viral
+  search term scores far higher than an actual candidate ever could. Not a crash, but a real
+  precision problem for the admin review queue (`docs/23`'s "growth" mechanism) worth addressing
+  before this source's output is trusted at face value — e.g. an LLM relevance pre-filter, or
+  dropping/down-weighting this source, rather than something to patch silently.
+
 ## Document map
 
 | File | Purpose |
