@@ -627,6 +627,16 @@ on staging; both were done now (5 Sep 2026) — image rebuilt/pushed, staging re
 run, `sources.mediakonsumen.enabled` confirmed `true`, 0 `IngestionFailure` rows in the 15 minutes
 after enabling.
 
+`MojokAdapter` (Mojok.co's `/esai/` category) was also built and deployed the same session — the
+original CSR finding on this data source turned out to apply only to the homepage's feed widget,
+not the `/esai/` archive/article pages themselves, which are plain WordPress SSR (confirmed with a
+plain `curl`, no JS). Same RSS-discover + `entry-content`-style extract pattern as
+`MediaKonsumenAdapter`, including the identical `?paged=N` feed-pagination quirk. Enabled on
+staging for a live check: `sources:preflight` + `sources:backfill` run manually right after
+enabling rather than waiting for the 30-minute scheduler, confirmed `health_state=healthy`,
+2 `source_items` produced from the first feed page, 0 `ingestion_failures`, cursor advanced to
+`page_2`.
+
 **Bug found and fixed while doing this: re-running `SourceSeeder` on staging is not safe as a
 generic "add one source" operation.** `youtube` and `lowendtalk` were flipped to `enabled: true`
 directly in the staging DB earlier this session (live operator check, Epic 6's DoD), but the
@@ -901,6 +911,7 @@ Current implementation boundary:
 | Wave-2 adapters (Epic 6) | `YouTubeAdapter` enabled and dominant producer on staging; `LowEndTalkAdapter`'s cold-start cursor bug is fixed and deployed, plus a one-time `crawl_states` data repair for the row it had already poisoned — confirmed live (674→829 `source_items`, first cursor advance since 2026-09-04); `KaskusAdapter` re-enabled (5 Sep 2026) — FlareSolverr-deployed and reliable (3/3 in live testing), its block was never Cloudflare, just the Next.js client-side render |
 | Pagination query-string bug (all adapters) | Fixed and deployed (5 Sep 2026) — `AbstractHttpSourceAdapter::request()` was silently discarding every paginated request's query string on every adapter; see the crawler-status notes below. |
 | MediaKonsumen adapter | Added and enabled on staging (5 Sep 2026) after passing fixture tests and a live check (0 `IngestionFailure` in the first 15 minutes) — new source found via the alternative-data-source research below |
+| Mojok.co adapter | Added and enabled on staging (5 Sep 2026) — `/esai/` archive/article pages are WordPress SSR despite the homepage widget being CSR; live check produced 2 `source_items`, 0 `IngestionFailure`, cursor advanced |
 | Entity matching, relevance, sentiment classifier (Epic 7) | implemented and verified for the Phase 3 slice; LLM fallback for ambiguous candidates not implemented |
 | Public score (Epic 8) | implemented and verified against real PostgreSQL |
 | Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds |
