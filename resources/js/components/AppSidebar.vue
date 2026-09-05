@@ -1,6 +1,19 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid } from '@lucide/vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import {
+    Activity,
+    AlertTriangle,
+    BookOpen,
+    Bot,
+    FolderGit2,
+    FolderTree,
+    HelpCircle,
+    LayoutGrid,
+    Radio,
+    Sparkles,
+    Tags,
+} from '@lucide/vue';
+import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -14,8 +27,9 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import admin from '@/routes/admin';
 import { dashboard, methodology } from '@/routes';
-import type { NavItem } from '@/types';
+import type { Auth, NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
     {
@@ -23,6 +37,37 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+];
+
+const page = usePage<{ auth: Auth }>();
+const isAdmin = computed(() => page.props.auth.user?.is_admin === true);
+
+const adminNavItems: NavItem[] = [
+    { title: 'Admin Overview', href: admin.dashboard(), icon: LayoutGrid },
+    { title: 'Entitas', href: admin.entities.index(), icon: Tags },
+    { title: 'Kategori', href: admin.categories.index(), icon: FolderTree },
+    { title: 'Sumber & Kill Switch', href: admin.sources.index(), icon: Radio },
+    {
+        title: 'Crawl States',
+        href: admin.operations.crawlStates(),
+        icon: Activity,
+    },
+    {
+        title: 'Ingestion Failures',
+        href: admin.operations.ingestionFailures(),
+        icon: AlertTriangle,
+    },
+    {
+        title: 'Unmatched Mentions',
+        href: admin.operations.unmatchedMentions(),
+        icon: HelpCircle,
+    },
+    {
+        title: 'Entity Candidates',
+        href: admin.entityCandidates.index(),
+        icon: Sparkles,
+    },
+    { title: 'LLM Settings', href: admin.llmSettings.edit(), icon: Bot },
 ];
 
 const footerNavItems: NavItem[] = [
@@ -55,6 +100,7 @@ const footerNavItems: NavItem[] = [
 
         <SidebarContent>
             <NavMain :items="mainNavItems" />
+            <NavMain v-if="isAdmin" :items="adminNavItems" label="Admin" />
         </SidebarContent>
 
         <SidebarFooter>
