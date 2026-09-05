@@ -10,6 +10,12 @@ use SimpleXMLElement;
  * DailySocial's RSS feed surfaces new Indonesian digital-economy brands
  * (funding rounds, market entries) before they'd show up in our own
  * zero-result search queries.
+ *
+ * Some feed items are a multi-story "roundup" title covering 3+ unrelated
+ * companies in one comma-separated string (e.g. "Ajaib lifts off, Tiptip
+ * turns profitable, Danantara enters GoTo") rather than one story per item —
+ * split on comma so each clause becomes its own candidate raw_term instead
+ * of one unusable blob per digest email.
  */
 class DailySocialCandidateSource implements EntityCandidateSource
 {
@@ -38,8 +44,15 @@ class DailySocialCandidateSource implements EntityCandidateSource
         $candidates = [];
         foreach ($xml->channel->item as $item) {
             $title = trim((string) $item->title);
-            if ($title !== '') {
-                $candidates[] = ['raw_term' => $title, 'weight' => 1];
+            if ($title === '') {
+                continue;
+            }
+
+            foreach (explode(',', $title) as $clause) {
+                $clause = trim($clause);
+                if ($clause !== '') {
+                    $candidates[] = ['raw_term' => $clause, 'weight' => 1];
+                }
             }
         }
 

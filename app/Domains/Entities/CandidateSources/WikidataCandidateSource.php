@@ -35,7 +35,7 @@ class WikidataCandidateSource implements EntityCandidateSource
               { ?item wdt:P31/wdt:P279* wd:Q1420. }
               ?item wdt:P577 ?pubdate.
               FILTER(?pubdate > "{$since}"^^xsd:dateTime)
-              SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+              SERVICE wikibase:label { bd:serviceParam wikibase:language "en,id,mul". }
             }
             LIMIT 200
             SPARQL;
@@ -49,6 +49,13 @@ class WikidataCandidateSource implements EntityCandidateSource
         $terms = [];
         foreach ($bindings as $binding) {
             $label = (string) ($binding['itemLabel']['value'] ?? '');
+            // The label service falls back to the raw entity ID (e.g. "Q141025060")
+            // when no label exists in any requested language — not a real name,
+            // and not worth an LLM enrichment call.
+            if (preg_match('/^Q\d+$/', $label) === 1) {
+                continue;
+            }
+
             $normalized = TextNormalizer::normalize($label);
             if ($normalized !== '') {
                 $terms[$normalized] = true;
