@@ -255,7 +255,7 @@ const clearSearch = () => {
                 <div
                     v-for="item in results"
                     :key="item.id"
-                    class="group relative flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-xs transition-all hover:border-emerald-300 hover:shadow-md"
+                    class="group relative flex cursor-pointer flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-xs transition-all hover:border-emerald-300 hover:shadow-md"
                 >
                     <div
                         class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"
