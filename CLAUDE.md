@@ -703,16 +703,11 @@ check, not a code change, except where noted.
   into a pushed image** — the next full `docker build`/push/redeploy cycle will pick up the repo
   change directly, but if that cycle is skipped, the hand-patch would be lost on a
   `--force-recreate` and need to be reapplied.
-- **Not implemented, recommended for the sources actually blocked by anti-bot/JS-rendering
-  (`KaskusAdapter`, `SerayaMotorAdapter`, and now `IndoForumAdapter`):** don't hand-roll a headless
-  browser or challenge solver. `spatie/browsershot` (Puppeteer/Chrome wrapper, already
-  Laravel-ecosystem standard) covers Kaskus's client-rendered Next.js payload; `FlareSolverr`
-  (self-hosted proxy sidecar purpose-built for Cloudflare/anti-bot challenge pages) covers
-  SerayaMotor's 403 and IndoForum's 200-but-challenge response. Both would plug into
-  `AbstractHttpSourceAdapter` as an alternate `fetch()` path used only by the affected adapters —
-  no core pipeline change, consistent with the "adapter guardrails, not product logic" constraint.
-  Not yet implemented — needs a dependency-addition decision (Boost's "don't change dependencies
-  without approval" rule) before starting.
+- **Recommended for the sources actually blocked by anti-bot/JS-rendering (`KaskusAdapter`,
+  `SerayaMotorAdapter`, and now `IndoForumAdapter`):** don't hand-roll a headless browser or
+  challenge solver — `FlareSolverr` alone covers all three (see "FlareSolverr integration" below;
+  the Browsershot half of this original recommendation was dropped once that became clear).
+  **Implemented** in this session, not yet deployed to staging.
 
 **Alternative data source research (5 September 2026):** live feasibility check (robots.txt, API
 availability, SSR vs. client-rendering) against `docs/07`'s roadmap candidates plus new candidates,
@@ -744,6 +739,48 @@ implemented.
   pending a rendering-depth check, then Carmudi pending its Content-Signal parsing, then Female
   Daily/WebHostingTalk once Browsershot/FlareSolverr lands.
 
+**FlareSolverr integration + MediaKonsumen adapter (5 September 2026):** acted on the research
+above.
+
+- Dropped the earlier Browsershot recommendation once it became clear FlareSolverr alone covers
+  all three blocked sources — it loads the URL in a real undetected browser and returns the fully
+  rendered/challenge-solved page, so it handles Kaskus's Next.js CSR the same way it handles
+  SerayaMotor's Cloudflare 403 and IndoForum's "Validating browser…" wall. This needed **zero new
+  Composer dependencies** — FlareSolverr is a separate Docker sidecar called over plain HTTP.
+  `AbstractHttpSourceAdapter::request()` now routes through it when an adapter overrides
+  `usesChallengeSolver(): true` and `FLARESOLVERR_URL`/`services.flaresolverr.url` is configured,
+  wrapping the solved response back into a real `Illuminate\Http\Client\Response` so no adapter's
+  `discover()`/`fetch()` needed any change. Falls back to a direct GET when unconfigured, so this
+  is a no-op until FlareSolverr is actually deployed. **Still needs deploying**: FlareSolverr itself
+  isn't something this repo's `Dockerfile` can start — staging's `docker-compose.yml` (external to
+  this repo) needs a `flaresolverr` service added and `FLARESOLVERR_URL` pointed at it before any
+  of Kaskus/SerayaMotor/IndoForum actually unblocks live.
+- **Bigger finding, found while building MediaKonsumen's test with an exact-URL assertion instead
+  of the `str_contains()` every other adapter test used:** `AbstractHttpSourceAdapter::request()`
+  had been silently discarding every paginated request's query string on every adapter, the entire
+  time. `Illuminate\Http\Client\PendingRequest::get()` only omits Guzzle's `query` request option
+  when called with exactly one argument; `request()` always called `->get($url, $query)` with two
+  arguments even when `$query` defaulted to `[]`, which set `'query' => []` and made Guzzle replace
+  the URL's own embedded query string with nothing. Since every adapter builds its paginated URLs
+  by appending `?page=`/`?paged=`/`?start=` directly onto the URL string (never through the
+  `$query` array), this meant **every adapter's pagination beyond page 1 was silently re-fetching
+  page 1 forever** — independent of, and in addition to, the IndoForum/LowEndTalk cursor bugs fixed
+  earlier this session. Fixed: only pass `$query` to `Http::get()` when non-empty. Recorded as a
+  durable rule (`.ai/rules/adapters.md`) and the new `AbstractHttpSourceAdapterTest.php` asserts
+  exact request URLs rather than `str_contains()`, specifically to catch a regression of this class
+  again. **Not yet verified live on staging** — needs a redeploy, same as the IndoForum/LowEndTalk
+  fixes above.
+- Added `MediaKonsumenAdapter` (`app/Domains/Sources/Adapters/MediaKonsumenAdapter.php`): mirrors
+  `DiskusiWebHostingAdapter`'s RSS-feed discovery pattern via the existing
+  `parseFeedDocuments()`/`extractHtmlOpinions()` helpers. One WordPress-specific quirk: feed
+  archives paginate with `?paged=N`, not the `?page=N` that `pageUrl()` builds for forum-style
+  adapters (WordPress silently ignores `page=` on a feed endpoint), so it builds its own URL rather
+  than reusing `pageUrl()`. Confirmed live (curl, not through the adapter itself) that
+  `mediakonsumen.com/robots.txt` allows crawling and `/feed` returns real complaint/response items
+  mentioning seeded entities by name (a live Biznet complaint + the company's own reply, both
+  through the same feed). Seeded `enabled: false` in `SourceSeeder`, same DoD as every other wave —
+  not yet run against real production traffic.
+
 Current implementation boundary:
 
 | Target per docs | Repository today |
@@ -755,8 +792,10 @@ Current implementation boundary:
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
-| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `SerayaMotorAdapter` correctly halted by a live Cloudflare 403 challenge; `IndoForumAdapter`'s forum-rotation and page-wraparound bugs are fixed (5 Sep 2026), but it still produces zero `source_items` because `forum.or.id` now serves a bot-challenge interstitial on every page — needs the JS-rendering/challenge-solving fetch path (not yet built) to actually unblock; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
-| Wave-2 adapters (Epic 6) | `YouTubeAdapter` enabled and dominant producer on staging; `LowEndTalkAdapter`'s cold-start cursor bug (self-poisoning `category_url`/`category_urls` mismatch that froze `crawl_states` after the first cycle) is fixed (5 Sep 2026) — needs a staging redeploy to take effect, not yet confirmed live; `KaskusAdapter` stays `enabled: false` — kaskus.co.id search is client-rendered (Next.js, empty SSR fallback), needs its JSON API or a JS-rendering fetcher |
+| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `SerayaMotorAdapter`/`IndoForumAdapter` have their code-level bugs fixed (forum rotation, page wraparound, and the global pagination query-string bug below) and now route through FlareSolverr when configured, but still need FlareSolverr actually deployed as a staging sidecar before they unblock live; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
+| Wave-2 adapters (Epic 6) | `YouTubeAdapter` enabled and dominant producer on staging; `LowEndTalkAdapter`'s cold-start cursor bug is fixed (5 Sep 2026) — needs a staging redeploy to take effect, not yet confirmed live; `KaskusAdapter` stays `enabled: false` but now routes through FlareSolverr when configured (covers its Next.js CSR case too, once deployed) |
+| Pagination query-string bug (all adapters) | Fixed (5 Sep 2026) — `AbstractHttpSourceAdapter::request()` was silently discarding every paginated request's query string on every adapter; see the crawler-status notes below. Needs a staging redeploy to take effect. |
+| MediaKonsumen adapter | Added (5 Sep 2026), seeded `enabled: false` pending a live operator check, same DoD as every other wave — new source found via the alternative-data-source research below |
 | Entity matching, relevance, sentiment classifier (Epic 7) | implemented and verified for the Phase 3 slice; LLM fallback for ambiguous candidates not implemented |
 | Public score (Epic 8) | implemented and verified against real PostgreSQL |
 | Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds |
