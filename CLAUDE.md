@@ -1218,21 +1218,24 @@ live and fixed.
   is a legitimate `person` candidate (`EntityType::Person` already exists), not noise, even when
   politics-adjacent — only the underlying policy/political topic is out of scope, not the person
   themself.
-- **Two more data-quality issues found while reviewing this first scan's 34 candidates, not fixed
-  this session:**
-  1. `WikidataCandidateSource` produced two candidates whose `normalized_term`/`suggested_name` is
+- **Two more data-quality issues found while reviewing this first scan's 34 candidates — both fixed
+  same session:**
+  1. `WikidataCandidateSource` produced two candidates whose `normalized_term`/`suggested_name` was
      a raw Wikidata entity ID (`q141025060`, `q139719408`) instead of a resolved human-readable
-     label — the SPARQL query or its result mapping isn't always pulling the label field. Needs
-     its own investigation; not touched here.
-  2. `DailySocialCandidateSource`'s RSS item titles are often a single run-on headline covering
-     3 unrelated stories (e.g. "Ajaib secures $270M mega round, GoTo leadership reshuffle, 500
-     Global sunsets, Sea fund" as one title) — the LLM still extracts one genuine, real brand name
-     out of the mess (Ajaib, Grab, Xendit, SeaBank, Kopi Kenangan, etc. were all correctly pulled),
-     so these are NOT noise like the Google Trends case and were left as-is, but the
-     `normalized_term` dedup key is the entire garbled headline rather than the actual brand —
-     worth a future pass to split/clean the feed's titles before they reach the aggregator, so the
-     dedup key means something and doesn't create one candidate row per daily digest email instead
-     of one per brand.
+     label. Root cause: `SERVICE wikibase:label` only requested an `"en"` label — Wikidata's label
+     service falls back to the bare entity id when no label exists in any requested language, and
+     these items apparently have none in English. Widened to `"en,id,mul"` (`mul` = any language,
+     the documented catch-all) and added a defensive filter dropping any label still matching
+     `^Q\d+$` even after that. The two existing garbage rows were manually rejected.
+  2. `DailySocialCandidateSource`'s RSS item titles are sometimes a single run-on "roundup" headline
+     covering 3 unrelated stories (e.g. "Ajaib secures $270M mega round, GoTo leadership reshuffle,
+     500 Global sunsets, Sea fund" as one title) — the LLM still extracted one genuine real brand
+     out of the mess (Ajaib, Grab, Xendit, SeaBank, Kopi Kenangan, etc. were all correctly pulled
+     from the first scan, so none of those existing rows needed cleanup), but every digest email
+     became its own candidate row instead of merging by brand. Now splits each title on comma so
+     each clause becomes its own `raw_term` — a future digest mentioning "Ajaib" again will merge
+     into the same candidate via the aggregator's existing dedup, instead of creating a new
+     unrelated blob.
 
 ## Document map
 
