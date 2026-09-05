@@ -64,6 +64,45 @@ it('runs the SerayaMotor adapter and removes quoted and promotional text', funct
         ->and($opinions[0]->text)->not->toContain('Jual mobil');
 });
 
+it('rotates to the next SerayaMotor forum once the current one has no threads', function () {
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) {
+        return match (true) {
+            $request->url() === 'https://www.serayamotor.com/diskusi/' => Http::response('ok'),
+            str_contains($request->url(), 'f=19') => Http::response('<html><body>no threads here</body></html>'),
+            str_contains($request->url(), 'f=64') => Http::response(sourceFixture('serayamotor', 'listing.html')),
+            default => Http::response('', 404),
+        };
+    });
+
+    $adapter = new SerayaMotorAdapter;
+    $firstBatch = $adapter->discover(CrawlCursor::initial('serayamotor'));
+    $secondBatch = $adapter->discover($firstBatch->nextCursor);
+
+    expect($firstBatch->documents)->toBe([])
+        ->and($firstBatch->nextCursor->metadata['forum_index'])->toBe(1)
+        ->and($firstBatch->nextCursor->metadata['page'])->toBe(1)
+        ->and($secondBatch->documents)->toHaveCount(2);
+});
+
+it('wraps an exhausted SerayaMotor forum back to page 1 instead of paginating forever', function () {
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) {
+        return match (true) {
+            $request->url() === 'https://www.serayamotor.com/diskusi/' => Http::response('ok'),
+            str_contains($request->url(), 'f=63') => Http::response('<html><body>no threads here</body></html>'),
+            default => Http::response('', 404),
+        };
+    });
+
+    $adapter = new SerayaMotorAdapter;
+    $batch = $adapter->discover(new CrawlCursor('serayamotor', metadata: ['forum_index' => 2, 'page' => 5]));
+
+    expect($batch->documents)->toBe([])
+        ->and($batch->nextCursor->metadata['forum_index'])->toBe(0)
+        ->and($batch->nextCursor->metadata['page'])->toBe(1);
+});
+
 it('runs the allowlisted IndoForum adapter without discovering other forum ids', function () {
     Http::preventStrayRequests();
     Http::fake(function (Request $request) {

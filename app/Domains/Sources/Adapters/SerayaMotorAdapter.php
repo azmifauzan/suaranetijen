@@ -21,10 +21,12 @@ class SerayaMotorAdapter extends AbstractHttpSourceAdapter
 
     public function discover(CrawlCursor $cursor): DiscoveryBatch
     {
-        $page = max(1, (int) ($cursor->metadata['page'] ?? 1));
         $forumIds = $cursor->metadata['forum_ids'] ?? [19, 64, 63];
-        $forumId = (int) ($forumIds[0] ?? 19);
-        $url = (string) ($cursor->metadata['forum_url'] ?? 'https://www.serayamotor.com/diskusi/viewforum.php?f='.$forumId);
+        $forumCount = count($forumIds);
+        $forumIndex = max(0, (int) ($cursor->metadata['forum_index'] ?? 0)) % $forumCount;
+        $forumId = (int) ($forumIds[$forumIndex] ?? 19);
+        $page = max(1, (int) ($cursor->metadata['page'] ?? 1));
+        $url = 'https://www.serayamotor.com/diskusi/viewforum.php?f='.$forumId;
         $response = $this->request($this->offsetUrl($url, $page));
         $response->throw();
 
@@ -35,15 +37,30 @@ class SerayaMotorAdapter extends AbstractHttpSourceAdapter
             '~viewtopic\\.php\\?[^#]*t=~i'
         );
 
+        // An empty page means this forum is exhausted at this cursor position
+        // (or currently unparseable) — move to the next configured forum
+        // rather than paginating the same one forever.
+        $nextForumIndex = $forumIndex;
+        $nextPage = $page + 1;
+        if ($documents === []) {
+            $nextForumIndex = ($forumIndex + 1) % $forumCount;
+            $nextPage = 1;
+        }
+
         return new DiscoveryBatch(
             documents: $documents,
             nextCursor: new CrawlCursor(
                 sourceKey: $cursor->sourceKey,
                 cursorKey: $cursor->cursorKey,
-                cursorValue: 'page_'.($page + 1),
+                cursorValue: 'forum_'.$forumIds[$nextForumIndex].'_page_'.$nextPage,
                 lastExternalId: $documents !== [] ? end($documents)->externalId : $cursor->lastExternalId,
                 lastCrawledAt: now()->toImmutable(),
-                metadata: ['page' => $page + 1, 'forum_ids' => $forumIds, 'forum_url' => $url]
+                metadata: [
+                    ...$cursor->metadata,
+                    'forum_ids' => $forumIds,
+                    'forum_index' => $nextForumIndex,
+                    'page' => $nextPage,
+                ]
             ),
             hasMore: $documents !== []
         );
