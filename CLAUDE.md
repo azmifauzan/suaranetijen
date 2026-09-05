@@ -1032,6 +1032,29 @@ the `crawl`/`analysis` bottleneck, on top of the worker-count tuning above.
   second time. **Confirmed live**: all three hosts now appear together in one `horizon:supervisors`
   listing, sharing the same Redis-backed queues — distributed crawl is working.
 
+## Search results were never wired to the real score (found and fixed, 5 September 2026)
+
+Asked directly "does search show real results now that there's real data" — checked the DB first
+(89 entities have `sentiment_snapshots`, 26 clear the public threshold; Samsung leads at 1,632
+opinions / score 72.12 for `365d`), then hit the live `/api/search?q=samsung` endpoint to confirm —
+it returned `score: null, opinion_count: 0` for every result, contradicting the DB entirely.
+
+- **Root cause**: `SearchService::mapRow()` hardcoded `'score' => null, 'opinion_count' => 0,
+  'rating' => null, 'rating_count' => 0` with a comment reading `// Sentimen Netijen (null for MVP
+  until Epic 8)` — a stub written before Epic 8 (public score) existed, never updated once Epic 8
+  actually shipped. `EntityShowController` (the entity page) had the correct 365d→all-time
+  fallback + eligibility-threshold logic all along — `SearchService` just never called it, so this
+  bug was invisible on the entity page and only showed up in the search results list.
+- **Fix**: `SearchService::fetchPublicData()` batch-fetches `SentimentSnapshot` and `RatingSnapshot`
+  for every result in one query each (not per-row), applies the same
+  `ScoreCalculator::isPublicScoreEligible()` threshold check and 365d→all-time fallback
+  `EntityShowController` already used, so a below-threshold entity still reports its
+  `opinion_count` but withholds `score` — consistent behavior between the search list and the
+  entity page. **Confirmed live**: `/api/search?q=samsung` now returns
+  `"score":72.12,"opinion_count":1632`, matching the database exactly.
+- This shipped with the redeploy in the distributed-worker session above — only the main app host
+  needed it (search is web-facing, not something the crawl/analysis workers touch).
+
 ## Document map
 
 | File | Purpose |
