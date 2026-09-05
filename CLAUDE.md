@@ -811,17 +811,48 @@ stop, per the process note above). No pending migrations.
 - **Confirmed live**: `IndoForumAdapter`'s rotation/wraparound fix is working exactly as designed —
   its cursor cycled `forum_139_page_1` → `forum_107_page_1` → (next cycle) `forum_139_page_1` again
   across three consecutive `sources:backfill` runs, i.e. it tried 139, got zero threads, rotated to
-  107, got zero threads, wrapped back to 139 rather than paginating one forum forever. Still
-  produces **zero** `source_documents`, as expected — the code-level bugs are fixed, but
-  `forum.or.id`'s bot-challenge itself is still up, so this genuinely needs FlareSolverr deployed
-  before it produces data, not further adapter changes.
+  107, got zero threads, wrapped back to 139 rather than paginating one forum forever. The
+  code-level bugs are genuinely fixed; whether it produces data now depends on `forum.or.id`'s
+  bot-challenge, covered below.
 - `DiskusiWebHosting` and `YouTube` kept growing normally through the redeploy (613 and 96,557
   `source_items` respectively at last check) — no regression from any of this session's changes.
-- **Not yet done**: FlareSolverr itself is still not deployed anywhere (needs a service added to
-  staging's external `docker-compose.yml` plus `FLARESOLVERR_URL` set), so Kaskus/SerayaMotor/
-  IndoForum remain unable to produce data regardless of the adapter-level fixes; `MediaKonsumen`
-  stays seeded `enabled: false` pending a live operator check (its code has never run against
-  production, only sanitized fixtures and a manual `curl` of the real site).
+- `MediaKonsumen` stays seeded `enabled: false` pending a live operator check — its code has never
+  run against production, only sanitized fixtures and a manual `curl` of the real site.
+
+**FlareSolverr deployment and per-source reliability (5 September 2026, same session):** added a
+`suaranetijen-flaresolverr` service (`ghcr.io/flaresolverr/flaresolverr:latest`) to staging's
+external `docker-compose.yml` (backed up first), set `FLARESOLVERR_URL` in staging's `.env`, and
+recreated the app/horizon/scheduler containers to pick it up. **Results are source-specific, not a
+uniform "it works now" — tested each of the three sources 3+ times directly against FlareSolverr
+before trusting the adapters:**
+
+- **KASKUS: reliable, 3/3 successful, re-enabled in production.** FlareSolverr's response for every
+  attempt said `"Challenge not detected!"` — Kaskus's block was never actually Cloudflare, just the
+  Next.js client-side render that a real browser executes trivially. Ran `sources:preflight` to
+  refresh `health_state` and flipped `sources.kaskus.enabled` to `true` directly in the staging DB;
+  `SourceSeeder.php` updated to match so a fresh environment starts the same way.
+  `KaskusAdapter::preflight()` reports `healthy` through the app.
+- **SerayaMotor: mostly reliable, 2/3 successful, left enabled.** This one *is* a real Cloudflare
+  challenge — FlareSolverr actively solves it (`"Challenge solved!"`), but one attempt in three hit
+  `"Error solving the challenge. Timeout after 60.0 seconds."` A ~33% discovery-cycle failure rate
+  is not zero, but it's the same shape of transient failure the existing retry/backoff machinery
+  (`DiscoverSourceDocumentsJob`'s `$tries = 5`) already handles — it should still produce data over
+  a run of `sources:backfill` cycles, just not on every single attempt. `health_state` was refreshed
+  from stale `policy_disabled` to `healthy` via `sources:preflight`.
+- **IndoForum: still effectively blocked, needs different tooling, not just FlareSolverr.**
+  `forum.or.id` runs a **non-Cloudflare custom bot-detection system** (its own `/js/zee/botguard/`
+  script, "Validating browser…" page) that FlareSolverr's built-in challenge detector doesn't
+  recognize — every failed attempt returned `"message": "Challenge not detected!"` alongside the
+  *same* unsolved challenge HTML (only 3-5KB), meaning FlareSolverr didn't know to wait for the
+  page's own JS to finish and just returned the initial load. One out of four manual attempts
+  happened to return real content (157KB, thread links present) — almost certainly a timing fluke
+  (the page's own redirect JS completing before FlareSolverr captured the DOM), not something to
+  rely on. Left `IndoForum` enabled since the code-level bugs are genuinely fixed and it's harmless
+  to keep trying (occasional luck aside, worst case is a wasted discovery cycle, same as before this
+  session), but **don't expect real data from it** until this specific challenge system is handled
+  — options for a future session: a FlareSolverr `session`-based flow with an explicit longer wait,
+  or a custom pierce (Playwright/Puppeteer with an explicit `waitForNavigation`/`waitForSelector`
+  rather than FlareSolverr's Cloudflare-shaped heuristic).
 
 Current implementation boundary:
 
@@ -834,8 +865,8 @@ Current implementation boundary:
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
-| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `IndoForumAdapter`'s forum-rotation/wraparound fix is deployed and confirmed live (cycles 139→107→139 correctly) but still produces zero data — `forum.or.id`'s bot-challenge itself needs FlareSolverr, not further code changes; `SerayaMotorAdapter` same FlareSolverr dependency for its Cloudflare 403; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
-| Wave-2 adapters (Epic 6) | `YouTubeAdapter` enabled and dominant producer on staging; `LowEndTalkAdapter`'s cold-start cursor bug is fixed and deployed, plus a one-time `crawl_states` data repair for the row it had already poisoned — confirmed live (674→829 `source_items`, first cursor advance since 2026-09-04); `KaskusAdapter` stays `enabled: false` but now routes through FlareSolverr when configured (covers its Next.js CSR case too, once deployed) |
+| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `SerayaMotorAdapter` FlareSolverr-deployed and mostly reliable (2/3 in live testing — real Cloudflare, occasionally times out solving, retried by existing job backoff); `IndoForumAdapter`'s code bugs are fixed but `forum.or.id`'s bot-detection is a non-Cloudflare system FlareSolverr doesn't recognize, so it's still effectively blocked — needs different tooling, not just FlareSolverr; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
+| Wave-2 adapters (Epic 6) | `YouTubeAdapter` enabled and dominant producer on staging; `LowEndTalkAdapter`'s cold-start cursor bug is fixed and deployed, plus a one-time `crawl_states` data repair for the row it had already poisoned — confirmed live (674→829 `source_items`, first cursor advance since 2026-09-04); `KaskusAdapter` re-enabled (5 Sep 2026) — FlareSolverr-deployed and reliable (3/3 in live testing), its block was never Cloudflare, just the Next.js client-side render |
 | Pagination query-string bug (all adapters) | Fixed and deployed (5 Sep 2026) — `AbstractHttpSourceAdapter::request()` was silently discarding every paginated request's query string on every adapter; see the crawler-status notes below. |
 | MediaKonsumen adapter | Added (5 Sep 2026), seeded `enabled: false` pending a live operator check, same DoD as every other wave — new source found via the alternative-data-source research below |
 | Entity matching, relevance, sentiment classifier (Epic 7) | implemented and verified for the Phase 3 slice; LLM fallback for ambiguous candidates not implemented |
