@@ -666,25 +666,32 @@ check, not a code change, except where noted.
   `parseHtmlDocumentLinks()`'s thread-link regex always matches zero links. `preflight()` only
   checks HTTP reachability (200 OK), not that the body contains real content, so this failure mode
   is invisible in the health dashboard — the same blind spot already known for `KaskusAdapter`
-  (`docs/24`), just silent instead of loud. Tracing this also surfaced two adapter bugs in
-  `IndoForumAdapter::discover()` (`app/Domains/Sources/Adapters/IndoForumAdapter.php:29-67`),
-  independent of the site-side challenge: (a) it only ever reads `$forumIds[0]`, so the configured
-  `107` (`info-terbaru-reviews`) and `93` (`computer-stuff`) forums are never crawled even once;
-  (b) the page cursor always advances to `page + 1` regardless of `hasMore`/documents found, so it
-  can never wrap back to page 1 to pick up newly posted threads. Not fixed here — needs a
-  JS-rendering or challenge-solving fetch path (see below) before the parser bugs are worth fixing.
-- **New finding — `LowEndTalkAdapter` (enabled, `health_state=healthy`) has not advanced past its
-  initial backfill.** Its `crawl_states` row (674 `source_items` produced) hasn't updated since
-  2026-09-04 09:43, ~22h stale, versus `DiskusiWebHosting`/`IndoForum`/`YouTube` which all ran
-  again at 2026-09-05 00:00 via the `sources:backfill` scheduler (`*/30 * * * *`,
-  `app/Domains/Sources/Commands/BackfillSourcesCommand.php`). `LowEndTalk` satisfies
-  `Source::operational()` (enabled + healthy), so it should be included in every run. The 53
-  `ingestion_failures` on record for it are all from the original backfill burst
-  (`MaxAttemptsExceededException`, already fixed by the rate-limit decoupling above) — nothing
-  since. Not root-caused in this pass — dispatching a manual `sources:backfill lowendtalk` on
-  staging to reproduce was blocked by the harness's write-action classifier, since it mutates live
-  state. Needs a follow-up session with explicit permission to dispatch a test job, or a review of
-  Horizon's `supervisor-crawl` logs around the 30-minute mark.
+  (`docs/24`), just silent instead of loud. **Fixed (5 Sep 2026, `IndoForumAdapter.php`):** tracing
+  this surfaced two independent adapter bugs, both root-caused with `superpowers:systematic-debugging`
+  and covered by new regression tests in `WaveOneAdapterTest.php` — (a) `discover()` only ever read
+  `$forumIds[0]`, so the configured `107` (`info-terbaru-reviews`) and `93` (`computer-stuff`)
+  forums were never crawled even once; (b) the page cursor always advanced to `page + 1` regardless
+  of `hasMore`/documents found, so it could never wrap back to page 1 to pick up newly posted
+  threads. Now rotates to the next configured forum (wrapping back to the first) whenever the
+  current page returns zero threads, resetting to page 1 on every rotation. **Still blocked** by
+  the site-side bot challenge itself — these fixes make IndoForum correct once `forum.or.id` is
+  reachable, but don't unblock it on their own; needs the JS-rendering/challenge-solving fetch path
+  below.
+- **Fixed (5 Sep 2026, `LowEndTalkAdapter.php`) — `LowEndTalkAdapter` (enabled,
+  `health_state=healthy`) had stopped advancing past its initial backfill.** Its `crawl_states` row
+  (674 `source_items` produced) hadn't updated since 2026-09-04 09:43, ~22h stale, versus
+  `DiskusiWebHosting`/`IndoForum`/`YouTube` which all ran again at 2026-09-05 00:00 via the
+  `sources:backfill` scheduler (`*/30 * * * *`, `app/Domains/Sources/Commands/BackfillSourcesCommand.php`),
+  despite satisfying `Source::operational()` and being dispatched every cycle with no
+  `ingestion_failures` recorded. Root cause, found with `superpowers:systematic-debugging`:
+  `discover()` read the resolved category list from `metadata['category_urls']` but only ever
+  wrote back the single `metadata['category_url']` it picked; on a source's very first cycle,
+  `category_urls` comes from `config()` rather than the input cursor, so it never gets copied into
+  metadata at all — the second cycle then finds neither key, resolves an empty category list, and
+  returns a null `nextCursor` forever with no exception raised anywhere. Fix: always write the full
+  resolved `category_urls` list back into the next cursor's metadata. Regression test in
+  `WaveTwoAdapterTest.php` reproduces the exact cold-start cursor shape and asserts a second
+  discovery cycle still finds documents.
 - **Fix applied:** `config/horizon.php`'s `staging` environment left `supervisor-analysis` at the
   `defaults` block's `maxProcesses => 1`, closing the loop on the "known gap, not fully diagnosed"
   note above. Raised to `maxProcesses => 3` in the repo config, then hot-patched onto both the
@@ -704,6 +711,38 @@ check, not a code change, except where noted.
   SerayaMotor's 403 and IndoForum's 200-but-challenge response. Both would plug into
   `AbstractHttpSourceAdapter` as an alternate `fetch()` path used only by the affected adapters —
   no core pipeline change, consistent with the "adapter guardrails, not product logic" constraint.
+  Not yet implemented — needs a dependency-addition decision (Boost's "don't change dependencies
+  without approval" rule) before starting.
+
+**Alternative data source research (5 September 2026):** live feasibility check (robots.txt, API
+availability, SSR vs. client-rendering) against `docs/07`'s roadmap candidates plus new candidates,
+scored against `docs/07`'s selection criteria (density, category relevance, freshness, incremental
+ingestion, access stability, cost, noise, preflight feasibility). Research only — nothing
+implemented.
+
+- **Crawlable now, no new infra:** MediaKonsumen (robots.txt allows `/`, WordPress SSR, high
+  consumer-complaint density — best near-term fit found); Otomotifnet and Oto.com (Gridoto network;
+  robots.txt permissive, SSR, fill the same automotive niche as `SerayaMotorAdapter` with an
+  independent second source); Tokopedia review pages (robots.txt explicitly allows `/*/review`
+  paths — better than `docs/07` assumed for marketplace reviews, but rendering depth not yet
+  confirmed, needs a pilot before committing).
+- **Needs the Browsershot/FlareSolverr infra once it exists:** Female Daily (Next.js CSR, narrow
+  category fit — beauty isn't in the current seed categories); WebHostingTalk (Cloudflare
+  challenge, same wall as `SerayaMotorAdapter`/`forum.or.id`); Carmudi Indonesia (uses the newer
+  per-path `Content-Signal` robots directive instead of a blanket allow/deny — needs its own
+  parsing pass, not yet done).
+- **Stay in `docs/07`'s licensed/paid/later bucket — confirmed, not changed by this research:**
+  Trustpilot Data Solutions (`/api/*` and `/reviews/` blocked in robots.txt, licensed-only by
+  design); Google Play reviews (official API is owner-only per ToS; the unofficial `batchexecute`
+  endpoint is fragile/ToS-risk, not adapter-grade); X API (pay-per-use since the Basic tier's
+  Feb 2026 discontinuation, ~$0.005/read — not economical yet per `docs/07`'s own framing);
+  TikTok/Instagram (no public firehose, permissioned business APIs only); Reddit (blanket
+  `Disallow: /` in robots.txt since its 2024 API lockdown, API now commercial-only — newly
+  evaluated, not previously in `docs/07`).
+- **Ranked for near-term adapter effort:** MediaKonsumen first (SSR + permissive + zero new infra),
+  then Otomotifnet/Oto.com (same effort tier, automotive coverage), then Tokopedia review pages
+  pending a rendering-depth check, then Carmudi pending its Content-Signal parsing, then Female
+  Daily/WebHostingTalk once Browsershot/FlareSolverr lands.
 
 Current implementation boundary:
 
@@ -716,8 +755,8 @@ Current implementation boundary:
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
-| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `SerayaMotorAdapter` correctly halted by a live Cloudflare 403 challenge; `IndoForumAdapter` reports `healthy` but has produced zero `source_items` since launch — `forum.or.id` now serves a bot-challenge interstitial on every page (5 Sep 2026 crawler status check), plus two independent adapter bugs (only crawls `forum_ids[0]`, cursor never wraps to page 1) found while diagnosing it; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
-| Wave-2 adapters (Epic 6) | `YouTubeAdapter` enabled and dominant producer on staging; `LowEndTalkAdapter` enabled but stuck since its initial backfill — `crawl_states` hasn't advanced in ~22h despite passing `Source::operational()`, not yet root-caused (5 Sep 2026 crawler status check); `KaskusAdapter` stays `enabled: false` — kaskus.co.id search is client-rendered (Next.js, empty SSR fallback), needs its JSON API or a JS-rendering fetcher |
+| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `SerayaMotorAdapter` correctly halted by a live Cloudflare 403 challenge; `IndoForumAdapter`'s forum-rotation and page-wraparound bugs are fixed (5 Sep 2026), but it still produces zero `source_items` because `forum.or.id` now serves a bot-challenge interstitial on every page — needs the JS-rendering/challenge-solving fetch path (not yet built) to actually unblock; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
+| Wave-2 adapters (Epic 6) | `YouTubeAdapter` enabled and dominant producer on staging; `LowEndTalkAdapter`'s cold-start cursor bug (self-poisoning `category_url`/`category_urls` mismatch that froze `crawl_states` after the first cycle) is fixed (5 Sep 2026) — needs a staging redeploy to take effect, not yet confirmed live; `KaskusAdapter` stays `enabled: false` — kaskus.co.id search is client-rendered (Next.js, empty SSR fallback), needs its JSON API or a JS-rendering fetcher |
 | Entity matching, relevance, sentiment classifier (Epic 7) | implemented and verified for the Phase 3 slice; LLM fallback for ambiguous candidates not implemented |
 | Public score (Epic 8) | implemented and verified against real PostgreSQL |
 | Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds |
