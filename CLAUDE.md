@@ -896,10 +896,62 @@ Current implementation boundary:
 | `app/Domains/*` modules | `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment`, `Themes`, `Ratings` present; ranking stays in `Sentiment`; `Rankings` and `Moderation` not implemented as separate modules |
 | Docker deploy artifacts | `Dockerfile`, `.dockerignore`, `docker-entrypoint.sh` added; image built locally and pushed to Docker Hub (`azmifauzan/suaranetijen`), staging server pulls and runs via its own `docker-compose.yml` (not in this repo) |
 | Staging environment | live at `https://suaranetijen.web.id`; see staging deployment notes above for the bugs found and fixed getting there |
+| Entity candidate pipeline (`docs/23` "Growth") | implemented (5 Sep 2026), not yet deployed to staging — closes the previously-untouched gap where zero-result search queries were logged but nothing turned that into new-entity candidates |
+| Shared LLM settings (`llm_settings`, `/admin/llm-settings`) | implemented — OpenAI-compatible chat completions over plain HTTP, no new SDK dependency; meant to be the one place any future LLM feature (e.g. the still-unimplemented `docs/10` ambiguous-entity-matching fallback) resolves its client through |
 
 The repository's `.env.example` now carries the PostgreSQL + Redis baseline. Tests retain isolated
 SQLite/array/sync defaults (with the trigram shim above) unless an explicit integration run
 overrides them.
+
+## Entity candidate pipeline (5 September 2026)
+
+Answers "does the seed list stay current with new brands/products" — before this, only a manual
+CSV edit + `php artisan app:import-seed-entities` re-run could add entities; `docs/23`'s own
+"Growth" section (log zero-result queries, promote high-frequency ones) was never built past the
+logging half.
+
+- **4 pluggable sources** behind `App\Domains\Entities\Contracts\EntityCandidateSource`
+  (`app/Domains/Entities/CandidateSources/`): `SearchQueryCandidateSource` (primary signal —
+  zero-result `search_queries` grouped by `normalized_query`, frequency >= `config('entity_candidates.min_search_query_frequency')`,
+  default 3), `WikidataCandidateSource` (free SPARQL endpoint, no auth, covers
+  Smartphone/Mobil/Motor in one query), `DailySocialCandidateSource` (RSS, new Indonesian
+  digital-economy brands), `GoogleTrendsCandidateSource` (free Daily Trends RSS for Indonesia,
+  `approx_traffic` as weight). One source failing never blocks the others (same resilience
+  principle as the crawler adapters) — see `EntityCandidateAggregator::collectFromSources()`.
+- **`unmatched_mentions` is a cross-reference booster, not a fifth source.** A live measurement
+  this session found it's ~99.8% genuinely irrelevant text (78,559 of 78,689 `entity_not_resolved`
+  mentions had zero entity-name overlap even at a lenient tie-match check; only 130 were truly
+  ambiguous ties between two seeded entities) — not worth building free-text extraction against.
+  `EntityCandidateAggregator::countUnmatchedMentions()` just counts how often an already-surfaced
+  candidate term appears in `raw_payloads` as supporting evidence.
+- **LLM enrichment** (`EntityCandidateEnricher` + `LlmClient`): OpenAI-compatible `/chat/completions`
+  over plain `Http::` calls (no Anthropic/OpenAI SDK dependency — deliberately dropped mid-build
+  when asked for an OpenAI-compatible shape instead), requesting a JSON-schema response
+  (`suggested_name`, `suggested_entity_type` restricted to `EntityType::cases()`,
+  `suggested_category` matched case-insensitively against real `Category` names — an unmatched
+  category is left `null` for the admin to pick, never guessed/created). Only genuinely-new
+  candidates get enriched (an existing `entity_candidates` row, any status, never resurfaces or
+  re-enriches).
+- **Shared LLM settings, not hardcoded to this one feature.** `llm_settings` (single row) holds
+  `base_url`/`model`/`api_key` (Laravel `encrypted` cast)/`max_tokens`/`temperature`/
+  `timeout_seconds`, editable at `/admin/llm-settings` with immediate effect (same "no redeploy"
+  pattern as the source kill switch) — a blank `api_key` on save keeps the stored one rather than
+  clearing it. Falls back to `config('services.llm.*')`/env when no row exists yet. Every future
+  LLM-backed feature (e.g. `docs/10`'s ambiguous-entity-matching LLM fallback, still not built) is
+  meant to resolve its client through this same `LlmClient`, not read env/config directly.
+- **Admin review queue** at `/admin/entity-candidates`: pending candidates ranked by
+  `frequency_score` desc, each showing raw terms/source types/unmatched-mention count/LLM
+  reasoning, with editable name/type/category/parent-brand/aliases fields pre-filled from the
+  suggestion. Approve creates the `Entity` + primary alias + any additional aliases and links
+  `entity_candidates.entity_id`; reject sets `status=rejected` — permanent dismissal, matching the
+  same "no resurfacing" decision as the crawler's `unmatched_mentions`.
+- Scheduled weekly (`entities:scan-candidates`, `routes/console.php`) — curation is not a
+  real-time concern.
+- **Not yet deployed to staging** — needs a redeploy (build+push image, pull, recreate, migrate)
+  same as every other change this session, plus an admin visit to `/admin/llm-settings` to set a
+  real `base_url`/`model`/`api_key` before the weekly scan can actually enrich anything (no
+  external LLM endpoint configured by default; `services.llm.base_url` defaults to
+  `api.openai.com/v1` but `LLM_API_KEY` is blank).
 
 ## Document map
 
