@@ -839,20 +839,33 @@ before trusting the adapters:**
   (`DiscoverSourceDocumentsJob`'s `$tries = 5`) already handles — it should still produce data over
   a run of `sources:backfill` cycles, just not on every single attempt. `health_state` was refreshed
   from stale `policy_disabled` to `healthy` via `sources:preflight`.
-- **IndoForum: still effectively blocked, needs different tooling, not just FlareSolverr.**
-  `forum.or.id` runs a **non-Cloudflare custom bot-detection system** (its own `/js/zee/botguard/`
-  script, "Validating browser…" page) that FlareSolverr's built-in challenge detector doesn't
-  recognize — every failed attempt returned `"message": "Challenge not detected!"` alongside the
-  *same* unsolved challenge HTML (only 3-5KB), meaning FlareSolverr didn't know to wait for the
-  page's own JS to finish and just returned the initial load. One out of four manual attempts
-  happened to return real content (157KB, thread links present) — almost certainly a timing fluke
-  (the page's own redirect JS completing before FlareSolverr captured the DOM), not something to
-  rely on. Left `IndoForum` enabled since the code-level bugs are genuinely fixed and it's harmless
-  to keep trying (occasional luck aside, worst case is a wasted discovery cycle, same as before this
-  session), but **don't expect real data from it** until this specific challenge system is handled
-  — options for a future session: a FlareSolverr `session`-based flow with an explicit longer wait,
-  or a custom pierce (Playwright/Puppeteer with an explicit `waitForNavigation`/`waitForSelector`
-  rather than FlareSolverr's Cloudflare-shaped heuristic).
+- **IndoForum: unreliable but not a lost cause — produces some data through sheer volume of
+  attempts.** `forum.or.id` runs a **non-Cloudflare custom bot-detection system** (its own
+  `/js/zee/botguard/` script, "Validating browser…" page) that FlareSolverr's built-in challenge
+  detector doesn't recognize — most attempts returned `"message": "Challenge not detected!"`
+  alongside the *same* unsolved challenge HTML (3-5KB), meaning FlareSolverr didn't know to wait for
+  the page's own JS to finish and just returned the initial load. Roughly 1 in 4 manual attempts got
+  through with real content, almost certainly a timing fluke (the page's own redirect JS completing
+  before FlareSolverr captured the DOM) rather than something to rely on per-request. Left enabled
+  since the code-level rotation/wraparound bugs are genuinely fixed and it's harmless to keep
+  trying — worth handling properly in a future session (a FlareSolverr `session`-based flow with an
+  explicit longer wait, or a custom pierce with `waitForNavigation`/`waitForSelector` instead of
+  FlareSolverr's Cloudflare-shaped heuristic) if the current trickle isn't enough.
+
+**Found a second dormant rotation bug and production results after two more `sources:backfill`
+cycles (same session):** the first post-FlareSolverr cycle (06:30) produced zero `source_items` for
+all three sources despite FlareSolverr working when tested manually — traced to `SerayaMotorAdapter`
+having the *exact same* forum-rotation bug as `IndoForumAdapter` (only ever read `forum_ids[0]`,
+cursor never wrapped). This was already known — flagged during the IndoForum fix's Phase 2
+pattern-comparison earlier this session — but left alone as moot since SerayaMotor was blocked by
+Cloudflare regardless. FlareSolverr unblocking it made the dormant bug active: production was stuck
+re-paging forum 19 past its real content (page 2+) with zero results, having never touched forums
+64/63. Fixed with the identical rotation/wraparound pattern, rebuilt and redeployed the image
+(same `horizon:terminate` + `--force-recreate` + `nginx -s reload` sequence as before). **Confirmed
+live** after two more cycles (07:30, 08:00 UTC): `source_items` went `SerayaMotor` 0→1,956,
+`IndoForum` 0→68 (the ~25% FlareSolverr luck rate adding up over many attempts), `Kaskus` 0→6 (small
+but real and growing) — `sentiment_observations` 3,538→3,925, zero new `ingestion_failures`. All
+three previously-blocked sources are now producing real data in production.
 
 Current implementation boundary:
 
@@ -865,7 +878,7 @@ Current implementation boundary:
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
-| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `SerayaMotorAdapter` FlareSolverr-deployed and mostly reliable (2/3 in live testing — real Cloudflare, occasionally times out solving, retried by existing job backoff); `IndoForumAdapter`'s code bugs are fixed but `forum.or.id`'s bot-detection is a non-Cloudflare system FlareSolverr doesn't recognize, so it's still effectively blocked — needs different tooling, not just FlareSolverr; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
+| Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `SerayaMotorAdapter` also had a dormant forum-rotation bug (fixed alongside FlareSolverr) — confirmed live producing real data (0→1,956 `source_items` over two cycles); `IndoForumAdapter`'s bot-detection (non-Cloudflare, FlareSolverr doesn't recognize it) makes it unreliable but not blocked — confirmed live at 0→68 `source_items` via the ~25% pass-through rate; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
 | Wave-2 adapters (Epic 6) | `YouTubeAdapter` enabled and dominant producer on staging; `LowEndTalkAdapter`'s cold-start cursor bug is fixed and deployed, plus a one-time `crawl_states` data repair for the row it had already poisoned — confirmed live (674→829 `source_items`, first cursor advance since 2026-09-04); `KaskusAdapter` re-enabled (5 Sep 2026) — FlareSolverr-deployed and reliable (3/3 in live testing), its block was never Cloudflare, just the Next.js client-side render |
 | Pagination query-string bug (all adapters) | Fixed and deployed (5 Sep 2026) — `AbstractHttpSourceAdapter::request()` was silently discarding every paginated request's query string on every adapter; see the crawler-status notes below. |
 | MediaKonsumen adapter | Added (5 Sep 2026), seeded `enabled: false` pending a live operator check, same DoD as every other wave — new source found via the alternative-data-source research below |
