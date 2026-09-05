@@ -59,7 +59,7 @@ class SourceSeeder extends Seeder
                 'name' => 'YouTube',
                 'adapter' => 'youtube',
                 'source_type' => SourceType::VideoComments,
-                'enabled' => false,
+                // Enabled (5 Sep 2026): verified live with YOUTUBE_API_KEY configured.
                 'crawl_policy' => ['rate_limit_per_minute' => 30],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
@@ -81,7 +81,7 @@ class SourceSeeder extends Seeder
                 'name' => 'LowEndTalk',
                 'adapter' => 'lowendtalk',
                 'source_type' => SourceType::Forum,
-                'enabled' => false,
+                // Enabled (5 Sep 2026): verified live, scoped to Reviews/Providers/Outages.
                 'crawl_policy' => ['rate_limit_per_minute' => 10],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
