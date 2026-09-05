@@ -47,17 +47,37 @@ interface EntityItem {
     updated_at?: string;
 }
 
+interface SearchSuggestion {
+    query: string;
+    source: 'trending' | 'top_score' | 'fallback';
+}
+
 const props = withDefaults(
     defineProps<{
         categories: CategoryItem[];
+        searchSuggestions?: SearchSuggestion[];
         topEntities?: EntityItem[];
         recentEntities?: EntityItem[];
     }>(),
-    { topEntities: () => [], recentEntities: () => [] },
+    {
+        searchSuggestions: () => [],
+        topEntities: () => [],
+        recentEntities: () => [],
+    },
 );
 
 const featuredCategories = computed(() => props.categories.slice(0, 8));
-const exampleQueries = ['IndiHome', 'Tokopedia', 'VPS Biznet', 'Samsung'];
+const fallbackSuggestions: SearchSuggestion[] = [
+    { query: 'IndiHome', source: 'fallback' },
+    { query: 'Tokopedia', source: 'fallback' },
+    { query: 'VPS Biznet', source: 'fallback' },
+    { query: 'Samsung', source: 'fallback' },
+];
+const displayedSuggestions = computed(() =>
+    props.searchSuggestions.length
+        ? props.searchSuggestions
+        : fallbackSuggestions,
+);
 const categoryIcons = [
     { pattern: /phone|ponsel|gadget/i, icon: Smartphone },
     { pattern: /hosting|cloud|software|teknologi|laptop/i, icon: Laptop },
@@ -73,6 +93,13 @@ function categoryIcon(name: string) {
     return (
         categoryIcons.find(({ pattern }) => pattern.test(name))?.icon ?? Compass
     );
+}
+
+function suggestionTitle(source: SearchSuggestion['source']): string {
+    if (source === 'trending') return 'Paling banyak dicari';
+    if (source === 'top_score') return 'Sentimen Netijen tinggi';
+
+    return 'Contoh pencarian';
 }
 </script>
 
@@ -137,11 +164,16 @@ function categoryIcon(name: string) {
                     >
                         <span class="mr-1">Coba cari:</span
                         ><Link
-                            v-for="query in exampleQueries"
-                            :key="query"
-                            :href="searchPage({ query: { q: query } })"
+                            v-for="suggestion in displayedSuggestions"
+                            :key="suggestion.query"
+                            :href="
+                                searchPage({
+                                    query: { q: suggestion.query },
+                                })
+                            "
+                            :title="suggestionTitle(suggestion.source)"
                             class="flex items-center gap-1 rounded-full border border-[#d8e4d1] bg-white/65 px-3 py-2 transition hover:border-[#81ad83] hover:bg-white"
-                            >{{ query }}<ArrowUpRight class="size-3"
+                            >{{ suggestion.query }}<ArrowUpRight class="size-3"
                         /></Link>
                     </div>
                 </div>

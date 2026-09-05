@@ -7,6 +7,7 @@ use App\Domains\Entities\Models\Category;
 use App\Domains\Ratings\Controllers\Api\RatingController;
 use App\Domains\Search\Controllers\Api\SearchController;
 use App\Domains\Search\Controllers\SearchPageController;
+use App\Domains\Search\Services\SearchSuggestionService;
 use App\Domains\Sentiment\Controllers\Api\CategoryRankingController;
 use App\Domains\Sentiment\Controllers\TopRankingController;
 use App\Domains\Sentiment\Enums\Period;
@@ -17,7 +18,7 @@ use App\Http\Controllers\StaticPageController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
+Route::get('/', function (SearchSuggestionService $searchSuggestionService) {
     $minOpinions = (int) config('scoring.public_min_opinions', 30);
 
     $topEntities = SentimentSnapshot::query()
@@ -67,6 +68,7 @@ Route::get('/', function () {
 
     return Inertia::render('Welcome', [
         'categories' => Category::active()->withCount('entities')->orderBy('name')->get(['id', 'name', 'slug']),
+        'searchSuggestions' => $searchSuggestionService->getSuggestions(),
         'topEntities' => $topEntities,
         'recentEntities' => $recentEntities,
     ]);
