@@ -4,7 +4,9 @@ use App\Domains\Admin\Controllers\AdminDashboardController;
 use App\Domains\Admin\Controllers\AdminOperationsController;
 use App\Domains\Entities\Controllers\AdminCategoryController;
 use App\Domains\Entities\Controllers\AdminEntityAliasController;
+use App\Domains\Entities\Controllers\AdminEntityCandidatesController;
 use App\Domains\Entities\Controllers\AdminEntityController;
+use App\Domains\Entities\Controllers\AdminLlmSettingsController;
 use App\Domains\Sources\Controllers\AdminSourceController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +33,15 @@ Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')
     // Sources management & Kill Switch
     Route::get('/sources', [AdminSourceController::class, 'index'])->name('sources.index');
     Route::post('/sources/{source}/toggle-status', [AdminSourceController::class, 'toggleStatus'])->name('sources.toggle-status');
+
+    // Shared LLM settings (base_url/model/key used by every LLM-backed feature)
+    Route::get('/llm-settings', [AdminLlmSettingsController::class, 'edit'])->name('llm-settings.edit');
+    Route::put('/llm-settings', [AdminLlmSettingsController::class, 'update'])->name('llm-settings.update');
+
+    // Entity candidates review queue
+    Route::get('/entity-candidates', [AdminEntityCandidatesController::class, 'index'])->name('entity-candidates.index');
+    Route::post('/entity-candidates/{entityCandidate}/approve', [AdminEntityCandidatesController::class, 'approve'])->name('entity-candidates.approve');
+    Route::post('/entity-candidates/{entityCandidate}/reject', [AdminEntityCandidatesController::class, 'reject'])->name('entity-candidates.reject');
 
     // Operations diagnostics & replay
     Route::get('/operations/crawl-states', [AdminOperationsController::class, 'crawlStates'])->name('operations.crawl-states');

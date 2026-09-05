@@ -43,4 +43,16 @@ return [
         'max_timeout_ms' => env('FLARESOLVERR_MAX_TIMEOUT_MS', 45000),
     ],
 
+    // Fallback defaults used only until an admin saves a row in llm_settings
+    // (see LlmClient::resolveSettings()) — every LLM-backed feature shares
+    // that one settings row instead of reading env/config directly.
+    'llm' => [
+        'base_url' => env('LLM_BASE_URL', 'https://api.openai.com/v1'),
+        'model' => env('LLM_MODEL', 'gpt-4o-mini'),
+        'api_key' => env('LLM_API_KEY'),
+        'max_tokens' => (int) env('LLM_MAX_TOKENS', 1024),
+        'temperature' => (float) env('LLM_TEMPERATURE', 0.2),
+        'timeout_seconds' => (int) env('LLM_TIMEOUT_SECONDS', 30),
+    ],
+
 ];

@@ -10,6 +10,7 @@ interface Stats {
     total_crawl_states: number;
     unresolved_failures: number;
     total_unmatched: number;
+    pending_entity_candidates: number;
 }
 
 defineProps<{
@@ -130,6 +131,34 @@ defineOptions({
                     <div class="mt-4">
                         <Link href="/admin/operations/unmatched-mentions" class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400">
                             Inspeksi mention ambigu &rarr;
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Entity Candidates & LLM Settings -->
+        <div class="mt-4">
+            <h2 class="text-xs font-semibold tracking-wider text-neutral-400 uppercase dark:text-neutral-500">
+                Seed Growth
+            </h2>
+            <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                    <div class="text-sm font-medium text-neutral-500 dark:text-neutral-400">Entity Candidates Pending</div>
+                    <div class="mt-2 text-3xl font-extrabold text-neutral-900 dark:text-neutral-100">{{ stats.pending_entity_candidates }}</div>
+                    <div class="mt-4">
+                        <Link href="/admin/entity-candidates" class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400">
+                            Review candidates &rarr;
+                        </Link>
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                    <div class="text-sm font-medium text-neutral-500 dark:text-neutral-400">LLM Settings</div>
+                    <div class="mt-2 text-xs text-neutral-400">Base URL, model, key used by candidate enrichment</div>
+                    <div class="mt-4">
+                        <Link href="/admin/llm-settings" class="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400">
+                            Configure &rarr;
                         </Link>
                     </div>
                 </div>

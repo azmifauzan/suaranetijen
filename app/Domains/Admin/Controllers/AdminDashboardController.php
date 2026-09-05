@@ -5,6 +5,7 @@ namespace App\Domains\Admin\Controllers;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Models\EntityAlias;
+use App\Domains\Entities\Models\EntityCandidate;
 use App\Domains\Sources\Models\CrawlState;
 use App\Domains\Sources\Models\IngestionFailure;
 use App\Domains\Sources\Models\Source;
@@ -30,6 +31,7 @@ class AdminDashboardController extends Controller
                 'total_crawl_states' => CrawlState::count(),
                 'unresolved_failures' => IngestionFailure::query()->whereNull('resolved_at')->count(),
                 'total_unmatched' => UnmatchedMention::count(),
+                'pending_entity_candidates' => EntityCandidate::query()->where('status', 'pending')->count(),
             ],
         ]);
     }
