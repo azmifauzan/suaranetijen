@@ -277,7 +277,9 @@ return [
         'staging' => [
             'supervisor-critical' => [],
             'supervisor-crawl' => [],
-            'supervisor-analysis' => [],
+            'supervisor-analysis' => [
+                'maxProcesses' => 3,
+            ],
             'supervisor-maintenance' => [],
         ],
 
