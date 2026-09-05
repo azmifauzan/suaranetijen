@@ -873,7 +873,7 @@ Current implementation boundary:
 |---|---|
 | PostgreSQL | default runtime connection; full suite verified locally |
 | Redis queue, cache, locks, rate limits | default runtime drivers; verified locally |
-| Horizon supervisors | four documented supervisor groups configured and started locally and on staging (`config/horizon.php` has a `staging` environment entry); `supervisor-analysis` raised from `maxProcesses=1` to `3` on staging (5 Sep 2026 crawler status check) after the analysis-queue backlog noted above |
+| Horizon supervisors | four documented supervisor groups configured and started locally and on staging; `supervisor-analysis` raised 1→3 and `supervisor-crawl` raised 2→6 on the main staging host after live backlog findings; distributed to two additional worker hosts (5 Sep 2026, `staging-worker` environment, `supervisor-crawl`/`supervisor-analysis` only) — confirmed all three hosts coexist in one `horizon:supervisors` listing over the same Redis |
 | `pg_trgm` search | implemented and verified against real PostgreSQL |
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
@@ -985,6 +985,52 @@ reliability findings above.
   design choice, not an oversight, so this needs a real discussion before changing, not a quick
   patch. Worth revisiting if Kaskus (or any other low-rate-limit source) stays starved for days
   rather than hours.
+
+## Distributed crawl workers (5 September 2026)
+
+Two additional hosts (`erp-live`, `myneterp` — **shared servers already running unrelated
+production ERP workloads**, not dedicated boxes) were added as Horizon worker nodes to help drain
+the `crawl`/`analysis` bottleneck, on top of the worker-count tuning above.
+
+- **No application code changes were needed.** Laravel/Horizon queue consumption is already
+  stateless — any host with the right `.env` (`DB_HOST`/`REDIS_HOST` pointing at the shared
+  instances) running `php artisan horizon` pulls from the same named queues. Confirmed
+  `RawPayloadStorage` is fully DB-backed (`raw_payloads` table), not local-disk, so it's safe
+  across hosts; the only local-disk writer in the app (`BackupDatabaseCommand`) stays main-host-only
+  by simply not running the scheduler on the worker hosts.
+- **Infra work done:** Redis (previously passwordless, internal-network-only) now requires a
+  password (`REDIS_PASSWORD`, Laravel's `encrypted`-style secret handling doesn't apply here since
+  it's a plain env var — rotate it if this doc's history is ever public) and is published on
+  `6379:6379`, restricted via `iptables -I DOCKER-USER` to only the two worker IPs (confirmed live:
+  reachable from both workers, blocked from an arbitrary IP) — **not** relying on `ufw`, because
+  **Postgres on this same host is already published to `0.0.0.0:5432` and reachable from the open
+  internet despite `ufw` not listing 5432 as allowed** (Docker's own iptables rules bypass `ufw`
+  for published container ports — confirmed live from an external network). That Postgres exposure
+  predates this session, wasn't introduced by this work, and was **not changed** here — tightening
+  it risks breaking other apps on this "shared PostgreSQL" host without knowing who else connects;
+  flagged here as a real, standing security finding for whoever owns that host to address
+  deliberately. The new `DOCKER-USER` iptables rules are **not persisted across reboot** (no
+  `netfilter-persistent`/`iptables-persistent` installed) — same gap the pre-existing port
+  8080/9100 restrictions on this host already had, not a new fragility introduced here, but worth
+  fixing if this host reboots.
+- Each worker runs its own local `FlareSolverr` (avoids a network hop for browser rendering and
+  avoids exposing that service externally too) plus a `suaranetijen-horizon-worker` container
+  (`php artisan horizon`, no app/scheduler role) pointed at the main host's public IP for
+  `DB_HOST`/`REDIS_HOST`, and a new `staging-worker` `APP_ENV`/Horizon environment
+  (`config/horizon.php`) so they get their own worker allocation (`supervisor-crawl` maxProcesses 4,
+  `supervisor-analysis` maxProcesses 2) instead of the main host's.
+- **Bug found and fixed immediately after first deploying this: Horizon rejects
+  `minProcesses => 0` and crash-loops on *every* environment defined in the config file at boot,
+  not just the one selected.** The first version of `staging-worker` tried to fully disable
+  `supervisor-critical`/`supervisor-maintenance` there with `minProcesses: 0, maxProcesses: 0` —
+  this took down Horizon on the *main* staging host too (plain `APP_ENV=staging`, which never
+  touched the broken key), confirmed via `ProvisioningPlan.php`'s validation error
+  (`"The value of [supervisor-critical.minProcesses] must be greater than 0"`) and a live restart
+  crash-loop. Fixed by minimizing to `minProcesses: 1, maxProcesses: 1` instead — Horizon's actual
+  floor is one idle worker per supervisor, not zero. Validated locally
+  (`new \Laravel\Horizon\ProvisioningPlan(...)` against all four environments) before redeploying a
+  second time. **Confirmed live**: all three hosts now appear together in one `horizon:supervisors`
+  listing, sharing the same Redis-backed queues — distributed crawl is working.
 
 ## Document map
 
