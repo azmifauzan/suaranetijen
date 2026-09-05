@@ -16,6 +16,11 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
         return rtrim((string) config('sources.kaskus.base_url'), '/').'/';
     }
 
+    protected function usesChallengeSolver(): bool
+    {
+        return true;
+    }
+
     public function preflight(): SourceHealth
     {
         $health = parent::preflight();

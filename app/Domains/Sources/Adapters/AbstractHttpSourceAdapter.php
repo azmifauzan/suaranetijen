@@ -13,6 +13,7 @@ use DOMDocument;
 use DOMElement;
 use DOMNode;
 use DOMXPath;
+use GuzzleHttp\Psr7\Response as Psr7Response;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -73,15 +74,59 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
     }
 
     /**
+     * Adapters facing an anti-bot challenge or client-side-only rendering
+     * (Cloudflare "Just a moment…", Next.js empty SSR, etc.) override this to
+     * route request() through FlareSolverr instead of a plain HTTP GET.
+     */
+    protected function usesChallengeSolver(): bool
+    {
+        return false;
+    }
+
+    /**
      * @param  array<string, mixed>  $query
      */
     protected function request(string $url, array $query = []): Response
     {
+        $flareSolverrUrl = (string) config('services.flaresolverr.url', '');
+
+        if ($this->usesChallengeSolver() && $flareSolverrUrl !== '') {
+            return $this->requestViaFlareSolverr($url, $query, $flareSolverrUrl);
+        }
+
         return Http::timeout(15)
             ->withHeaders([
                 'User-Agent' => 'SuaraNetijen/1.0 (+https://suaranetijen.id/sources)',
             ])
             ->get($url, $query);
+    }
+
+    /**
+     * Fetch $url through a FlareSolverr sidecar, which loads it in a real
+     * (undetected) browser and returns the fully rendered/challenge-solved
+     * page. Wrapped back into a plain Response so callers of request() need
+     * no changes: FlareSolverr's own HTTP status is always 200 (a JSON
+     * envelope) — the target page's real status/body live in solution.*.
+     *
+     * @param  array<string, mixed>  $query
+     */
+    private function requestViaFlareSolverr(string $url, array $query, string $flareSolverrUrl): Response
+    {
+        $targetUrl = $query === [] ? $url : $url.(str_contains($url, '?') ? '&' : '?').http_build_query($query);
+
+        $envelope = Http::timeout(90)->post(rtrim($flareSolverrUrl, '/').'/v1', [
+            'cmd' => 'request.get',
+            'url' => $targetUrl,
+            'maxTimeout' => (int) config('services.flaresolverr.max_timeout_ms', 60000),
+        ]);
+
+        $solution = (array) $envelope->json('solution', []);
+
+        return new Response(new Psr7Response(
+            (int) ($solution['status'] ?? 502),
+            [],
+            (string) ($solution['response'] ?? '')
+        ));
     }
 
     protected function fetchHttpDocument(SourceDocumentRef $ref): FetchedDocument

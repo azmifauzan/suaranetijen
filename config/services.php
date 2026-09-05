@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'flaresolverr' => [
+        'url' => env('FLARESOLVERR_URL'),
+        'max_timeout_ms' => env('FLARESOLVERR_MAX_TIMEOUT_MS', 60000),
+    ],
+
 ];

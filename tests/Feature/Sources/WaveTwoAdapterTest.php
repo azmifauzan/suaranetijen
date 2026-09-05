@@ -199,6 +199,41 @@ it('rejects a LowEndTalk thread_url pointing outside the lowendtalk.com host wit
         ->and($batch->hasMore)->toBeFalse();
 });
 
+it('routes KASKUS discovery through FlareSolverr when configured, instead of requesting the site directly', function () {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191']);
+
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) {
+        if ($request->url() === 'https://www.kaskus.co.id/') {
+            return Http::response('ok');
+        }
+
+        if ($request->url() === 'https://www.kaskus.co.id/robots.txt') {
+            return Http::response("User-agent: *\nAllow: /\n");
+        }
+
+        if ($request->url() === 'http://flaresolverr:8191/v1' && $request->method() === 'POST') {
+            expect($request['cmd'])->toBe('request.get')
+                ->and($request['url'])->toContain('/search');
+
+            return Http::response([
+                'status' => 'ok',
+                'solution' => [
+                    'status' => 200,
+                    'response' => waveTwoSourceFixture('kaskus', 'listing.html'),
+                ],
+            ]);
+        }
+
+        throw new RuntimeException("Unexpected request [{$request->method()} {$request->url()}].");
+    });
+
+    $batch = (new KaskusAdapter)->discover(new CrawlCursor('kaskus', metadata: ['query' => 'VPS']));
+
+    expect($batch->documents)->toHaveCount(2)
+        ->and($batch->documents[0]->externalId)->toBe('12345');
+});
+
 it('resolves every wave two adapter through the source registry', function () {
     $registry = app(SourceRegistry::class);
 

@@ -24,6 +24,11 @@ class IndoForumAdapter extends AbstractHttpSourceAdapter
         return 'https://www.forum.or.id/';
     }
 
+    protected function usesChallengeSolver(): bool
+    {
+        return true;
+    }
+
     public function discover(CrawlCursor $cursor): DiscoveryBatch
     {
         $forumIds = array_values(array_filter(

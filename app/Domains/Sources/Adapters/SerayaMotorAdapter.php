@@ -14,6 +14,11 @@ class SerayaMotorAdapter extends AbstractHttpSourceAdapter
         return 'https://www.serayamotor.com/diskusi/';
     }
 
+    protected function usesChallengeSolver(): bool
+    {
+        return true;
+    }
+
     public function discover(CrawlCursor $cursor): DiscoveryBatch
     {
         $page = max(1, (int) ($cursor->metadata['page'] ?? 1));
