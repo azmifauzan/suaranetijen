@@ -25,10 +25,14 @@ class EntityCandidateAggregator
         private readonly EntityCandidateEnricher $enricher
     ) {}
 
-    public function scan(): int
+    /**
+     * @return array{created: int, auto_rejected: int}
+     */
+    public function scan(): array
     {
         $merged = $this->collectFromSources();
         $created = 0;
+        $autoRejected = 0;
 
         foreach ($merged as $normalizedTerm => $data) {
             if (EntityCandidate::query()->where('normalized_term', $normalizedTerm)->exists()) {
@@ -37,6 +41,8 @@ class EntityCandidateAggregator
 
             $rawTerms = array_values(array_unique($data['raw_terms']));
             $enrichment = $this->enricher->enrich($normalizedTerm, $rawTerms);
+            $isRelevant = $enrichment['is_relevant'];
+            unset($enrichment['is_relevant']);
 
             EntityCandidate::create([
                 'normalized_term' => $normalizedTerm,
@@ -44,13 +50,22 @@ class EntityCandidateAggregator
                 'source_types' => array_values(array_unique($data['source_types'])),
                 'frequency_score' => $data['weight'],
                 'unmatched_mention_count' => $this->countUnmatchedMentions($normalizedTerm),
-                'status' => 'pending',
+                // The LLM already judged this isn't a brand/product/service (sports
+                // results, news, schedules, politics, etc.) — auto-reject instead of
+                // putting noise in front of the admin, but still record it so this
+                // exact term is never re-enriched (and re-billed) on a later scan.
+                'status' => $isRelevant ? 'pending' : 'rejected',
                 ...$enrichment,
             ]);
-            $created++;
+
+            if ($isRelevant) {
+                $created++;
+            } else {
+                $autoRejected++;
+            }
         }
 
-        return $created;
+        return ['created' => $created, 'auto_rejected' => $autoRejected];
     }
 
     /**

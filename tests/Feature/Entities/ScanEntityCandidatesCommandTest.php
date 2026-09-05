@@ -20,6 +20,7 @@ it('runs end to end: discovers, enriches, and persists a candidate for review', 
             str_contains($request->url(), 'dailysocial.id') => Http::response('<?xml version="1.0"?><rss><channel></channel></rss>'),
             str_contains($request->url(), 'trends.google.com') => Http::response('<?xml version="1.0"?><rss><channel></channel></rss>'),
             str_contains($request->url(), 'llm.internal') => Http::response(['choices' => [['message' => ['content' => json_encode([
+                'is_relevant' => true,
                 'suggested_name' => 'iPhone 17 Pro',
                 'suggested_entity_type' => 'product',
                 'suggested_category' => 'Smartphone',

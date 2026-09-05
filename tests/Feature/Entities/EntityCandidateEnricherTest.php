@@ -16,6 +16,7 @@ it('enriches a candidate term and resolves the suggested category to an existing
             ->and($request['response_format']['type'])->toBe('json_schema');
 
         return Http::response(['choices' => [['message' => ['content' => json_encode([
+            'is_relevant' => true,
             'suggested_name' => 'iPhone 17 Pro',
             'suggested_entity_type' => 'product',
             'suggested_category' => 'Smartphone',
@@ -38,6 +39,7 @@ it('leaves suggested_category_id null when the LLM suggests a category that does
 
     Http::preventStrayRequests();
     Http::fake(fn () => Http::response(['choices' => [['message' => ['content' => json_encode([
+        'is_relevant' => true,
         'suggested_name' => 'Something',
         'suggested_entity_type' => 'brand',
         'suggested_category' => 'Nonexistent Category',
@@ -55,6 +57,7 @@ it('discards an entity_type outside the allowed brand/product/service set', func
 
     Http::preventStrayRequests();
     Http::fake(fn () => Http::response(['choices' => [['message' => ['content' => json_encode([
+        'is_relevant' => true,
         'suggested_name' => 'Something',
         'suggested_entity_type' => 'not-a-real-type',
         'suggested_category' => 'Smartphone',
@@ -65,4 +68,27 @@ it('discards an entity_type outside the allowed brand/product/service set', func
     $result = app(EntityCandidateEnricher::class)->enrich('something', ['something']);
 
     expect($result['suggested_entity_type'])->toBeNull();
+});
+
+it('clears every suggested field when the LLM judges the term is not relevant', function () {
+    LlmSetting::create(['base_url' => 'https://llm.internal/v1', 'model' => 'test-model', 'api_key' => 'key']);
+
+    Http::preventStrayRequests();
+    Http::fake(fn () => Http::response(['choices' => [['message' => ['content' => json_encode([
+        'is_relevant' => false,
+        'suggested_name' => 'Man City vs Coventry City',
+        'suggested_entity_type' => 'brand',
+        'suggested_category' => 'Brand Umum',
+        'suggested_aliases' => ['MCFC vs Coventry'],
+        'reasoning' => 'This is a football match result, not a brand/product/service.',
+    ])]]]]));
+
+    $result = app(EntityCandidateEnricher::class)->enrich('man city vs coventry city', ['man city vs coventry city']);
+
+    expect($result['is_relevant'])->toBeFalse()
+        ->and($result['suggested_name'])->toBeNull()
+        ->and($result['suggested_entity_type'])->toBeNull()
+        ->and($result['suggested_category_id'])->toBeNull()
+        ->and($result['suggested_aliases'])->toBe([])
+        ->and($result['reasoning'])->toBe('This is a football match result, not a brand/product/service.');
 });
