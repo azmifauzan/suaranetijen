@@ -3,7 +3,11 @@
 namespace App\Domains\Search\Services;
 
 use App\Domains\Entities\Services\TextNormalizer;
+use App\Domains\Ratings\Models\RatingSnapshot;
 use App\Domains\Search\Models\SearchQuery;
+use App\Domains\Sentiment\Enums\Period;
+use App\Domains\Sentiment\Models\SentimentSnapshot;
+use App\Domains\Sentiment\Services\ScoreCalculator;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -280,9 +284,10 @@ class SearchService
         $rawRows = DB::select($sql, $bindings);
         /** @var list<array<string, mixed>> $rows */
         $rows = array_map(fn (object $r): array => (array) $r, $rawRows);
+        $publicData = $this->fetchPublicData(array_column($rows, 'id'));
 
         return array_map(
-            fn (array $row): array => $this->mapRow($row, $this->resolvePriorityTier($row, $normalizedQuery)),
+            fn (array $row): array => $this->mapRow($row, $this->resolvePriorityTier($row, $normalizedQuery), $publicData[(int) $row['id']] ?? null),
             $rows
         );
     }
@@ -313,11 +318,58 @@ class SearchService
         }
 
         $rows = array_values($query->get()->map(fn (object $r): array => (array) $r)->all());
+        $publicData = $this->fetchPublicData(array_column($rows, 'id'));
 
         return array_map(
-            fn (array $row): array => $this->mapRow($row, ['tier' => self::PRIORITY_BROWSE, 'rank' => 0]),
+            fn (array $row): array => $this->mapRow($row, ['tier' => self::PRIORITY_BROWSE, 'rank' => 0], $publicData[(int) $row['id']] ?? null),
             $rows
         );
+    }
+
+    /**
+     * Batch-fetch each entity's Sentimen Netijen (365d, fallback all-time —
+     * same resolution EntityShowController uses) and Rating Netijen, keyed
+     * by entity id, so mapRow() never does one query per result row.
+     *
+     * @param  list<int>  $entityIds
+     * @return array<int, array{score: float|null, opinion_count: int, rating: float|null, rating_count: int}>
+     */
+    private function fetchPublicData(array $entityIds): array
+    {
+        $entityIds = array_values(array_unique(array_map('intval', $entityIds)));
+        if ($entityIds === []) {
+            return [];
+        }
+
+        $snapshotsByEntity = SentimentSnapshot::query()
+            ->whereIn('entity_id', $entityIds)
+            ->whereIn('period', [Period::OneYear, Period::All])
+            ->get()
+            ->groupBy('entity_id');
+
+        $ratingsByEntity = RatingSnapshot::query()
+            ->whereIn('entity_id', $entityIds)
+            ->get()
+            ->keyBy('entity_id');
+
+        $result = [];
+        foreach ($entityIds as $entityId) {
+            $snapshots = $snapshotsByEntity->get($entityId, collect())->keyBy(fn (SentimentSnapshot $s) => $s->period->value);
+            $activeSnapshot = $snapshots->get(Period::OneYear->value) ?? $snapshots->get(Period::All->value);
+            $opinionCount = $activeSnapshot ? (int) $activeSnapshot->opinion_count : 0;
+            $isEligible = ScoreCalculator::isPublicScoreEligible($opinionCount);
+
+            $rating = $ratingsByEntity->get($entityId);
+
+            $result[$entityId] = [
+                'score' => ($activeSnapshot && $isEligible) ? (float) $activeSnapshot->score : null,
+                'opinion_count' => $opinionCount,
+                'rating' => $rating?->rating_average !== null ? (float) $rating->rating_average : null,
+                'rating_count' => $rating ? (int) $rating->rating_count : 0,
+            ];
+        }
+
+        return $result;
     }
 
     /**
@@ -326,9 +378,10 @@ class SearchService
      *
      * @param  array<string, mixed>  $row
      * @param  array{tier: string, rank: int}  $priority
+     * @param  array{score: float|null, opinion_count: int, rating: float|null, rating_count: int}|null  $publicData
      * @return array<string, mixed>
      */
-    protected function mapRow(array $row, array $priority): array
+    protected function mapRow(array $row, array $priority, ?array $publicData = null): array
     {
         return [
             'id' => (int) $row['id'],
@@ -348,10 +401,10 @@ class SearchService
                 'slug' => (string) $row['parent_slug'],
             ] : null,
             'url' => '/e/'.$row['slug'],
-            'score' => null, // Sentimen Netijen (null for MVP until Epic 8)
-            'opinion_count' => 0,
-            'rating' => null,
-            'rating_count' => 0,
+            'score' => $publicData['score'] ?? null,
+            'opinion_count' => $publicData['opinion_count'] ?? 0,
+            'rating' => $publicData['rating'] ?? null,
+            'rating_count' => $publicData['rating_count'] ?? 0,
             'priority_tier' => $priority['tier'],
             'priority_rank' => $priority['rank'],
             'match_detail' => isset($row['best_matching_alias']) && is_string($row['best_matching_alias']) ? $row['best_matching_alias'] : null,

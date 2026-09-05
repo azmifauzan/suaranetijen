@@ -2,6 +2,9 @@
 
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Ratings\Models\RatingSnapshot;
+use App\Domains\Sentiment\Enums\Period;
+use App\Domains\Sentiment\Models\SentimentSnapshot;
 
 test('GET /api/search returns json response with data and meta', function () {
     $category = Category::factory()->create(['name' => 'ISP', 'slug' => 'isp']);
@@ -88,6 +91,82 @@ test('GET /api/search excludes disabled and unsearchable entities', function () 
         ->toContain($active->id)
         ->not->toContain($disabled->id)
         ->not->toContain($unsearchable->id);
+});
+
+test('GET /api/search returns the real Sentimen Netijen score and opinion count when eligible', function () {
+    $category = Category::factory()->create();
+    $entity = Entity::factory()->create(['name' => 'Samsung Test', 'category_id' => $category->id]);
+    SentimentSnapshot::factory()->create([
+        'entity_id' => $entity->id,
+        'period' => Period::OneYear,
+        'positive_count' => 60,
+        'neutral_count' => 20,
+        'negative_count' => 20,
+        'opinion_count' => 100,
+        'score' => 70.0,
+    ]);
+
+    $response = $this->getJson('/api/search?q=samsung+test');
+
+    $response->assertOk();
+    expect((float) $response->json('data.0.score'))->toBe(70.0)
+        ->and($response->json('data.0.opinion_count'))->toBe(100);
+});
+
+test('GET /api/search hides the score but still reports opinion_count below the public threshold', function () {
+    $category = Category::factory()->create();
+    $entity = Entity::factory()->create(['name' => 'Belowthreshold Test', 'category_id' => $category->id]);
+    SentimentSnapshot::factory()->create([
+        'entity_id' => $entity->id,
+        'period' => Period::OneYear,
+        'positive_count' => 5,
+        'neutral_count' => 2,
+        'negative_count' => 3,
+        'opinion_count' => 10,
+        'score' => 65.0,
+    ]);
+
+    $response = $this->getJson('/api/search?q=belowthreshold');
+
+    $response->assertOk();
+    expect($response->json('data.0.score'))->toBeNull()
+        ->and($response->json('data.0.opinion_count'))->toBe(10);
+});
+
+test('GET /api/search falls back to the all-time snapshot when the 365d snapshot does not exist', function () {
+    $category = Category::factory()->create();
+    $entity = Entity::factory()->create(['name' => 'Alltimefallback Test', 'category_id' => $category->id]);
+    SentimentSnapshot::factory()->create([
+        'entity_id' => $entity->id,
+        'period' => Period::All,
+        'positive_count' => 40,
+        'neutral_count' => 10,
+        'negative_count' => 0,
+        'opinion_count' => 50,
+        'score' => 90.0,
+    ]);
+
+    $response = $this->getJson('/api/search?q=alltimefallback');
+
+    $response->assertOk();
+    expect((float) $response->json('data.0.score'))->toBe(90.0)
+        ->and($response->json('data.0.opinion_count'))->toBe(50);
+});
+
+test('GET /api/search returns the first-party rating and rating count', function () {
+    $category = Category::factory()->create();
+    $entity = Entity::factory()->create(['name' => 'Ratedbrand Test', 'category_id' => $category->id]);
+    RatingSnapshot::factory()->create([
+        'entity_id' => $entity->id,
+        'rating_average' => 4.5,
+        'rating_count' => 12,
+    ]);
+
+    $response = $this->getJson('/api/search?q=ratedbrand');
+
+    $response->assertOk();
+    expect($response->json('data.0.rating'))->toBe(4.5)
+        ->and($response->json('data.0.rating_count'))->toBe(12);
 });
 
 test('GET /api/search respects limit parameter', function () {
