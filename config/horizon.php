@@ -276,7 +276,15 @@ return [
 
         'staging' => [
             'supervisor-critical' => [],
-            'supervisor-crawl' => [],
+            // Raised from the default 2 (5 Sep 2026): FlareSolverr-routed fetches
+            // (SerayaMotor/Kaskus/IndoForum) take far longer per job than a plain
+            // HTTP fetch and share this same queue with fast sources
+            // (DiskusiWebHosting, YouTube's comment fetches) — 2 workers let the
+            // crawl queue back up to 900+ pending, starving the fast sources
+            // behind the slow ones.
+            'supervisor-crawl' => [
+                'maxProcesses' => 6,
+            ],
             'supervisor-analysis' => [
                 'maxProcesses' => 3,
             ],
