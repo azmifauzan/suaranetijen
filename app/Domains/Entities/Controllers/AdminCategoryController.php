@@ -64,7 +64,9 @@ class AdminCategoryController extends Controller
 
         Category::create($validated);
 
-        return redirect()->back()->with('success', 'Category created successfully.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Category created successfully.']);
+
+        return redirect()->back();
     }
 
     /**
@@ -74,7 +76,9 @@ class AdminCategoryController extends Controller
     {
         $category->update($request->validated());
 
-        return redirect()->back()->with('success', 'Category updated successfully.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Category updated successfully.']);
+
+        return redirect()->back();
     }
 
     /**
@@ -88,6 +92,8 @@ class AdminCategoryController extends Controller
 
         $category->update(['status' => $newStatus]);
 
-        return redirect()->back()->with('success', "Category status changed to {$newStatus->value}.");
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Category status changed to {$newStatus->value}."]);
+
+        return redirect()->back();
     }
 }

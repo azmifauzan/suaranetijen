@@ -86,7 +86,9 @@ class AdminEntityCandidatesController extends Controller
             ]);
         });
 
-        return redirect()->back()->with('success', 'Entity created from candidate.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Entity created from candidate.']);
+
+        return redirect()->back();
     }
 
     /**
@@ -100,6 +102,8 @@ class AdminEntityCandidatesController extends Controller
             'reviewed_at' => now(),
         ]);
 
-        return redirect()->back()->with('success', 'Candidate dismissed.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Candidate dismissed.']);
+
+        return redirect()->back();
     }
 }

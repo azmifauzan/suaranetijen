@@ -50,6 +50,8 @@ class AdminSourceController extends Controller
 
         $status = $source->enabled ? 'enabled' : 'disabled';
 
-        return back()->with('success', "Source '{$source->name}' has been {$status}.");
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Source '{$source->name}' has been {$status}."]);
+
+        return back();
     }
 }

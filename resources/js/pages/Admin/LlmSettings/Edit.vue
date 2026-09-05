@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
+import { toast } from 'vue-sonner';
 
 interface Setting {
     base_url: string | null;
@@ -33,7 +34,10 @@ const form = useForm({
 });
 
 function save() {
-    form.put('/admin/llm-settings', { preserveScroll: true });
+    form.put('/admin/llm-settings', {
+        preserveScroll: true,
+        onError: () => toast.error('Gagal menyimpan. Periksa kembali isian form di bawah.'),
+    });
 }
 </script>
 

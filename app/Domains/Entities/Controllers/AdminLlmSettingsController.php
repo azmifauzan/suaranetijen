@@ -48,6 +48,8 @@ class AdminLlmSettingsController extends Controller
         $setting->updated_by = $request->user()->id;
         $setting->save();
 
-        return redirect()->back()->with('success', 'LLM settings updated successfully.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'LLM settings updated successfully.']);
+
+        return redirect()->back();
     }
 }

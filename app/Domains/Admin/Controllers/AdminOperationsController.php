@@ -138,7 +138,9 @@ class AdminOperationsController extends Controller
 
         MatchEntitiesJob::dispatch($sourceItem->id);
 
-        return back()->with('success', "Item {$sourceItem->id} ({$sourceItem->external_id}) re-queued for processing.");
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Item {$sourceItem->id} ({$sourceItem->external_id}) re-queued for processing."]);
+
+        return back();
     }
 
     /**
@@ -160,6 +162,8 @@ class AdminOperationsController extends Controller
             'resolved_at' => CarbonImmutable::now(),
         ]);
 
-        return back()->with('success', "Failure #{$failure->id} replayed and marked resolved.");
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Failure #{$failure->id} replayed and marked resolved."]);
+
+        return back();
     }
 }

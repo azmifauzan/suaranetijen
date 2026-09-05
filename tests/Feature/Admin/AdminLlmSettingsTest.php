@@ -21,7 +21,8 @@ test('admin can view and update the shared LLM settings', function () {
             'temperature' => 0.3,
             'timeout_seconds' => 45,
         ])
-        ->assertRedirect();
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'LLM settings updated successfully.']);
 
     $setting = LlmSetting::query()->first();
     expect($setting->base_url)->toBe('https://llm.internal/v1')

@@ -39,7 +39,8 @@ test('admin can view sources and toggle kill switch', function () {
     // Toggle kill switch (disable)
     $this->actingAs($admin)
         ->post("/admin/sources/{$source->id}/toggle-status")
-        ->assertRedirect();
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => "Source 'SerayaMotor' has been disabled."]);
 
     expect($source->fresh()->enabled)->toBeFalse();
 
@@ -150,7 +151,8 @@ test('admin can retry failed ingestion failure and mark it resolved', function (
 
     $this->actingAs($admin)
         ->post("/admin/operations/failures/{$failure->id}/retry")
-        ->assertRedirect();
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => "Failure #{$failure->id} replayed and marked resolved."]);
 
     expect($failure->fresh()->resolved_at)->not->toBeNull();
 });

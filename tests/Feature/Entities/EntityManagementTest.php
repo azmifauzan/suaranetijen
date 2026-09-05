@@ -36,7 +36,8 @@ test('admin can create entity with automatic primary alias', function () {
             'category_id' => $category->id,
             'description' => 'Cloud provider Indonesia',
         ])
-        ->assertRedirect();
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Entity created successfully.']);
 
     $entity = Entity::where('slug', 'biznet-gio')->first();
     expect($entity)->not->toBeNull()
@@ -71,7 +72,8 @@ test('admin can update entity', function () {
             'searchable' => true,
             'rankable' => true,
         ])
-        ->assertRedirect();
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Entity updated successfully.']);
 
     $this->assertDatabaseHas('entities', [
         'id' => $entity->id,
@@ -106,7 +108,8 @@ test('admin can add and remove aliases for an entity', function () {
             'alias' => 'Galaxy S24 Ultra 5G',
             'alias_type' => 'common_variant',
         ])
-        ->assertRedirect();
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Alias added successfully.']);
 
     $this->assertDatabaseHas('entity_aliases', [
         'entity_id' => $entity->id,

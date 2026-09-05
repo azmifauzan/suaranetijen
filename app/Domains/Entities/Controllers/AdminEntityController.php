@@ -90,7 +90,9 @@ class AdminEntityController extends Controller
             ]);
         });
 
-        return redirect()->back()->with('success', 'Entity created successfully.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Entity created successfully.']);
+
+        return redirect()->back();
     }
 
     /**
@@ -121,7 +123,9 @@ class AdminEntityController extends Controller
     {
         $entity->update($request->validated());
 
-        return redirect()->back()->with('success', 'Entity updated successfully.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Entity updated successfully.']);
+
+        return redirect()->back();
     }
 
     /**
@@ -135,6 +139,8 @@ class AdminEntityController extends Controller
 
         $entity->update(['status' => $newStatus]);
 
-        return redirect()->back()->with('success', "Entity status changed to {$newStatus->value}.");
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Entity status changed to {$newStatus->value}."]);
+
+        return redirect()->back();
     }
 }

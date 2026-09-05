@@ -27,7 +27,8 @@ test('admin can create category', function () {
             'slug' => 'cloud-hosting',
             'status' => 'active',
         ])
-        ->assertRedirect();
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Category created successfully.']);
 
     $this->assertDatabaseHas('categories', [
         'name' => 'Cloud & Hosting',
@@ -46,7 +47,8 @@ test('admin can update category', function () {
             'slug' => 'updated-name',
             'status' => 'active',
         ])
-        ->assertRedirect();
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Category updated successfully.']);
 
     $this->assertDatabaseHas('categories', [
         'id' => $category->id,

@@ -38,7 +38,8 @@ test('approving a candidate creates an entity with a primary alias and marks the
             'parent_id' => null,
             'aliases' => ['ip17 pro', 'iphone17pro'],
         ])
-        ->assertRedirect();
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Entity created from candidate.']);
 
     $candidate->refresh();
     expect($candidate->status)->toBe('approved')

@@ -9,6 +9,7 @@ use App\Domains\Entities\Requests\StoreEntityAliasRequest;
 use App\Domains\Entities\Services\TextNormalizer;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
 
 class AdminEntityAliasController extends Controller
 {
@@ -32,7 +33,9 @@ class AdminEntityAliasController extends Controller
             'alias_type' => $aliasType,
         ]);
 
-        return redirect()->back()->with('success', 'Alias added successfully.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Alias added successfully.']);
+
+        return redirect()->back();
     }
 
     /**
@@ -46,6 +49,8 @@ class AdminEntityAliasController extends Controller
 
         $alias->delete();
 
-        return redirect()->back()->with('success', 'Alias removed successfully.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Alias removed successfully.']);
+
+        return redirect()->back();
     }
 }
