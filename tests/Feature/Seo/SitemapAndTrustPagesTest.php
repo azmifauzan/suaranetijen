@@ -42,7 +42,35 @@ test('public document shell exposes Indonesian SEO defaults', function () {
         ->assertSee('rel="canonical"', false)
         ->assertSee('property="og:locale" content="id_ID"', false);
 
+    expect($response->getContent())
+        ->not->toContain('laravel/vue-starter-kit')
+        ->not->toContain('laravel.com/docs/starter-kits');
+
     expect(substr_count($response->getContent(), '<title'))->toBe(1);
+});
+
+test('missing Inertia pages render the branded error component', function () {
+    $response = $this->get('/page-that-does-not-exist', [
+        'Accept' => 'text/html, application/xhtml+xml',
+        'X-Inertia' => 'true',
+        'X-Requested-With' => 'XMLHttpRequest',
+    ]);
+
+    $response
+        ->assertNotFound()
+        ->assertHeader('X-Inertia', 'true')
+        ->assertJsonPath('component', 'ErrorPage')
+        ->assertJsonPath('props.status', 404);
+});
+
+test('non-Inertia missing pages use the branded HTML fallback', function () {
+    $response = $this->get('/another-page-that-does-not-exist');
+
+    $response
+        ->assertNotFound()
+        ->assertSee('SuaraNetijen')
+        ->assertSee('Halaman tidak ditemukan')
+        ->assertDontSee('Laravel');
 });
 
 test('category overview page renders with top sentiment and discussed lists', function () {

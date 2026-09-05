@@ -25,6 +25,7 @@ void createInertiaApp({
             case name.startsWith('Top/'):
             case name.startsWith('Category/'):
             case name.startsWith('Pages/'):
+            case name === 'ErrorPage':
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
@@ -35,7 +36,7 @@ void createInertiaApp({
         }
     },
     progress: {
-        color: '#4B5563',
+        color: '#087f5b',
     },
 });
 
