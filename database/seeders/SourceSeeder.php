@@ -101,13 +101,11 @@ class SourceSeeder extends Seeder
                 'name' => 'Mojok.co',
                 'adapter' => 'mojok',
                 'source_type' => SourceType::Rss,
-                // Disabled pending a live operator check (same DoD as every other wave
-                // before it is turned on for backfill). robots.txt allows /esai/ and its
-                // feed/pagination (the blanket "Disallow: /page/" rule only matches
-                // root-level /page/, not /esai/page/N/); confirmed 5 Sep 2026 the esai
+                // Enabled for live operator check (5 Sep 2026): robots.txt allows /esai/
+                // and its feed/pagination (the blanket "Disallow: /page/" rule only
+                // matches root-level /page/, not /esai/page/N/); confirmed the esai
                 // category feed and article pages are server-rendered, not the
                 // client-side-only widget on the homepage.
-                'enabled' => false,
                 'crawl_policy' => ['rate_limit_per_minute' => 20],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
