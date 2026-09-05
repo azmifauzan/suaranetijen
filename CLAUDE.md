@@ -1200,14 +1200,39 @@ live and fixed.
   since `LlmClient::chat()` always attempts `json_decode` on the content and returns `[]` on
   anything that isn't valid JSON — expected for its structured-extraction design, not a
   connectivity problem). The scan created 34 pending candidates.
-  **New finding, not yet acted on:** `GoogleTrendsCandidateSource`'s top-ranked candidates by
-  `frequency_score` are almost entirely sports-match and transit-schedule noise ("Man City vs
-  Coventry City" at 20,000, "Jadwal KRL Solo Jogja" at 200) drowning out genuine brand candidates
-  like XLSMART (score 1) — Google's Daily Trends feed has no brand/product filter, so any viral
-  search term scores far higher than an actual candidate ever could. Not a crash, but a real
-  precision problem for the admin review queue (`docs/23`'s "growth" mechanism) worth addressing
-  before this source's output is trusted at face value — e.g. an LLM relevance pre-filter, or
-  dropping/down-weighting this source, rather than something to patch silently.
+  `GoogleTrendsCandidateSource`'s top-ranked candidates by `frequency_score` were almost entirely
+  sports-match and transit-schedule noise ("Man City vs Coventry City" at 20,000, "Jadwal KRL Solo
+  Jogja" at 200) drowning out genuine brand candidates like XLSMART (score 1) — Google's Daily
+  Trends feed has no brand/product filter, so any viral search term scores far higher than an
+  actual candidate ever could. **Fixed same session**: see the relevance-filter entry below. The 10
+  confirmed sports/transit rows from this first run (`entity_candidates` ids 25-34) were manually
+  flipped to `rejected` afterward — the fix only changes what a *future* scan does, it doesn't
+  retroactively re-judge rows a scan already created.
+- **Fix: `EntityCandidateEnricher` can now say a candidate isn't a real entity at all**, instead of
+  being forced to invent one. Its JSON schema had every `suggested_*` field `required` with no
+  escape hatch, so the LLM always rationalized *something* — the football match got suggested as a
+  "brand" under "Brand Umum". Added a required `is_relevant` boolean; when false,
+  `EntityCandidateAggregator::scan()` persists the candidate as already `rejected` (never shown for
+  admin review) instead of `pending`, while still recording it so the same term isn't re-enriched
+  (and re-billed) on the next weekly scan. Broadened the prompt so a specific named public figure
+  is a legitimate `person` candidate (`EntityType::Person` already exists), not noise, even when
+  politics-adjacent — only the underlying policy/political topic is out of scope, not the person
+  themself.
+- **Two more data-quality issues found while reviewing this first scan's 34 candidates, not fixed
+  this session:**
+  1. `WikidataCandidateSource` produced two candidates whose `normalized_term`/`suggested_name` is
+     a raw Wikidata entity ID (`q141025060`, `q139719408`) instead of a resolved human-readable
+     label — the SPARQL query or its result mapping isn't always pulling the label field. Needs
+     its own investigation; not touched here.
+  2. `DailySocialCandidateSource`'s RSS item titles are often a single run-on headline covering
+     3 unrelated stories (e.g. "Ajaib secures $270M mega round, GoTo leadership reshuffle, 500
+     Global sunsets, Sea fund" as one title) — the LLM still extracts one genuine, real brand name
+     out of the mess (Ajaib, Grab, Xendit, SeaBank, Kopi Kenangan, etc. were all correctly pulled),
+     so these are NOT noise like the Google Trends case and were left as-is, but the
+     `normalized_term` dedup key is the entire garbled headline rather than the actual brand —
+     worth a future pass to split/clean the feed's titles before they reach the aggregator, so the
+     dedup key means something and doesn't create one candidate row per daily digest email instead
+     of one per brand.
 
 ## Document map
 
