@@ -37,7 +37,10 @@ return [
 
     'flaresolverr' => [
         'url' => env('FLARESOLVERR_URL'),
-        'max_timeout_ms' => env('FLARESOLVERR_MAX_TIMEOUT_MS', 60000),
+        // Kept below the ingestion jobs' 90s $timeout (see FetchSourceDocumentJob /
+        // DiscoverSourceDocumentsJob) so a slow-but-solvable challenge doesn't get killed
+        // by the job timeout before FlareSolverr even responds.
+        'max_timeout_ms' => env('FLARESOLVERR_MAX_TIMEOUT_MS', 45000),
     ],
 
 ];

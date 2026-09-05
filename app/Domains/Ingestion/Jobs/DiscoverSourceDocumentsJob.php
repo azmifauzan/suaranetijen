@@ -31,6 +31,15 @@ class DiscoverSourceDocumentsJob implements ShouldQueue
     public int $tries = 5;
 
     /**
+     * Horizon's supervisor-crawl config caps job execution at 60s. A source
+     * routed through FlareSolverr (see AbstractHttpSourceAdapter::request())
+     * can legitimately take close to its own maxTimeout (45s by default) just
+     * to solve a challenge, before any network/processing overhead — without
+     * headroom here, the job gets killed before FlareSolverr even responds.
+     */
+    public int $timeout = 90;
+
+    /**
      * Rate-limit bounces before giving up and recording a permanent failure.
      */
     private const MAX_RATE_LIMIT_BOUNCES = 30;
