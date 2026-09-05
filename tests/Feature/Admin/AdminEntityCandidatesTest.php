@@ -53,6 +53,35 @@ test('approving a candidate creates an entity with a primary alias and marks the
         ->and($entity->aliases()->count())->toBe(3);
 });
 
+test('approving a candidate whose suggested aliases duplicate the entity name does not crash', function () {
+    $admin = User::factory()->admin()->create();
+    $category = Category::query()->create(['name' => 'Digital Services', 'slug' => 'digital-services']);
+    $candidate = EntityCandidate::factory()->create([
+        'normalized_term' => 'xlsmart',
+        'suggested_name' => 'XLSMART',
+    ]);
+
+    $this->actingAs($admin)
+        ->post("/admin/entity-candidates/{$candidate->id}/approve", [
+            'name' => 'XLSMART',
+            'entity_type' => 'brand',
+            'category_id' => $category->id,
+            'parent_id' => null,
+            // The LLM-suggested list includes the entity's own name (duplicate of
+            // the primary alias) and a repeated alias — both must be skipped
+            // rather than violating entity_aliases' (entity_id, normalized_alias)
+            // unique constraint.
+            'aliases' => ['XL Smart', 'XLSMART', 'xl smart'],
+        ])
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Entity created from candidate.']);
+
+    $entity = Entity::where('slug', 'xlsmart')->first();
+    expect($entity)->not->toBeNull()
+        ->and($entity->aliases()->count())->toBe(2)
+        ->and($entity->aliases()->pluck('normalized_alias')->sort()->values()->all())->toBe(['xl smart', 'xlsmart']);
+});
+
 test('rejecting a candidate marks it dismissed without creating an entity', function () {
     $admin = User::factory()->admin()->create();
     $candidate = EntityCandidate::factory()->create();

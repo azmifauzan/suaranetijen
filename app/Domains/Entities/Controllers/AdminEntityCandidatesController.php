@@ -57,12 +57,16 @@ class AdminEntityCandidatesController extends Controller
                 'status' => EntityStatus::Active,
             ]);
 
+            $primaryNormalized = TextNormalizer::normalize($entity->name);
+
             EntityAlias::create([
                 'entity_id' => $entity->id,
                 'alias' => $entity->name,
-                'normalized_alias' => TextNormalizer::normalize($entity->name),
+                'normalized_alias' => $primaryNormalized,
                 'alias_type' => AliasType::Primary,
             ]);
+
+            $seenNormalized = [$primaryNormalized => true];
 
             foreach (($validated['aliases'] ?? []) as $alias) {
                 $alias = trim((string) $alias);
@@ -70,10 +74,16 @@ class AdminEntityCandidatesController extends Controller
                     continue;
                 }
 
+                $normalized = TextNormalizer::normalize($alias);
+                if (isset($seenNormalized[$normalized])) {
+                    continue;
+                }
+                $seenNormalized[$normalized] = true;
+
                 EntityAlias::create([
                     'entity_id' => $entity->id,
                     'alias' => $alias,
-                    'normalized_alias' => TextNormalizer::normalize($alias),
+                    'normalized_alias' => $normalized,
                     'alias_type' => AliasType::CommonVariant,
                 ]);
             }
