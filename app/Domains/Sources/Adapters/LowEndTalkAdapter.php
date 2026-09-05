@@ -61,6 +61,7 @@ class LowEndTalkAdapter extends AbstractHttpSourceAdapter
                 lastCrawledAt: now()->toImmutable(),
                 metadata: [
                     ...$cursor->metadata,
+                    'category_urls' => $categoryUrls,
                     'category_index' => $categoryIndex,
                     'category_url' => $categoryUrl,
                     'page' => $page + 1,

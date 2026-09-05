@@ -36,14 +36,12 @@ class IndoForumAdapter extends AbstractHttpSourceAdapter
             return new DiscoveryBatch([], null, false);
         }
 
+        $forumCount = count($forumIds);
+        $forumIndex = max(0, (int) ($cursor->metadata['forum_index'] ?? 0)) % $forumCount;
+        $forumId = (int) $forumIds[$forumIndex];
         $page = max(1, (int) ($cursor->metadata['page'] ?? 1));
-        $forumId = (int) ($forumIds[0]);
-        $url = (string) ($cursor->metadata['forum_url'] ?? $this->forumUrl($forumId));
-        $response = $this->offsetUrl($url, $page);
-        if (str_contains($url, '/forums/')) {
-            $response = $this->pageUrl($url, $page);
-        }
-        $response = $this->request($response);
+        $url = $this->forumUrl($forumId);
+        $response = $this->request($this->pageUrl($url, $page));
         $response->throw();
 
         $documents = $this->parseHtmlDocumentLinks(
@@ -53,15 +51,30 @@ class IndoForumAdapter extends AbstractHttpSourceAdapter
             '~(?:viewtopic\\.php\\?[^#]*f='.preg_quote((string) $forumId, '~').'[^#]*t=|/threads/[^/#?]+\\.[0-9]+(?:/|$))~i'
         );
 
+        // An empty page means this forum is exhausted at this cursor position
+        // (or currently unparseable) — move to the next configured forum
+        // rather than paginating the same one forever.
+        $nextForumIndex = $forumIndex;
+        $nextPage = $page + 1;
+        if ($documents === []) {
+            $nextForumIndex = ($forumIndex + 1) % $forumCount;
+            $nextPage = 1;
+        }
+
         return new DiscoveryBatch(
             documents: $documents,
             nextCursor: new CrawlCursor(
                 sourceKey: $cursor->sourceKey,
                 cursorKey: $cursor->cursorKey,
-                cursorValue: 'page_'.($page + 1),
+                cursorValue: 'forum_'.$forumIds[$nextForumIndex].'_page_'.$nextPage,
                 lastExternalId: $documents !== [] ? end($documents)->externalId : $cursor->lastExternalId,
                 lastCrawledAt: now()->toImmutable(),
-                metadata: ['page' => $page + 1, 'forum_ids' => $forumIds, 'forum_url' => $url]
+                metadata: [
+                    ...$cursor->metadata,
+                    'forum_ids' => $forumIds,
+                    'forum_index' => $nextForumIndex,
+                    'page' => $nextPage,
+                ]
             ),
             hasMore: $documents !== []
         );

@@ -154,6 +154,29 @@ it('runs the LowEndTalk adapter only across Reviews, Providers, and Outages', fu
         ->and($opinions[0]->text)->not->toContain('Offer');
 });
 
+it('keeps discovering LowEndTalk pages across cycles instead of freezing after the first', function () {
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) {
+        return match (true) {
+            str_contains($request->url(), '/categories/reviews') => Http::response(waveTwoSourceFixture('lowendtalk', 'listing.html')),
+            default => throw new RuntimeException("Unexpected LowEndTalk request [{$request->url()}]."),
+        };
+    });
+
+    // Cold-start cursor, same as a source's very first discovery cycle: no
+    // 'category_urls' in metadata yet, so it resolves from config() only —
+    // this is the shape that exposed the bug in production.
+    $adapter = new LowEndTalkAdapter;
+    $firstBatch = $adapter->discover(new CrawlCursor('lowendtalk'));
+    $secondBatch = $adapter->discover($firstBatch->nextCursor);
+
+    expect($firstBatch->nextCursor)->not->toBeNull()
+        ->and($firstBatch->nextCursor->cursorValue)->toBe('page_2')
+        ->and($secondBatch->documents)->toHaveCount(2)
+        ->and($secondBatch->nextCursor)->not->toBeNull()
+        ->and($secondBatch->nextCursor->cursorValue)->toBe('page_3');
+});
+
 it('rejects the LowEndTalk Offers category without making a request', function () {
     Http::preventStrayRequests();
 

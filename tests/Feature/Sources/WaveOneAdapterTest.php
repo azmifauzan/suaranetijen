@@ -95,6 +95,46 @@ it('rejects an IndoForum forum id outside the allowlist without crawling it', fu
         ->and($batch->hasMore)->toBeFalse();
 });
 
+it('rotates to the next allowed IndoForum forum once the current one has no threads', function () {
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) {
+        return match (true) {
+            $request->url() === 'https://www.forum.or.id/' => Http::response('ok'),
+            str_contains($request->url(), 'forum-komplain.139') => Http::response('<html><body>no threads here</body></html>'),
+            str_contains($request->url(), 'info-terbaru-reviews.107') => Http::response(sourceFixture('indoforum', 'listing.html')),
+            default => Http::response('', 404),
+        };
+    });
+
+    $adapter = new IndoForumAdapter;
+    $firstBatch = $adapter->discover(new CrawlCursor('indoforum', metadata: ['forum_ids' => [139, 107]]));
+    $secondBatch = $adapter->discover($firstBatch->nextCursor);
+
+    expect($firstBatch->documents)->toBe([])
+        ->and($firstBatch->nextCursor->metadata['forum_index'])->toBe(1)
+        ->and($firstBatch->nextCursor->metadata['page'])->toBe(1)
+        ->and($secondBatch->documents)->toHaveCount(1)
+        ->and($secondBatch->documents[0]->externalId)->toBe('789');
+});
+
+it('wraps an exhausted IndoForum forum back to page 1 instead of paginating forever', function () {
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) {
+        return match (true) {
+            $request->url() === 'https://www.forum.or.id/' => Http::response('ok'),
+            str_contains($request->url(), 'forum-komplain.139') => Http::response('<html><body>no threads here</body></html>'),
+            default => Http::response('', 404),
+        };
+    });
+
+    $adapter = new IndoForumAdapter;
+    $batch = $adapter->discover(new CrawlCursor('indoforum', metadata: ['forum_ids' => [139], 'page' => 32]));
+
+    expect($batch->documents)->toBe([])
+        ->and($batch->nextCursor->metadata['forum_index'])->toBe(0)
+        ->and($batch->nextCursor->metadata['page'])->toBe(1);
+});
+
 it('runs the Bluesky Jetstream adapter and filters posts by normalized alias', function () {
     Http::preventStrayRequests();
     Http::fake(function (Request $request) {
