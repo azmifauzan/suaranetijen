@@ -9,7 +9,7 @@ import PublicSeo from '@/components/PublicSeo.vue';
     <PublicLayout>
         <PublicSeo
             title="Tentang SuaraNetijen"
-            description="Mengenal SuaraNetijen, indeks opini dan sentimen publik dari percakapan netizen untuk brand, produk, dan layanan di Indonesia."
+            description="Mengenal SuaraNetijen, proyek open source untuk membaca opini dan sentimen publik dari percakapan netizen di Indonesia."
             canonical-path="/about"
         />
 
@@ -73,6 +73,28 @@ import PublicSeo from '@/components/PublicSeo.vue';
                             menggunakan layanan.
                         </li>
                     </ul>
+
+                    <section
+                        class="mt-8 rounded-xl border border-emerald-100 bg-emerald-50/60 p-5"
+                    >
+                        <h2 class="text-lg font-bold text-neutral-900">
+                            Proyek Open Source
+                        </h2>
+                        <p
+                            class="mt-2 text-sm leading-relaxed text-neutral-700"
+                        >
+                            SuaraNetijen dikembangkan secara open source. Kode
+                            sumber dan dokumentasinya tersedia di GitHub agar
+                            dapat dipelajari dan dikembangkan bersama.
+                        </p>
+                        <a
+                            href="https://github.com/azmifauzan/suaranetijen"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="mt-3 inline-flex items-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800"
+                            >Lihat kode sumber di GitHub</a
+                        >
+                    </section>
                 </div>
             </div>
         </main>

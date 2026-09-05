@@ -1,6 +1,6 @@
 # SuaraNetijen
 
-> Cari apa pun. Lihat apa kata netijen.
+> Sebelum pilih, cek kata netizen.
 
 Search-first public sentiment index for Indonesia. Search a brand, product, or service and see
 whether public conversation about it leans positive or negative.
@@ -9,6 +9,13 @@ whether public conversation about it leans positive or negative.
 (search), Phase 2 (sentiment substrate), Phase 3 (first observations), Phase 4 (public score),
 Phase 5 (coverage expansion), Phase 6 (first-party rating), and Phase 7 (public launch readiness)
 verified locally against PostgreSQL/Redis
+
+## Open source & lisensi
+
+SuaraNetijen adalah proyek open source untuk publik. Kode sumber dan dokumentasi tersedia di
+[GitHub](https://github.com/azmifauzan/suaranetijen) dan kode proyek ini dirilis di bawah
+[MIT License](LICENSE). Lisensi ini berlaku untuk kode dan dokumentasi repository; dependensi serta
+data/konten pihak ketiga tetap mengikuti lisensi dan ketentuan sumber masing-masing.
 
 ## Product definition
 
@@ -51,7 +58,7 @@ becomes ranking-eligible at >= 100 (`examples/score-config.yaml`).
 - PostgreSQL as source of truth and as the MVP search engine (`pg_trgm` + FTS).
 - Redis from day one for queue, cache, locks, and rate limits; Horizon for queue observability.
 - Source adapters: YouTube, KASKUS, DiskusiWebHosting, SerayaMotor, IndoForum (selective),
-  Bluesky, LowEndTalk (targeted), plus first-party ratings.
+  Bluesky, LowEndTalk (targeted), MediaKonsumen, plus first-party ratings.
 - Top Suara Netijen: theme extraction/normalization and Top 5 frequency ranking per entity
   (`docs/25`) — no numeric per-theme score, no per-category aspect taxonomy.
 - Out: specification database, price comparison, aspect scores, expert scores, benchmarks,
@@ -61,7 +68,7 @@ becomes ranking-eligible at >= 100 (`examples/score-config.yaml`).
 
 | Layer | Installed |
 |---|---|
-| PHP | 8.5 (composer requires `^8.3`) |
+| PHP | 8.4 (composer requires `^8.3`) |
 | Framework | Laravel 13 |
 | Frontend | Inertia v3 + Vue 3.5 + Tailwind 4, Vite 8 |
 | Auth | Laravel Fortify (incl. two-factor) |

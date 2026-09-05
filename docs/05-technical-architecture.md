@@ -13,6 +13,13 @@
 - Nginx + PHP-FPM.
 - S3-compatible object storage optional; tidak wajib launch.
 
+## Repository & license
+
+SuaraNetijen dikembangkan secara open source. Kode sumber dan dokumentasi tersedia di
+[repository GitHub](https://github.com/azmifauzan/suaranetijen). Kode proyek ini dirilis di bawah
+[MIT License](../LICENSE); dependensi serta data/konten pihak ketiga tetap mengikuti lisensi dan
+ketentuan sumber masing-masing.
+
 ## Architecture
 
 ```text

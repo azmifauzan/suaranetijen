@@ -24,7 +24,7 @@ defineProps<{
     <PublicLayout>
         <PublicSeo
             title="Sumber Data dan Transparansi"
-            description="Lihat sumber data terbuka dan status crawler yang digunakan SuaraNetijen untuk mengolah opini netizen."
+            description="Lihat sumber data, status crawler, dan kode open source SuaraNetijen untuk memahami cara opini netizen diolah."
             canonical-path="/sources"
         />
 
@@ -50,6 +50,17 @@ defineProps<{
                     asal muasal data opini netizen. Sumber data kami mencakup
                     forum komunitas independen, media sosial terdesentralisasi,
                     dan platform diskusi terbuka di Indonesia.
+                </p>
+                <p class="mt-3 text-sm leading-relaxed text-neutral-600">
+                    Kode aplikasi dan dokumentasi SuaraNetijen tersedia sebagai
+                    proyek open source di
+                    <a
+                        href="https://github.com/azmifauzan/suaranetijen"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="font-semibold text-emerald-700 underline decoration-emerald-300 underline-offset-2 hover:text-emerald-800"
+                        >GitHub</a
+                    >.
                 </p>
 
                 <!-- Source Status List -->

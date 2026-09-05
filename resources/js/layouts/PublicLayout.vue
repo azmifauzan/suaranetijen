@@ -143,7 +143,15 @@ const navigation = [
                                 >Kenali lebih dekat</span
                             ><Link :href="about()">Tentang SuaraNetijen</Link
                             ><Link :href="methodology()">Metodologi</Link
-                            ><Link :href="sources()">Sumber data</Link>
+                            ><Link :href="sources()">Sumber data</Link
+                            ><a
+                                href="https://github.com/azmifauzan/suaranetijen"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex items-center gap-2"
+                                >Kode sumber di GitHub
+                                <ArrowUpRight class="size-4"
+                            /></a>
                         </div>
                         <div class="flex flex-col gap-3">
                             <span class="mb-1 font-bold">Mulai di sini</span

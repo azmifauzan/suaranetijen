@@ -17,7 +17,7 @@ defineProps<{
     <PublicLayout>
         <PublicSeo
             title="Metodologi Sentimen Netizen"
-            description="Pelajari cara SuaraNetijen menghitung sentimen publik dari opini netizen, menetapkan ambang opini, dan memisahkan rating pengguna."
+            description="Pelajari cara SuaraNetijen, proyek open source, menghitung sentimen publik dari opini netizen, menetapkan ambang opini, dan memisahkan rating pengguna."
             canonical-path="/methodology"
         />
 
@@ -196,6 +196,23 @@ defineProps<{
                                 deduplikasi dan observasi agregat.
                             </li>
                         </ul>
+                    </section>
+
+                    <section class="border-t border-neutral-100 pt-8">
+                        <h2 class="text-xl font-bold text-neutral-900">
+                            5. Keterbukaan Proyek
+                        </h2>
+                        <p class="mt-2 text-sm leading-relaxed">
+                            SuaraNetijen adalah proyek open source. Kode sumber
+                            dan dokumentasi pengembangan tersedia di
+                            <a
+                                href="https://github.com/azmifauzan/suaranetijen"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="font-semibold text-emerald-700 underline decoration-emerald-300 underline-offset-2 hover:text-emerald-800"
+                                >GitHub</a
+                            >.
+                        </p>
                     </section>
                 </div>
             </div>

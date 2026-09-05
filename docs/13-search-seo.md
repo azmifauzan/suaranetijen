@@ -36,8 +36,12 @@ Top:
 `/top/smartphone`
 
 Titles:
-- `Samsung Galaxy A57: Sentimen & Rating Netijen | SuaraNetijen`
-- `VPS dengan Sentimen Netijen Tertinggi | SuaraNetijen`
+- `Samsung Galaxy A57: Sentimen & Rating Netizen | SuaraNetijen`
+- `VPS dengan Sentimen Netizen Tertinggi | SuaraNetijen`
+
+Gunakan ejaan baku **netizen** pada title, description, dan copy SEO. **Netijen** tetap dipakai
+hanya sebagai bagian dari nama metrik resmi seperti Sentimen Netijen, Rating Netijen, dan Top
+Suara Netijen.
 
 ## Content uniqueness
 

@@ -2,6 +2,7 @@ import { renderToString } from '@vue/server-renderer';
 import { createSSRApp, defineComponent, h } from 'vue';
 import { beforeEach, expect, it, vi } from 'vite-plus/test';
 import PublicEntityCard from '@/components/PublicEntityCard.vue';
+import PublicLayout from '@/layouts/PublicLayout.vue';
 import Welcome from '@/pages/Welcome.vue';
 
 const page = vi.hoisted(() => ({
@@ -144,4 +145,20 @@ it('shows the dashboard destination for a signed-in visitor', async () => {
 
     expect(html).toContain('href="/dashboard"');
     expect(html).not.toContain('href="/register"');
+});
+
+it('exposes the open source repository from the public footer', async () => {
+    const html = await renderToString(
+        createSSRApp({
+            render: () =>
+                h(PublicLayout, null, {
+                    default: () => h('p', 'Konten publik'),
+                }),
+        }),
+    );
+
+    expect(html).toContain('href="https://github.com/azmifauzan/suaranetijen"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).toContain('Kode sumber di GitHub');
 });

@@ -10,7 +10,13 @@ SuaraNetijen menjadi **indeks sentimen publik Indonesia**: user cukup mencari se
 
 ## Core promise
 
-> Cari apa pun. Lihat apa kata netijen.
+> Sebelum pilih, cek kata netizen.
+
+## Open source
+
+SuaraNetijen dikembangkan sebagai proyek open source untuk publik. Kode sumber dan dokumentasi
+tersedia di [GitHub](https://github.com/azmifauzan/suaranetijen) dan dirilis di bawah
+[MIT License](../LICENSE).
 
 ## What SuaraNetijen is
 
