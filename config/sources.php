@@ -33,6 +33,16 @@ return [
         'feed_url' => env('MOJOK_FEED_URL', 'https://mojok.co/esai/feed'),
     ],
 
+    'carisinyal' => [
+        'base_url' => env('CARISINYAL_BASE_URL', 'https://carisinyal.com'),
+        'feed_url' => env('CARISINYAL_FEED_URL', 'https://carisinyal.com/feed'),
+    ],
+
+    'femaledaily' => [
+        'base_url' => env('FEMALEDAILY_BASE_URL', 'https://femaledaily.com'),
+        'reviews_base_url' => env('FEMALEDAILY_REVIEWS_BASE_URL', 'https://reviews.femaledaily.com'),
+    ],
+
     'detik' => [
         'base_url' => env('DETIK_BASE_URL', 'https://www.detik.com'),
         'comment_api_url' => env('DETIK_COMMENT_API_URL', 'https://apicomment.detik.com/graphql'),

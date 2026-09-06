@@ -181,6 +181,43 @@ class SourceSeeder extends Seeder
                 'crawl_policy' => ['rate_limit_per_minute' => 20],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
+            [
+                'key' => 'carisinyal',
+                'name' => 'Carisinyal',
+                'adapter' => 'carisinyal',
+                'source_type' => SourceType::Rss,
+                // Added for the Smartphone category (6 Sep 2026): permissive robots.txt
+                // (Content-Signal ai-train=no only disallows named AI-company crawlers
+                // by literal User-Agent, e.g. ClaudeBot/GPTBot — SuaraNetijen/1.0 is not
+                // one of them, so the wildcard Allow: / applies). WordPress SSR with
+                // native reader comments (real text confirmed live in
+                // .comment-content, e.g. "Thank. Infomu membantu banget..."), though
+                // volume is sparse (0 comments on most articles, ~4 on evergreen
+                // guides). Seeded disabled pending a live operator check, same DoD gate
+                // as every other source added this project.
+                'enabled' => false,
+                'crawl_policy' => ['rate_limit_per_minute' => 20],
+                'retention_policy' => ['raw_ttl_hours' => 72],
+            ],
+            [
+                'key' => 'femaledaily',
+                'name' => 'Female Daily',
+                'adapter' => 'femaledaily',
+                'source_type' => SourceType::Rss,
+                // Added for the Brand Umum category (6 Sep 2026): the 5 Sep research
+                // pass wrongly rejected this as Next.js CSR — that was true of the main
+                // femaledaily.com domain, but reviews.femaledaily.com (the dedicated
+                // review app) is server-rendered: confirmed live with a plain curl
+                // returning full review text, star ratings, and "a minute ago"
+                // freshness with no JS execution. Discovery is a 3-level rotation
+                // (alphabet -> brand -> product page) since the site's own sitemap.xml
+                // only ever lists ~4 recently-touched products, not a full catalog —
+                // see FemaleDailyAdapter::discover(). Seeded disabled pending a live
+                // operator check, same DoD gate as every other source.
+                'enabled' => false,
+                'crawl_policy' => ['rate_limit_per_minute' => 20],
+                'retention_policy' => ['raw_ttl_hours' => 72],
+            ],
         ];
 
         foreach ($sources as $attributes) {

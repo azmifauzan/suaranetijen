@@ -3,9 +3,11 @@
 namespace App\Domains\Sources\Services;
 
 use App\Domains\Sources\Adapters\BlueskyAdapter;
+use App\Domains\Sources\Adapters\CarisinyalAdapter;
 use App\Domains\Sources\Adapters\DetikAdapter;
 use App\Domains\Sources\Adapters\DiskusiWebHostingAdapter;
 use App\Domains\Sources\Adapters\FakeSourceAdapter;
+use App\Domains\Sources\Adapters\FemaleDailyAdapter;
 use App\Domains\Sources\Adapters\IndoForumAdapter;
 use App\Domains\Sources\Adapters\KaskusAdapter;
 use App\Domains\Sources\Adapters\LowEndTalkAdapter;
@@ -56,6 +58,12 @@ class SourceRegistry
         'detik' => DetikAdapter::class,
         'DetikAdapter' => DetikAdapter::class,
         'App\\Domains\\Sources\\Adapters\\DetikAdapter' => DetikAdapter::class,
+        'carisinyal' => CarisinyalAdapter::class,
+        'CarisinyalAdapter' => CarisinyalAdapter::class,
+        'App\\Domains\\Sources\\Adapters\\CarisinyalAdapter' => CarisinyalAdapter::class,
+        'femaledaily' => FemaleDailyAdapter::class,
+        'FemaleDailyAdapter' => FemaleDailyAdapter::class,
+        'App\\Domains\\Sources\\Adapters\\FemaleDailyAdapter' => FemaleDailyAdapter::class,
     ];
 
     /**

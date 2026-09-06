@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+	<title>Carisinyal</title>
+	<link>https://carisinyal.com</link>
+	<description>Media Gadget dan Teknologi Terpercaya</description>
+	<language>id</language>
+	<item>
+		<title>Cara Memilih HP</title>
+		<link>https://carisinyal.com/cara-memilih-hp/</link>
+		<comments>https://carisinyal.com/cara-memilih-hp/#comments</comments>
+		<pubDate>Tue, 01 Sep 2026 03:00:00 +0000</pubDate>
+		<category><![CDATA[Tips]]></category>
+		<guid isPermaLink="false">https://carisinyal.com/?p=300001</guid>
+		<description><![CDATA[<p>Panduan memilih HP.</p>]]></description>
+	</item>
+	<item>
+		<title>Harga HP Contoh Merek Terbaru</title>
+		<link>https://carisinyal.com/harga-hp-contoh-merek/</link>
+		<comments>https://carisinyal.com/harga-hp-contoh-merek/#comments</comments>
+		<pubDate>Wed, 02 Sep 2026 03:00:00 +0000</pubDate>
+		<category><![CDATA[Harga HP]]></category>
+		<guid isPermaLink="false">https://carisinyal.com/?p=300002</guid>
+		<description><![CDATA[<p>Daftar harga HP.</p>]]></description>
+	</item>
+</channel>
+</rss>
