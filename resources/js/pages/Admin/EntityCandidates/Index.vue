@@ -31,30 +31,38 @@ defineOptions({
     },
 });
 
-const forms = reactive(
-    Object.fromEntries(
-        props.candidates.data.map((c) => [
-            c.id,
-            useForm({
-                name: c.suggested_name ?? c.normalized_term,
-                entity_type: c.suggested_entity_type ?? 'product',
-                category_id: c.suggested_category_id,
-                parent_id: null as number | null,
-                aliases: (c.suggested_aliases ?? []).join(', '),
-            }),
-        ])
-    )
-);
+// Vue reuses this component instance across Inertia visits to the same
+// page (no remount), so `forms` must stay keyed lazily off live candidate
+// ids instead of a one-time snapshot from the initial props — otherwise a
+// candidate that only appears after a visit (e.g. shifted onto page 1 once
+// an earlier one is approved) has no entry and `forms[candidate.id].name`
+// throws mid-render, blanking the whole list.
+const forms: Record<number, ReturnType<typeof useForm>> = reactive({});
 
-function approve(candidateId: number) {
-    const form = forms[candidateId];
-    form.transform((data) => ({
-        ...data,
-        aliases: String(data.aliases)
-            .split(',')
-            .map((a: string) => a.trim())
-            .filter(Boolean),
-    })).post(`/admin/entity-candidates/${candidateId}/approve`, { preserveScroll: true });
+function formFor(candidate: Candidate) {
+    if (!forms[candidate.id]) {
+        forms[candidate.id] = useForm({
+            name: candidate.suggested_name ?? candidate.normalized_term,
+            entity_type: candidate.suggested_entity_type ?? 'product',
+            category_id: candidate.suggested_category_id,
+            parent_id: null as number | null,
+            aliases: (candidate.suggested_aliases ?? []).join(', '),
+        });
+    }
+
+    return forms[candidate.id];
+}
+
+function approve(candidate: Candidate) {
+    formFor(candidate)
+        .transform((data) => ({
+            ...data,
+            aliases: String(data.aliases)
+                .split(',')
+                .map((a: string) => a.trim())
+                .filter(Boolean),
+        }))
+        .post(`/admin/entity-candidates/${candidate.id}/approve`, { preserveScroll: true });
 }
 
 function reject(candidateId: number) {
@@ -100,7 +108,7 @@ function reject(candidateId: number) {
                 <div>
                     <label class="block text-[10px] font-medium text-neutral-500">Name</label>
                     <input
-                        v-model="forms[candidate.id].name"
+                        v-model="formFor(candidate).name"
                         type="text"
                         class="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800"
                     />
@@ -108,7 +116,7 @@ function reject(candidateId: number) {
                 <div>
                     <label class="block text-[10px] font-medium text-neutral-500">Type</label>
                     <select
-                        v-model="forms[candidate.id].entity_type"
+                        v-model="formFor(candidate).entity_type"
                         class="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800"
                     >
                         <option value="brand">Brand</option>
@@ -119,7 +127,7 @@ function reject(candidateId: number) {
                 <div>
                     <label class="block text-[10px] font-medium text-neutral-500">Category</label>
                     <select
-                        v-model="forms[candidate.id].category_id"
+                        v-model="formFor(candidate).category_id"
                         class="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800"
                     >
                         <option :value="null">Choose...</option>
@@ -129,7 +137,7 @@ function reject(candidateId: number) {
                 <div>
                     <label class="block text-[10px] font-medium text-neutral-500">Parent brand</label>
                     <select
-                        v-model="forms[candidate.id].parent_id"
+                        v-model="formFor(candidate).parent_id"
                         class="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800"
                     >
                         <option :value="null">None</option>
@@ -139,7 +147,7 @@ function reject(candidateId: number) {
                 <div class="sm:col-span-2 lg:col-span-4">
                     <label class="block text-[10px] font-medium text-neutral-500">Aliases (comma-separated)</label>
                     <input
-                        v-model="forms[candidate.id].aliases"
+                        v-model="formFor(candidate).aliases"
                         type="text"
                         class="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800"
                     />
@@ -149,9 +157,9 @@ function reject(candidateId: number) {
             <div class="mt-4 flex gap-2">
                 <button
                     type="button"
-                    :disabled="forms[candidate.id].processing"
+                    :disabled="formFor(candidate).processing"
                     class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
-                    @click="approve(candidate.id)"
+                    @click="approve(candidate)"
                 >
                     Approve
                 </button>
