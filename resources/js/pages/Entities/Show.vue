@@ -104,6 +104,16 @@ interface RelatedEntity {
     type_label: string;
 }
 
+interface SpecsItem {
+    label: string;
+    value: string;
+}
+
+interface SpecsData {
+    title: string;
+    items: SpecsItem[];
+}
+
 interface TrendPoint {
     date: string;
     label: string;
@@ -123,6 +133,7 @@ const props = defineProps<{
     themes: ThemesData;
     relatedEntities: RelatedEntity[];
     trend?: TrendPoint[];
+    specs: SpecsData | null;
 }>();
 
 const ratingData = ref<RatingData>({ ...props.rating });
@@ -383,6 +394,27 @@ async function removeRating(): Promise<void> {
                         </span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Spesifikasi Card: manually curated reference data, kept separate from
+                 the Sentimen/Rating cards below since it is not derived from sentiment
+                 (docs/03, ADR-008 clarification) -->
+            <div
+                v-if="specs"
+                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
+            >
+                <h2 class="border-b border-neutral-100 pb-4 text-lg font-bold text-neutral-900">
+                    {{ specs.title }}
+                </h2>
+                <dl class="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                    <div v-for="item in specs.items" :key="item.label" class="flex justify-between border-b border-neutral-50 pb-2 text-sm sm:justify-start sm:gap-2">
+                        <dt class="text-neutral-500">{{ item.label }}</dt>
+                        <dd class="font-medium text-neutral-900">{{ item.value }}</dd>
+                    </div>
+                </dl>
+                <p class="mt-3 text-[11px] text-neutral-400">
+                    Data referensi diisi manual, bukan bagian dari Sentimen Netijen.
+                </p>
             </div>
 
             <!-- Sentimen Netijen Card -->

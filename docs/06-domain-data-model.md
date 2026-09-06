@@ -29,6 +29,13 @@
 - slug
 - status
 
+### `smartphone_specs` / `car_specs` / `motorcycle_specs` / `person_profiles`
+One-to-one reference tables (unique `entity_id`, `hasOne` on `Entity`), added 6 September 2026.
+Manually curated by admin, static — chipset/RAM/camera for `smartphone_specs`; cc/tenaga/torsi for
+`car_specs` and `motorcycle_specs`; birth date/occupation/affiliation for `person_profiles`. Gated
+by the entity's category slug (`smartphone`/`mobil`/`motor`) or `type = person`. Never touched by
+the sentiment/scoring/matching pipeline — see the ADR-008 scope clarification in `docs/21`.
+
 ### `sources`
 - id
 - key

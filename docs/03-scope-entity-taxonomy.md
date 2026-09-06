@@ -88,3 +88,6 @@ VPS IDCloudHost
 - Entity baru dapat masuk dari admin atau suggestion queue setelah search demand terlihat.
 - Kategori tidak butuh aspect taxonomy manual (battery/camera/... per Smartphone, dst); Top Suara
   Netijen (`docs/25`) menemukan tema langsung dari data, lintas semua entity type.
+- Smartphone/Mobil/Motor/Tokoh Publik boleh punya data referensi statis (spec/profil, diisi manual
+  admin) di tabel terpisah (`docs/06`) — bukan aspect taxonomy, tidak masuk pipeline
+  sentiment/scoring. Lihat klarifikasi cakupan ADR-008 di `docs/21`.

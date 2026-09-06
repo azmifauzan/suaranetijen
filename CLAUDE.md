@@ -1237,6 +1237,57 @@ live and fixed.
      into the same candidate via the aggregator's existing dedup, instead of creating a new
      unrelated blob.
 
+## Entity Candidates approve-then-blank-list bug (6 September 2026)
+
+User-reported: approving a candidate on `/admin/entity-candidates` sometimes left the list blank
+instead of returning to the remaining pending candidates.
+
+- **Root cause:** `Index.vue` built its per-candidate `useForm()` dictionary once from the initial
+  page props (`Object.fromEntries(props.candidates.data.map(...))`). Inertia reuses the same Vue
+  component instance across visits to the same page (no remount), so after an approve triggers a
+  fresh `redirect()->back()` render, a candidate that only appears in the *new* prop list (e.g. one
+  shifted from page 2 onto page 1 once an earlier one was approved) had no entry in that stale
+  dictionary — `forms[candidate.id].name` threw mid-render and blanked the whole list.
+- **Fix:** replaced the one-time snapshot with a `formFor(candidate)` helper that lazily
+  creates-and-memoizes a form per candidate id on first access, so it always matches whatever
+  candidates the current props actually contain.
+
+## Category-specific reference specs: Smartphone, Mobil, Motor, Tokoh Publik (6 September 2026)
+
+Added at explicit operator request: manually curated, static reference data per category, shown on
+both the admin entity edit page and the public entity page — **not** aspect scoring. Recorded as an
+ADR-008 scope clarification (`docs/21`), not an override: ADR-008 bans a numeric subscore *derived
+from sentiment* (e.g. a "camera score" computed from opinions); it says nothing about an admin
+typing in a chipset name.
+
+- **Data model:** 4 new one-to-one tables (`smartphone_specs`, `car_specs`, `motorcycle_specs`,
+  `person_profiles`; unique `entity_id`, `hasOne` on `Entity`) — fixed columns per category, not a
+  single EAV/key-value table. Chosen over EAV for this project's scale (hundreds-to-thousands of
+  entities, stable field sets): fixed columns give real types (queryable/sortable `engine_cc`,
+  `power_hp`), DB-level nullability, and per-field `FormRequest` validation that a generic
+  `(entity_id, key, value)` table can't offer without re-implementing typing/validation in
+  application code. `smartphone_specs` covers chipset/RAM/storage/screen/camera/battery/OS;
+  `car_specs` and `motorcycle_specs` cover body type/engine cc/power/torque/transmission/etc;
+  `person_profiles` covers birth date/place/occupation/affiliation/active-since/website for
+  `type = person` entities (all 5 Tokoh Publik subcategories, gated by entity type rather than a
+  specific category slug since the shape is the same across all of them).
+  All fields nullable — admin fills in whatever is known, nothing is required.
+- **Admin:** `Admin/Entities/Form.vue`'s edit page shows one of the 4 fieldsets conditionally,
+  keyed off `category.slug` (`smartphone`/`mobil`/`motor`) or `type === 'person'`.
+  `AdminEntityController::update()` persists only the block matching the entity's (post-update)
+  category/type via `updateOrCreate`, ignoring any other spec block present in the payload — so a
+  stale `car_spec` object left in the form after switching an entity's category away doesn't
+  silently write to the wrong table. `UpdateEntityRequest` validates all 4 blocks as optional
+  nested arrays regardless of category (harmless if unused, keeps the request rules static instead
+  of conditional).
+- **Public page:** `EntityShowController::buildSpecs()` picks whichever spec relation is non-null,
+  maps it through a per-category label list (skipping null fields), and returns a single
+  `specs: {title, items} | null` prop. `Entities/Show.vue` renders it as its own card, positioned
+  before the Sentimen Netijen card and separate from it — same "don't blur provenance" intent as
+  ADR-007/011's Sentimen/Rating separation, just for reference data instead of a second metric.
+- Not deployed to staging yet — needs a migration run (`smartphone_specs`, `car_specs`,
+  `motorcycle_specs`, `person_profiles`) plus the usual image build/push/redeploy.
+
 ## Document map
 
 | File | Purpose |

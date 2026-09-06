@@ -32,6 +32,15 @@
 **Decision:** no camera/support/performance subscore in MVP.  
 **Why:** unnecessary complexity and drifts from product thesis.
 
+**Scope clarified 6 September 2026:** this ADR bans *aspect scoring* — a numeric subscore derived
+from sentiment/opinion data (e.g. a "camera score" computed from netizen opinions). It does not
+cover static reference specs manually entered by an admin (chipset/RAM/camera for Smartphone;
+cc/tenaga/torsi for Mobil/Motor; birth date/occupation/affiliation for Tokoh Publik). These live in
+dedicated per-category tables (`smartphone_specs`, `car_specs`, `motorcycle_specs`,
+`person_profiles`), are never derived from or fed back into the sentiment/scoring/matching
+pipeline, and are displayed on the entity page in a separate card from Sentimen/Rating Netijen.
+This is a scope clarification, not an override — no subscore or aspect taxonomy was added.
+
 ## ADR-009 - Source adapters isolated
 **Decision:** each external source has adapter + preflight + feature flag.  
 **Why:** external access changes must not destabilize system.

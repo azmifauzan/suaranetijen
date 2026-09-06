@@ -27,7 +27,7 @@ class EntityShowController extends Controller
     {
         /** @var Entity $entity */
         $entity = Entity::query()
-            ->with(['category', 'parent', 'aliases', 'ratingSnapshot'])
+            ->with(['category', 'parent', 'aliases', 'ratingSnapshot', 'smartphoneSpec', 'carSpec', 'motorcycleSpec', 'personProfile'])
             ->where('slug', $slug)
             ->active()
             ->firstOrFail();
@@ -170,6 +170,108 @@ class EntityShowController extends Controller
                 'type' => $e->type->value,
                 'type_label' => $e->type->label(),
             ]),
+            'specs' => $this->buildSpecs($entity),
         ]);
+    }
+
+    /**
+     * Manually curated reference specs (docs/03, ADR-008 clarification) — static
+     * admin-entered data, never derived from sentiment. Renders as a plain
+     * label/value list; null values are skipped rather than shown blank.
+     *
+     * @return array{title: string, items: list<array{label: string, value: string}>}|null
+     */
+    private function buildSpecs(Entity $entity): ?array
+    {
+        [$title, $spec, $labels] = match (true) {
+            $entity->smartphoneSpec !== null => ['Spesifikasi Smartphone', $entity->smartphoneSpec, [
+                'chipset' => 'Chipset',
+                'ram' => 'RAM',
+                'storage' => 'Storage',
+                'screen_size_inch' => 'Layar',
+                'screen_type' => 'Tipe Layar',
+                'rear_camera' => 'Kamera Belakang',
+                'front_camera' => 'Kamera Depan',
+                'battery_mah' => 'Baterai',
+                'fast_charging_watt' => 'Fast Charging',
+                'os' => 'OS',
+                'network' => 'Jaringan',
+                'release_year' => 'Tahun Rilis',
+            ]],
+            $entity->carSpec !== null => ['Spesifikasi Mobil', $entity->carSpec, [
+                'body_type' => 'Tipe Bodi',
+                'engine_cc' => 'Kapasitas Mesin',
+                'cylinder_count' => 'Jumlah Silinder',
+                'fuel_type' => 'Bahan Bakar',
+                'power_hp' => 'Tenaga',
+                'torque_nm' => 'Torsi',
+                'transmission' => 'Transmisi',
+                'drivetrain' => 'Penggerak',
+                'fuel_tank_liter' => 'Tangki BBM',
+                'seating_capacity' => 'Kapasitas Duduk',
+                'dimensions_mm' => 'Dimensi',
+                'release_year' => 'Tahun Rilis',
+            ]],
+            $entity->motorcycleSpec !== null => ['Spesifikasi Motor', $entity->motorcycleSpec, [
+                'body_type' => 'Tipe',
+                'engine_cc' => 'Kapasitas Mesin',
+                'cooling_system' => 'Pendingin',
+                'fuel_type' => 'Bahan Bakar',
+                'power_hp' => 'Tenaga',
+                'torque_nm' => 'Torsi',
+                'transmission' => 'Transmisi',
+                'fuel_tank_liter' => 'Tangki BBM',
+                'weight_kg' => 'Berat',
+                'braking_system' => 'Pengereman',
+                'release_year' => 'Tahun Rilis',
+            ]],
+            $entity->personProfile !== null => ['Profil', $entity->personProfile, [
+                'birth_date' => 'Tanggal Lahir',
+                'birth_place' => 'Tempat Lahir',
+                'occupation' => 'Profesi / Jabatan',
+                'affiliation' => 'Afiliasi',
+                'active_since_year' => 'Aktif Sejak',
+                'official_website' => 'Website Resmi',
+            ]],
+            default => [null, null, null],
+        };
+
+        if ($spec === null) {
+            return null;
+        }
+
+        $units = [
+            'screen_size_inch' => ' inci',
+            'engine_cc' => ' cc',
+            'power_hp' => ' hp',
+            'torque_nm' => ' Nm',
+            'battery_mah' => ' mAh',
+            'fast_charging_watt' => ' Watt',
+            'fuel_tank_liter' => ' liter',
+            'weight_kg' => ' kg',
+        ];
+
+        $items = [];
+        foreach ($labels as $key => $label) {
+            $value = $spec->getAttribute($key);
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            if ($key === 'birth_date') {
+                $value = $value->format('d M Y');
+            }
+
+            $items[] = [
+                'label' => $label,
+                'value' => $value.($units[$key] ?? ''),
+            ];
+        }
+
+        if ($items === []) {
+            return null;
+        }
+
+        return ['title' => $title, 'items' => $items];
     }
 }

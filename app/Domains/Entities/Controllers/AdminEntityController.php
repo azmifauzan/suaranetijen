@@ -105,9 +105,9 @@ class AdminEntityController extends Controller
      */
     public function edit(Entity $entity): Response
     {
-        $entity->load(['category', 'parent', 'aliases']);
+        $entity->load(['category', 'parent', 'aliases', 'smartphoneSpec', 'carSpec', 'motorcycleSpec', 'personProfile']);
 
-        $categories = Category::query()->orderBy('name')->get(['id', 'name']);
+        $categories = Category::query()->orderBy('name')->get(['id', 'name', 'slug']);
         $parentBrands = Entity::query()
             ->where('type', EntityType::Brand)
             ->where('id', '!=', $entity->id)
@@ -126,11 +126,40 @@ class AdminEntityController extends Controller
      */
     public function update(UpdateEntityRequest $request, Entity $entity): RedirectResponse
     {
-        $entity->update($request->validated());
+        $validated = $request->validated();
+
+        $entity->update($validated);
+
+        $this->syncDetailSpec($entity, $validated);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Entity updated successfully.']);
 
         return redirect()->back();
+    }
+
+    /**
+     * Persist the manually curated reference spec block matching the entity's
+     * (post-update) category/type. Static reference data only — never derived
+     * from sentiment, so it stays outside the scoring/matching pipeline
+     * (docs/03, ADR-008 clarification).
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function syncDetailSpec(Entity $entity, array $validated): void
+    {
+        $categorySlug = Category::query()->whereKey($validated['category_id'])->value('slug');
+
+        if ($categorySlug === 'smartphone' && isset($validated['smartphone_spec'])) {
+            $entity->smartphoneSpec()->updateOrCreate([], $validated['smartphone_spec']);
+        } elseif ($categorySlug === 'mobil' && isset($validated['car_spec'])) {
+            $entity->carSpec()->updateOrCreate([], $validated['car_spec']);
+        } elseif ($categorySlug === 'motor' && isset($validated['motorcycle_spec'])) {
+            $entity->motorcycleSpec()->updateOrCreate([], $validated['motorcycle_spec']);
+        }
+
+        if ($validated['type'] === EntityType::Person->value && isset($validated['person_profile'])) {
+            $entity->personProfile()->updateOrCreate([], $validated['person_profile']);
+        }
     }
 
     /**

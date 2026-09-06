@@ -37,6 +37,10 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, EntityAlias> $aliases
  * @property-read Collection<int, UserRating> $ratings
  * @property-read RatingSnapshot|null $ratingSnapshot
+ * @property-read SmartphoneSpec|null $smartphoneSpec
+ * @property-read CarSpec|null $carSpec
+ * @property-read MotorcycleSpec|null $motorcycleSpec
+ * @property-read PersonProfile|null $personProfile
  */
 #[Fillable([
     'category_id',
@@ -137,6 +141,47 @@ class Entity extends Model
     public function sentimentSnapshots(): HasMany
     {
         return $this->hasMany(SentimentSnapshot::class);
+    }
+
+    /**
+     * Manually curated reference specs for Smartphone-category entities.
+     * Static admin-entered data, never derived from sentiment (ADR-008).
+     *
+     * @return HasOne<SmartphoneSpec, $this>
+     */
+    public function smartphoneSpec(): HasOne
+    {
+        return $this->hasOne(SmartphoneSpec::class);
+    }
+
+    /**
+     * Manually curated reference specs for Mobil-category entities.
+     *
+     * @return HasOne<CarSpec, $this>
+     */
+    public function carSpec(): HasOne
+    {
+        return $this->hasOne(CarSpec::class);
+    }
+
+    /**
+     * Manually curated reference specs for Motor-category entities.
+     *
+     * @return HasOne<MotorcycleSpec, $this>
+     */
+    public function motorcycleSpec(): HasOne
+    {
+        return $this->hasOne(MotorcycleSpec::class);
+    }
+
+    /**
+     * Manually curated reference profile for Tokoh Publik (person-type) entities.
+     *
+     * @return HasOne<PersonProfile, $this>
+     */
+    public function personProfile(): HasOne
+    {
+        return $this->hasOne(PersonProfile::class);
     }
 
     /**
