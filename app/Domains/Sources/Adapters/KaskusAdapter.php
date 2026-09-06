@@ -205,9 +205,25 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
 
     public function extract(FetchedDocument $doc): iterable
     {
+        // Kaskus's Next.js frontend uses CSS-module classes
+        // (e.g. "htmlContentRenderer_html-content__ePjqJ") — none of
+        // "post-content"/"post-body"/"post" as a standalone space-delimited
+        // class token ever existed in the real rendered DOM (confirmed live,
+        // 0 matches), so this always fell through to `//body`: every
+        // extracted "opinion" was the entire page — breadcrumb nav, other
+        // threads' titles, "TS{username}{date}" byline, share-button label,
+        // the works. `contains(@class, "html-content")` matches the hashed
+        // class by its stable prefix (substring, not exact-token — this
+        // component's class isn't space-separated from others). It's also
+        // reused to render bare usernames and "X memberi reputasi" activity
+        // notices, not just post bodies, so those slip through here as
+        // short/no-space text and get filtered by
+        // AbstractHttpSourceAdapter::extractHtmlOpinions()'s single-token
+        // guard and the excluded-terms list below.
         return $this->extractHtmlOpinions(
             $doc,
             [
+                '//*[contains(@class, "html-content")]',
                 '//*[contains(concat(" ", normalize-space(@class), " "), " post-content ")]',
                 '//*[contains(concat(" ", normalize-space(@class), " "), " post-body ")]',
                 '//*[contains(concat(" ", normalize-space(@class), " "), " post ")]',
@@ -215,7 +231,7 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
                 '//main',
                 '//body',
             ],
-            ['wts', 'jual', 'dijual', 'promo', 'iklan', 'penawaran', 'offer'],
+            ['wts', 'jual', 'dijual', 'promo', 'iklan', 'penawaran', 'offer', 'memberi reputasi'],
             ['adapter' => 'kaskus']
         );
     }

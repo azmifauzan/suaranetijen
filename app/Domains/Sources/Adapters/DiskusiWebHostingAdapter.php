@@ -52,9 +52,18 @@ class DiskusiWebHostingAdapter extends AbstractHttpSourceAdapter
 
     public function extract(FetchedDocument $doc): iterable
     {
+        // This forum runs XenForo, whose whole post is
+        // `<article class="message message--post">` — that also contains
+        // `.message-cell--user` (username, avatar, rank title) as a sibling
+        // of the actual message. `//article` matching first meant every
+        // extracted "opinion" was prefixed with the poster's username and
+        // rank (confirmed live, e.g. "xborgusr Beginner 1.0 Hallo..."; real
+        // PII, not just noise). `.bbWrapper` is XenForo's message-body-only
+        // div — confirmed live it contains none of that.
         return $this->extractHtmlOpinions(
             $doc,
             [
+                '//*[contains(concat(" ", normalize-space(@class), " "), " bbWrapper ")]',
                 '//article',
                 '//*[contains(concat(" ", normalize-space(@class), " "), " message ")]',
                 '//*[contains(concat(" ", normalize-space(@class), " "), " post ")]',

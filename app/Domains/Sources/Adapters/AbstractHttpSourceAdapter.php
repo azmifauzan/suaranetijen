@@ -185,6 +185,17 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
                 continue;
             }
 
+            // A single whitespace-free token is never genuine opinion prose
+            // — it's the shape of a username, handle, or short activity
+            // notice a selector picked up alongside real post bodies
+            // (confirmed live on Kaskus's CSS-module-classed frontend, where
+            // the same component renders both). Data minimization requires
+            // never storing third-party usernames; this is a last-resort
+            // guard on top of each adapter's own selector precision.
+            if (! str_contains(trim($text), ' ')) {
+                continue;
+            }
+
             $contentHash = hash('sha256', $normalizedText);
             if (isset($contentHashes[$contentHash])) {
                 continue;

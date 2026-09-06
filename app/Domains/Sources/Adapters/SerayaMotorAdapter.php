@@ -73,12 +73,22 @@ class SerayaMotorAdapter extends AbstractHttpSourceAdapter
 
     public function extract(FetchedDocument $doc): iterable
     {
+        // phpBB3's `.post` container wraps BOTH `.postprofile` (username,
+        // avatar, rank, join date, location — real PII) and `.postbody`
+        // (title/buttons/author line, still leaking the username again) as
+        // siblings. `.content` is phpBB3's innermost message-only div, with
+        // neither — confirmed live against serayamotor.com (6 Sep 2026).
+        // Kept the old broad selectors as a fallback only for a page shape
+        // that doesn't use `.content` at all; a `.post`/`article`/`body`
+        // fallback match on a normal phpBB page would still leak PII, but a
+        // page shaped differently enough to miss `.content` is already an
+        // unknown-format edge case.
         return $this->extractHtmlOpinions(
             $doc,
             [
+                '//*[contains(concat(" ", normalize-space(@class), " "), " content ")]',
                 '//*[contains(concat(" ", normalize-space(@class), " "), " post ")]',
                 '//article',
-                '//*[contains(concat(" ", normalize-space(@class), " "), " content ")]',
                 '//main',
                 '//body',
             ],
