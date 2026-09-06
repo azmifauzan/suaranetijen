@@ -48,7 +48,14 @@ class FetchSourceDocumentJob implements ShouldQueue
         public SourceDocument $document,
         public int $rateLimitBounces = 0
     ) {
-        $this->queue = 'crawl';
+        // Most sources share the 'crawl' queue, but a source whose own
+        // crawl_policy names a dedicated queue (currently only YouTube — its
+        // per-video comment-page fan-out dispatches so much higher a volume
+        // than every other source combined that it was starving low-rate
+        // sources like Kaskus behind a shared FIFO queue, confirmed live
+        // 5-6 Sep 2026) gets routed there instead, so the two pools of
+        // workers never compete for the same jobs.
+        $this->queue = $document->source?->crawl_policy['queue'] ?? 'crawl';
     }
 
     /**

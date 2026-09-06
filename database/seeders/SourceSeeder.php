@@ -60,7 +60,13 @@ class SourceSeeder extends Seeder
                 'adapter' => 'youtube',
                 'source_type' => SourceType::VideoComments,
                 // Enabled (5 Sep 2026): verified live with YOUTUBE_API_KEY configured.
-                'crawl_policy' => ['rate_limit_per_minute' => 30],
+                // 'queue' added (6 Sep 2026): YouTube's per-video comment-page fetch
+                // fan-out was crowding every other source out of the shared 'crawl'
+                // queue (confirmed live: Kaskus stuck in queue-position starvation,
+                // not rate-limited) — routes its FetchSourceDocumentJob dispatches to
+                // a dedicated queue instead (see FetchSourceDocumentJob's
+                // constructor and config/horizon.php's supervisor-crawl-youtube).
+                'crawl_policy' => ['rate_limit_per_minute' => 30, 'queue' => 'crawl-youtube'],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
             [

@@ -239,6 +239,26 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
+        // Isolates YouTube's high-volume comment-page fetch fan-out from the
+        // shared 'crawl' queue (see FetchSourceDocumentJob and SourceSeeder's
+        // youtube 'queue' crawl_policy) so a low-rate-limit source like
+        // Kaskus never again waits behind hundreds of YouTube fetches for a
+        // FIFO turn — confirmed live 5-6 Sep 2026 as queue-position
+        // starvation, not an actual rate limit.
+        'supervisor-crawl-youtube' => [
+            'connection' => 'redis',
+            'queue' => ['crawl-youtube'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'minProcesses' => 1,
+            'maxProcesses' => 2,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 1,
+            'timeout' => 60,
+            'nice' => 0,
+        ],
         'supervisor-maintenance' => [
             'connection' => 'redis',
             'queue' => ['maintenance'],
