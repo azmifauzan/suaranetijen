@@ -159,6 +159,10 @@ const selectedCategorySlug = computed(
     () => props.categories.find((c) => c.id === form.category_id)?.slug ?? null
 );
 
+// Detail specs are for the concrete product, not the brand — a "Samsung" brand
+// entity has no chipset/RAM of its own, only its products (e.g. "Galaxy A57") do.
+const isProductType = computed(() => form.type === 'product');
+
 const newAlias = ref('');
 const newAliasType = ref('common_variant');
 
@@ -286,7 +290,7 @@ function removeAlias(aliasId: number) {
 
                     <!-- Smartphone spec fieldset: manually curated reference data only, never
                          derived from sentiment (docs/03, ADR-008 clarification). -->
-                    <div v-if="selectedCategorySlug === 'smartphone'" class="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
+                    <div v-if="isProductType && selectedCategorySlug === 'smartphone'" class="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
                         <h3 class="text-xs font-bold tracking-wide text-neutral-500 uppercase">Spesifikasi Smartphone</h3>
                         <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                             <div>
@@ -341,7 +345,7 @@ function removeAlias(aliasId: number) {
                     </div>
 
                     <!-- Car spec fieldset -->
-                    <div v-if="selectedCategorySlug === 'mobil'" class="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
+                    <div v-if="isProductType && selectedCategorySlug === 'mobil'" class="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
                         <h3 class="text-xs font-bold tracking-wide text-neutral-500 uppercase">Spesifikasi Mobil</h3>
                         <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                             <div>
@@ -396,7 +400,7 @@ function removeAlias(aliasId: number) {
                     </div>
 
                     <!-- Motorcycle spec fieldset -->
-                    <div v-if="selectedCategorySlug === 'motor'" class="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
+                    <div v-if="isProductType && selectedCategorySlug === 'motor'" class="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
                         <h3 class="text-xs font-bold tracking-wide text-neutral-500 uppercase">Spesifikasi Motor</h3>
                         <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                             <div>

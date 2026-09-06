@@ -148,12 +148,13 @@ class AdminEntityController extends Controller
     private function syncDetailSpec(Entity $entity, array $validated): void
     {
         $categorySlug = Category::query()->whereKey($validated['category_id'])->value('slug');
+        $isProduct = $validated['type'] === EntityType::Product->value;
 
-        if ($categorySlug === 'smartphone' && isset($validated['smartphone_spec'])) {
+        if ($isProduct && $categorySlug === 'smartphone' && isset($validated['smartphone_spec'])) {
             $entity->smartphoneSpec()->updateOrCreate([], $validated['smartphone_spec']);
-        } elseif ($categorySlug === 'mobil' && isset($validated['car_spec'])) {
+        } elseif ($isProduct && $categorySlug === 'mobil' && isset($validated['car_spec'])) {
             $entity->carSpec()->updateOrCreate([], $validated['car_spec']);
-        } elseif ($categorySlug === 'motor' && isset($validated['motorcycle_spec'])) {
+        } elseif ($isProduct && $categorySlug === 'motor' && isset($validated['motorcycle_spec'])) {
             $entity->motorcycleSpec()->updateOrCreate([], $validated['motorcycle_spec']);
         }
 

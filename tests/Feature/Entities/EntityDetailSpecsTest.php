@@ -61,6 +61,20 @@ test('spec block for a non-matching category is not persisted', function () {
     expect(CarSpec::where('entity_id', $entity->id)->exists())->toBeFalse();
 });
 
+test('spec block for a brand-type entity is not persisted even in a matching category', function () {
+    $admin = User::factory()->admin()->create();
+    $category = Category::factory()->create(['slug' => 'smartphone']);
+    $entity = Entity::factory()->create(['category_id' => $category->id, 'type' => EntityType::Brand]);
+
+    $this->actingAs($admin)
+        ->put("/admin/entities/{$entity->id}", entityDetailSpecUpdatePayload($entity, [
+            'smartphone_spec' => ['chipset' => 'Snapdragon 7 Gen 4'],
+        ]))
+        ->assertRedirect();
+
+    expect(SmartphoneSpec::where('entity_id', $entity->id)->exists())->toBeFalse();
+});
+
 test('admin can save person profile for a person-type entity regardless of category slug', function () {
     $admin = User::factory()->admin()->create();
     $category = Category::factory()->create(['slug' => 'politisi']);

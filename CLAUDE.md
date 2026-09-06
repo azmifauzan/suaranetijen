@@ -1285,8 +1285,33 @@ typing in a chipset name.
   `specs: {title, items} | null` prop. `Entities/Show.vue` renders it as its own card, positioned
   before the Sentimen Netijen card and separate from it — same "don't blur provenance" intent as
   ADR-007/011's Sentimen/Rating separation, just for reference data instead of a second metric.
-- Not deployed to staging yet — needs a migration run (`smartphone_specs`, `car_specs`,
-  `motorcycle_specs`, `person_profiles`) plus the usual image build/push/redeploy.
+- Deployed to staging 6 September 2026 (migration run, `smartphone_specs`/`car_specs`/
+  `motorcycle_specs`/`person_profiles` confirmed created, containers recreated, verified `/up` and
+  `/` 200).
+
+**Follow-up fixes, same day (6 September 2026):**
+- **Smartphone/Mobil/Motor spec blocks are now gated to `type === 'product'`, not just category
+  slug.** A `brand` entity (e.g. "Samsung") has no chipset/RAM of its own — only its products (e.g.
+  "Samsung Galaxy A57") do. Reported by the operator after noticing the fieldset appeared for a
+  brand-type entity in a spec-eligible category. Fixed in both places independently: `Form.vue`'s
+  three fieldsets now require `isProductType` (`form.type === 'product'`) alongside the category
+  slug check, and `AdminEntityController::syncDetailSpec()` requires the same on the persist side so
+  a crafted request can't write a spec row for a brand entity even if the form guard is bypassed.
+  `person_profile` is unaffected — it was already gated by `type === 'person'`, which has no
+  brand/product distinction. Regression test added
+  (`spec block for a brand-type entity is not persisted even in a matching category`).
+- **Related entities on the public entity page were not actually related — same-category
+  alphabetical, effectively static.** Reported by the operator ("entitas terkait selalu sama").
+  Root cause: `EntityShowController`'s related-entities query filtered by `category_id` correctly
+  (confirmed live per-entity, not a filtering bug) but used `orderBy('name')->limit(4)` — small
+  categories (e.g. 8 total Smartphone brands) only have one alphabetical top-4, so almost every
+  entity in that category showed the same 4 peers with just itself swapped out. Fixed by replacing
+  the flat category query with `EntityShowController::buildRelatedEntities()`: prioritizes actual
+  brand-family relation first (sibling children of the same `parent_id`, or the parent brand itself,
+  or — if the viewed entity is itself a brand — its own children), falling back to a random pick
+  from the same category only to fill any remaining slots. Confirmed live against Biznet Gio's real
+  parent/child rows (`VPS Biznet Gio`, `NEO Cloud Biznet Gio`, `GIO Cloud Biznet Gio` all share
+  `parent_id = 111`) that siblings now surface correctly.
 
 ## Document map
 

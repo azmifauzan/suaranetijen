@@ -10,6 +10,7 @@ use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Domains\Sentiment\Services\ScoreCalculator;
 use App\Domains\Themes\Services\TopThemesService;
 use App\Http\Controllers\Controller;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -89,14 +90,7 @@ class EntityShowController extends Controller
         // Top Suara Netijen (Theme Index per docs/25)
         $themesData = $this->topThemesService->getTopThemesForEntity($entity, $selectedPeriod);
 
-        // Related entities in the same category
-        $relatedEntities = Entity::query()
-            ->where('category_id', $entity->category_id)
-            ->where('id', '!=', $entity->id)
-            ->active()
-            ->orderBy('name')
-            ->limit(4)
-            ->get(['id', 'name', 'slug', 'type']);
+        $relatedEntities = $this->buildRelatedEntities($entity);
 
         $userRating = $request->user()
             ? UserRating::query()
@@ -172,6 +166,44 @@ class EntityShowController extends Controller
             ]),
             'specs' => $this->buildSpecs($entity),
         ]);
+    }
+
+    /**
+     * Related entities, prioritized by actual brand-family relation over raw
+     * category membership — parent brand and sibling products/services first
+     * (a fixed alphabetical/category-only pick showed near-identical results
+     * for every entity in a small category), falling back to a random pick
+     * from the same category only to fill remaining slots.
+     *
+     * @return Collection<int, Entity>
+     */
+    private function buildRelatedEntities(Entity $entity): Collection
+    {
+        $familyQuery = Entity::query()->active()->where('id', '!=', $entity->id);
+
+        if ($entity->parent_id !== null) {
+            $familyQuery->where(fn ($q) => $q->where('parent_id', $entity->parent_id)->orWhere('id', $entity->parent_id));
+        } else {
+            $familyQuery->where('parent_id', $entity->id);
+        }
+
+        $related = $familyQuery->inRandomOrder()->limit(4)->get(['id', 'name', 'slug', 'type']);
+
+        if ($related->count() < 4) {
+            $exclude = $related->pluck('id')->push($entity->id);
+
+            $fallback = Entity::query()
+                ->where('category_id', $entity->category_id)
+                ->whereNotIn('id', $exclude)
+                ->active()
+                ->inRandomOrder()
+                ->limit(4 - $related->count())
+                ->get(['id', 'name', 'slug', 'type']);
+
+            $related = $related->merge($fallback);
+        }
+
+        return $related;
     }
 
     /**
