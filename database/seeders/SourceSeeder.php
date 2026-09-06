@@ -93,6 +93,42 @@ class SourceSeeder extends Seeder
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
             [
+                'key' => 'kaskus_otomotif',
+                'name' => 'KASKUS Otomotif',
+                'adapter' => 'kaskus',
+                'source_type' => SourceType::Forum,
+                // Added for the Motor category (6 Sep 2026): Otomotifnet/Oto.com were
+                // researched as replacements but both rejected — Otomotifnet's comments
+                // load from apis.kompas.com (robots.txt: Disallow: / for all agents, same
+                // Kompas Gramedia network already blocked on kompas.com itself), and
+                // Oto.com's own robots.txt explicitly disallows *userReviews* paths. Same
+                // scoped-subforum pattern as kaskus_politik — reuses KaskusAdapter
+                // unchanged. Seeded disabled pending a live operator check.
+                'enabled' => false,
+                'crawl_policy' => [
+                    'rate_limit_per_minute' => 10,
+                    'listing_url' => 'https://www.kaskus.co.id/komunitas/28/otomotif',
+                ],
+                'retention_policy' => ['raw_ttl_hours' => 72],
+            ],
+            [
+                'key' => 'kaskus_fashion',
+                'name' => 'KASKUS Fashion',
+                'adapter' => 'kaskus',
+                'source_type' => SourceType::Forum,
+                // Added for the Brand Umum category (6 Sep 2026): fashion/beauty brands
+                // (Wardah, Erigo, Scarlett Whitening, etc.) have near-zero coverage from
+                // the generic YouTube/Kaskus name-search sources. Same scoped-subforum
+                // pattern as kaskus_politik/kaskus_otomotif — reuses KaskusAdapter
+                // unchanged. Seeded disabled pending a live operator check.
+                'enabled' => false,
+                'crawl_policy' => [
+                    'rate_limit_per_minute' => 10,
+                    'listing_url' => 'https://www.kaskus.co.id/komunitas/306/fashion',
+                ],
+                'retention_policy' => ['raw_ttl_hours' => 72],
+            ],
+            [
                 'key' => 'lowendtalk',
                 'name' => 'LowEndTalk',
                 'adapter' => 'lowendtalk',
