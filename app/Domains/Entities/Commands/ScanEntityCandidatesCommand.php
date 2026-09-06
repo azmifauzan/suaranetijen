@@ -2,6 +2,7 @@
 
 namespace App\Domains\Entities\Commands;
 
+use App\Domains\Entities\CandidateSources\CarisinyalCandidateSource;
 use App\Domains\Entities\CandidateSources\DailySocialCandidateSource;
 use App\Domains\Entities\CandidateSources\GoogleTrendsCandidateSource;
 use App\Domains\Entities\CandidateSources\SearchQueryCandidateSource;
@@ -27,10 +28,11 @@ class ScanEntityCandidatesCommand extends Command
         WikidataCandidateSource $wikidata,
         DailySocialCandidateSource $dailySocial,
         GoogleTrendsCandidateSource $googleTrends,
+        CarisinyalCandidateSource $carisinyal,
         EntityCandidateEnricher $enricher
     ): int {
         $aggregator = new EntityCandidateAggregator(
-            [$searchQuery, $wikidata, $dailySocial, $googleTrends],
+            [$searchQuery, $wikidata, $dailySocial, $googleTrends, $carisinyal],
             $enricher
         );
 
