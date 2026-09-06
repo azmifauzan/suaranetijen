@@ -43,7 +43,7 @@ const page = usePage<{ auth: Auth }>();
 const isAdmin = computed(() => page.props.auth.user?.is_admin === true);
 
 const adminNavItems: NavItem[] = [
-    { title: 'Admin Overview', href: admin.dashboard(), icon: LayoutGrid },
+    { title: 'Dashboard', href: admin.dashboard(), icon: LayoutGrid },
     { title: 'Entitas', href: admin.entities.index(), icon: Tags },
     { title: 'Kategori', href: admin.categories.index(), icon: FolderTree },
     { title: 'Sumber & Kill Switch', href: admin.sources.index(), icon: Radio },
@@ -90,7 +90,7 @@ const footerNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="isAdmin ? admin.dashboard() : dashboard()">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -99,7 +99,7 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain v-if="!isAdmin" :items="mainNavItems" />
             <NavMain v-if="isAdmin" :items="adminNavItems" label="Admin" />
         </SidebarContent>
 

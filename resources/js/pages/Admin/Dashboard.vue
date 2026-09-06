@@ -35,7 +35,7 @@ defineOptions({
     <div class="flex h-full flex-1 flex-col gap-6 p-6">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
-                Admin Overview
+                Dashboard
             </h1>
             <p class="text-sm text-neutral-500 dark:text-neutral-400">
                 Katalog entitas, manajemen sumber crawler, kill switch, dan diagnostik operasi (docs/17).
