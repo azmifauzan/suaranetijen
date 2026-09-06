@@ -106,8 +106,8 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
 <template>
     <PublicLayout>
         <PublicSeo
-            title="Sentimen Publik Brand, Produk, dan Layanan Indonesia"
-            description="Cari tahu opini netizen tentang brand, produk, dan layanan di Indonesia lewat sentimen publik dan rating pengguna di SuaraNetijen."
+            title="Sentimen Publik Brand, Produk, Tokoh dan Layanan Indonesia"
+            description="Cari tahu opini netizen tentang brand, produk, tokoh dan layanan di Indonesia lewat sentimen publik dan rating pengguna di SuaraNetijen."
             canonical-path="/"
         />
         <main>
@@ -148,15 +148,15 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                     <h1
                         class="text-[42px] leading-[1.08] font-bold tracking-[-2px] text-[#193e2d] sm:text-6xl sm:tracking-[-3px] lg:text-7xl"
                     >
-                        Cari tahu.<br /><span class="text-[#087f5b]"
-                            >Sebelum pilih, cek kata netizen.</span
+                        Sudah tahu belum,<br /><span class="text-[#087f5b]"
+                            >Apa kata Netizen?</span
                         >
                     </h1>
                     <p
                         class="mx-auto mt-6 max-w-lg text-base leading-7 text-[#61725f] sm:text-lg"
                     >
-                        Mau pilih brand, produk, atau layanan?<br />
-                        Cari dulu, lihat apa kata netizen.
+                        Mau pilih brand, produk, tokoh atau layanan?<br />
+                        Cari dulu, lihat apa kata netijen.
                     </p>
                     <div class="mx-auto mt-8 max-w-2xl"><EntitySearch /></div>
                     <div
