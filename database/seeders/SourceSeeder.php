@@ -133,6 +133,28 @@ class SourceSeeder extends Seeder
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
             [
+                'key' => 'kaskus_isp',
+                'name' => 'KASKUS Internet Service & Networking',
+                'adapter' => 'kaskus',
+                'source_type' => SourceType::Forum,
+                // Added for the ISP & Telco category (6 Sep 2026): confirmed real and
+                // active via live web search (21.7K threads, 5.9K members). No
+                // dedicated Kaskus community exists for Logistics — expedition/courier
+                // discussion is scattered across general jual-beli/otomotif subforums
+                // with no concentrated community to scope a listing_url at, so that
+                // category still relies on the generic kaskus query-rotation and
+                // MediaKonsumen's organic complaint coverage. Same scoped-subforum
+                // pattern as kaskus_otomotif/kaskus_fashion/kaskus_politik — reuses
+                // KaskusAdapter unchanged. Seeded disabled pending a live operator
+                // check, same DoD gate as every other source.
+                'enabled' => false,
+                'crawl_policy' => [
+                    'rate_limit_per_minute' => 10,
+                    'listing_url' => 'https://www.kaskus.co.id/komunitas/183/internet-service-amp-networking',
+                ],
+                'retention_policy' => ['raw_ttl_hours' => 72],
+            ],
+            [
                 'key' => 'lowendtalk',
                 'name' => 'LowEndTalk',
                 'adapter' => 'lowendtalk',
