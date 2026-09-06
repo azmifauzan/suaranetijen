@@ -1,0 +1,27 @@
+{
+    "data": {
+        "search": {
+            "paging": {"item": 2, "total_page": 2},
+            "counter": 3,
+            "hits": {
+                "results": [
+                    {
+                        "id": "76501712",
+                        "author": "OtomotifLover",
+                        "content": "Harganya bersaing dibanding kompetitor sekelasnya.",
+                        "create_date": "1788581600.0",
+                        "pin": null,
+                        "child": null
+                    },
+                    {
+                        "id": "76501713",
+                        "author": "Anonim2",
+                        "content": "",
+                        "create_date": "1788581650.0",
+                        "pin": null
+                    }
+                ]
+            }
+        }
+    }
+}

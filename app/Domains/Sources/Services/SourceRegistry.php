@@ -3,6 +3,7 @@
 namespace App\Domains\Sources\Services;
 
 use App\Domains\Sources\Adapters\BlueskyAdapter;
+use App\Domains\Sources\Adapters\DetikAdapter;
 use App\Domains\Sources\Adapters\DiskusiWebHostingAdapter;
 use App\Domains\Sources\Adapters\FakeSourceAdapter;
 use App\Domains\Sources\Adapters\IndoForumAdapter;
@@ -52,6 +53,9 @@ class SourceRegistry
         'mojok' => MojokAdapter::class,
         'MojokAdapter' => MojokAdapter::class,
         'App\\Domains\\Sources\\Adapters\\MojokAdapter' => MojokAdapter::class,
+        'detik' => DetikAdapter::class,
+        'DetikAdapter' => DetikAdapter::class,
+        'App\\Domains\\Sources\\Adapters\\DetikAdapter' => DetikAdapter::class,
     ];
 
     /**

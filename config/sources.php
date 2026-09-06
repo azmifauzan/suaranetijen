@@ -33,4 +33,16 @@ return [
         'feed_url' => env('MOJOK_FEED_URL', 'https://mojok.co/esai/feed'),
     ],
 
+    'detik' => [
+        'base_url' => env('DETIK_BASE_URL', 'https://www.detik.com'),
+        'comment_api_url' => env('DETIK_COMMENT_API_URL', 'https://apicomment.detik.com/graphql'),
+        'max_comment_pages' => (int) env('DETIK_MAX_COMMENT_PAGES', 3),
+        'desks' => [
+            'https://oto.detik.com/motor/sitemap_news.xml',
+            'https://wolipop.detik.com/fashion/sitemap_news.xml',
+            'https://wolipop.detik.com/beauty/sitemap_news.xml',
+            'https://hot.detik.com/celebs/sitemap_news.xml',
+        ],
+    ],
+
 ];

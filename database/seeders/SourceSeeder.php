@@ -161,6 +161,22 @@ class SourceSeeder extends Seeder
                 'crawl_policy' => ['rate_limit_per_minute' => 20],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
+            [
+                'key' => 'detik',
+                'name' => 'Detik.com',
+                'adapter' => 'detik',
+                'source_type' => SourceType::Rss,
+                // Added for the Motor/Brand Umum/Tokoh Publik categories (6 Sep 2026):
+                // Otomotifnet/Oto.com were researched and rejected (Otomotifnet's comments
+                // depend on Kompas Gramedia's blocked apis.kompas.com; Oto.com's robots.txt
+                // explicitly disallows userReviews). Detik's own native comment API
+                // (apicomment.detik.com/graphql) was reverse-engineered instead — see
+                // docs/superpowers/specs/2026-09-06-detik-adapter-design.md. Seeded
+                // disabled pending a live operator check, same DoD as every other source.
+                'enabled' => false,
+                'crawl_policy' => ['rate_limit_per_minute' => 20],
+                'retention_policy' => ['raw_ttl_hours' => 72],
+            ],
         ];
 
         foreach ($sources as $attributes) {

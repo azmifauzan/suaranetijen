@@ -53,17 +53,22 @@ cross-company dependency on an already-blocked host.
   `content`, `create_date` (nested `child` replies) — the schema also exposes `author`, `liker`,
   `disliker`, `reporter` at both levels, which we never ask for. This is stricter than existing adapters' data-minimization: we control the query,
   so PII fields are never even fetched, not just discarded after extraction.
-- `kanal` (channel id) is a **per-desk constant**, not derived per-article — confirmed by fetching
-  two different articles from the same desk and getting the same `kanal`:
-  - `oto.detik.com/motor` → `1208`
-  - `hot.detik.com/celebs` → `230`
-  - `wolipop.detik.com/fashion` (articles land under `/foto-fashion/`) → `1555`
-  - `wolipop.detik.com/beauty` (articles land under `/makeup-and-skincare/`) → `234`
-  This matters because the article HTML embeds this config in **two different templates** across
-  the network (older inline `CommentComponent({idArtikel: X, kanal: Y, ...})` JS on oto/hot desks,
-  a `<script data-itp-json="comment">{...JSON...}</script>` blob on wolipop) — hardcoding `kanal`
-  per configured desk lets the adapter skip fetching/parsing article HTML entirely and avoids being
-  coupled to either template.
+- `kanal` (channel id) is constant per desk in practice (confirmed by fetching two articles from
+  the same desk and getting the same value — `oto.detik.com/motor` → `1208`, `hot.detik.com/celebs`
+  → `230`, `wolipop.detik.com/fashion` → `1555`, `wolipop.detik.com/beauty` → `234`) but **can't be
+  hardcoded per desk in adapter config**, because of a pipeline constraint found during
+  implementation: `FetchSourceDocumentJob` reconstructs a bare `SourceDocumentRef` from the
+  persisted `SourceDocument` row (external_id, canonical_url, title, published_at only) — it never
+  persists or replays `SourceDocumentRef->metadata`, so anything `discover()` stashes in `metadata`
+  never reaches `fetch()`. `fetch()` only ever gets `{sourceKey, externalId, canonicalUrl, title,
+  publishedAt}`, nothing else — same constraint every existing adapter already lives with.
+  So `fetch()` fetches the article HTML instead (`$ref->canonicalUrl`) purely to regex out `kanal`
+  — `idArtikel` doesn't need it, that's just `$ref->externalId`. The article HTML embeds `kanal` in
+  **two different templates** across the network (older inline
+  `CommentComponent({idArtikel: X, kanal: Y, ...})` JS on oto/hot desks, a
+  `<script data-itp-json="comment">{"kanal": Y, ...}</script>` JSON blob on wolipop) — a single
+  loose regex (`/["']?kanal["']?\s*:\s*(\d+)/`) matches both, since neither template quotes the
+  numeric value itself.
 - `pin`, `dislike` unused fields aside, comment `content` is free text with no
   HTML entities needing special handling beyond the project's existing `TextNormalizer`.
 
@@ -71,12 +76,12 @@ cross-company dependency on an already-blocked host.
 
 Four desks, matching the categories this session found weak:
 
-| Desk | Sitemap | `kanal` | Category helped |
-|---|---|---|---|
-| `oto.detik.com/motor` | `.../motor/sitemap_news.xml` | 1208 | Motor |
-| `wolipop.detik.com/fashion` | `.../fashion/sitemap_news.xml` | 1555 | Brand Umum |
-| `wolipop.detik.com/beauty` | `.../beauty/sitemap_news.xml` | 234 | Brand Umum |
-| `hot.detik.com/celebs` | `.../celebs/sitemap_news.xml` | 230 | Tokoh Publik (Selebriti) |
+| Desk | Sitemap | Category helped |
+|---|---|---|
+| `oto.detik.com/motor` | `.../motor/sitemap_news.xml` | Motor |
+| `wolipop.detik.com/fashion` | `.../fashion/sitemap_news.xml` | Brand Umum |
+| `wolipop.detik.com/beauty` | `.../beauty/sitemap_news.xml` | Brand Umum |
+| `hot.detik.com/celebs` | `.../celebs/sitemap_news.xml` | Tokoh Publik (Selebriti) |
 
 More desks can be added later purely as config (no code change) — same extensibility pattern as
 `SerayaMotorAdapter`'s `forum_ids` / `LowEndTalkAdapter`'s `category_urls`.
@@ -86,22 +91,23 @@ More desks can be added later purely as config (no code change) — same extensi
 - `preflightUrl()`: `https://www.detik.com/` — plain reachability check, matches the
   `MediaKonsumenAdapter`/`MojokAdapter` pattern (no challenge solver needed, everything here is a
   plain HTTP GET/POST).
-- `discover(CrawlCursor $cursor)`: reads `crawl_policy.desks` (list of `{sitemap_url, kanal}`),
-  tracks a `desk_index` cursor field (per `adapters.md`'s rotation rule — **advances every cycle**,
-  not just on empty results, since a news sitemap always has *something* recent; there's no
-  "exhausted" state to detect the way a paginated forum has). Fetches
-  `desks[desk_index].sitemap_url`, parses `<url><loc>` entries (Google News sitemap shape — needs
-  its own XML parsing, `AbstractHttpSourceAdapter::parseFeedDocuments()` only matches `//item |
-  //entry`, not `//url`), builds one `SourceDocumentRef` per article with `externalId` = the
-  numeric id parsed from `/d-(\d+)/` in the URL (override `externalIdFromUrl()`, same as
-  `KaskusAdapter`/`OtomotifnetAdapter`-style overrides elsewhere) and `metadata['kanal']` = the
-  desk's configured constant.
-- `fetch(SourceDocumentRef $ref)`: no HTML fetch. Loops `page = 1..max_comment_pages` (config,
-  default 3, mirrors `YOUTUBE_MAX_COMMENT_PAGES`), POSTs the GraphQL query above with
-  `Origin`/`Referer` headers built from the desk's own hostname, collects all `results` (each with
-  its `child` array flattened in) into one JSON payload, stops early when `page >= total_page`.
-  Stores `{articleId, results: [...]}` as the raw payload — same shape as
-  `YouTubeAdapter::fetch()` (API pagination fully resolved before `extract()` ever runs).
+- `discover(CrawlCursor $cursor)`: reads `crawl_policy.desks` (flat list of sitemap URLs, same
+  shape as `SerayaMotorAdapter`'s `forum_ids`), tracks a `desk_index` cursor field (per
+  `adapters.md`'s rotation rule — **advances every cycle**, not just on empty results, since a news
+  sitemap always has *something* recent; there's no "exhausted" state to detect the way a paginated
+  forum has). Fetches `desks[desk_index]`, parses `<url><loc>` entries (Google News sitemap shape —
+  needs its own XML parsing, `AbstractHttpSourceAdapter::parseFeedDocuments()` only matches
+  `//item | //entry`, not `//url`), builds one `SourceDocumentRef` per article with `externalId` =
+  the numeric id parsed from `/d-(\d+)/` in the URL (override `externalIdFromUrl()`, same as
+  `KaskusAdapter`-style overrides elsewhere).
+- `fetch(SourceDocumentRef $ref)`: GET `$ref->canonicalUrl` (the article page) and regex out
+  `kanal` (see above — needed because `fetch()` never sees `discover()`'s metadata). `idArtikel` is
+  `$ref->externalId`, already parsed. Then loops `page = 1..max_comment_pages` (config, default 3,
+  mirrors `YOUTUBE_MAX_COMMENT_PAGES`), POSTs the GraphQL query above with `Origin`/`Referer`
+  headers built from the article's own hostname, collects all `results` (each with its `child`
+  array flattened in) into one JSON payload, stops early when `page >= total_page`. Stores
+  `{articleId, results: [...]}` as the raw payload — same shape as `YouTubeAdapter::fetch()` (API
+  pagination fully resolved before `extract()` ever runs).
 - `extract(FetchedDocument $doc)`: parse the stored JSON, one `CandidateOpinion` per comment
   (including flattened `child` replies), `externalItemId` = the comment's own `id` (stable across
   re-crawls — avoids the MediaKonsumen-style duplicate-reset problem from re-polling the same
@@ -116,10 +122,10 @@ New `Source` row, `adapter: 'detik'`:
     'rate_limit_per_minute' => 20,
     'max_comment_pages' => 3,
     'desks' => [
-        ['sitemap_url' => 'https://oto.detik.com/motor/sitemap_news.xml', 'kanal' => 1208],
-        ['sitemap_url' => 'https://wolipop.detik.com/fashion/sitemap_news.xml', 'kanal' => 1555],
-        ['sitemap_url' => 'https://wolipop.detik.com/beauty/sitemap_news.xml', 'kanal' => 234],
-        ['sitemap_url' => 'https://hot.detik.com/celebs/sitemap_news.xml', 'kanal' => 230],
+        'https://oto.detik.com/motor/sitemap_news.xml',
+        'https://wolipop.detik.com/fashion/sitemap_news.xml',
+        'https://wolipop.detik.com/beauty/sitemap_news.xml',
+        'https://hot.detik.com/celebs/sitemap_news.xml',
     ],
 ],
 ```
@@ -128,12 +134,14 @@ before backfill).
 
 ## Testing (per `docs/22` — fixtures only, never live network)
 
-- Sanitized fixtures: one Google News sitemap XML (2-3 `<url>` entries), one GraphQL response JSON
+- Sanitized fixtures: one Google News sitemap XML (2-3 `<url>` entries), one article HTML snippet
+  per `kanal` template variant (inline JS and `data-itp-json` JSON blob), one GraphQL response JSON
   (2+ comments including a `child` reply, plus an empty-`hits` case), one malformed/short-payload
   case (missing `content`, null `child`).
 - Unit-test `discover()`'s desk rotation (advances every cycle, wraps at end of list) — same test
   shape as `WaveOneAdapterTest`'s `forum_index` rotation coverage.
 - Unit-test `externalIdFromUrl()` against the `/d-{id}/` pattern.
+- Unit-test the `kanal` regex against both article template fixtures.
 - Unit-test `fetch()`'s pagination stop condition (`page >= total_page`) against a fixture with
   `total_page: 2`.
 - Unit-test `extract()`: comment + nested child both become opinions, empty `content` skipped,

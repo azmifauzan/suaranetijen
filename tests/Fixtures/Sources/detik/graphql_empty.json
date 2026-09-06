@@ -1,0 +1,11 @@
+{
+    "data": {
+        "search": {
+            "paging": {"item": 1, "total_page": 1},
+            "counter": 0,
+            "hits": {
+                "results": []
+            }
+        }
+    }
+}

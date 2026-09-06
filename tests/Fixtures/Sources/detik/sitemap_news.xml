@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+    <url>
+        <loc><![CDATA[https://oto.detik.com/motor/d-8649432/royal-enfield-himalayan-440-meluncur-harga-rp-40-jutaan]]></loc>
+        <news:news>
+            <news:publication>
+                <news:name><![CDATA[detikOto]]></news:name>
+                <news:language><![CDATA[id]]></news:language>
+            </news:publication>
+            <news:publication_date><![CDATA[2026-09-05T10:15:00+00:00]]></news:publication_date>
+            <news:title><![CDATA[Royal Enfield Himalayan 440 Meluncur, Harga Rp 40 Jutaan]]></news:title>
+            <news:keywords><![CDATA[royal enfield,moge]]></news:keywords>
+        </news:news>
+    </url>
+    <url>
+        <loc><![CDATA[https://oto.detik.com/motor/d-8648481/alasan-vinfast-viper-cocok-jadi-motor-listrik-urban-yang-stylish-gesit]]></loc>
+        <news:news>
+            <news:publication>
+                <news:name><![CDATA[detikOto]]></news:name>
+                <news:language><![CDATA[id]]></news:language>
+            </news:publication>
+            <news:publication_date><![CDATA[2026-09-05T08:00:00+00:00]]></news:publication_date>
+            <news:title><![CDATA[Alasan VinFast Viper Cocok Jadi Motor Listrik Urban]]></news:title>
+            <news:keywords><![CDATA[vinfast,motor listrik]]></news:keywords>
+        </news:news>
+    </url>
+</urlset>

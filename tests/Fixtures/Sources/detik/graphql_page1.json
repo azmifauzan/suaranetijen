@@ -1,0 +1,35 @@
+{
+    "data": {
+        "search": {
+            "paging": {"item": 2, "total_page": 2},
+            "counter": 3,
+            "hits": {
+                "results": [
+                    {
+                        "id": "76501710",
+                        "author": "Gigibolong",
+                        "content": "Lain kali, kalo peluncurannya di india, kasih info berapa estimasi harganya setelah pajak di Indo.",
+                        "create_date": "1788581385.0",
+                        "pin": null,
+                        "child": [
+                            {
+                                "id": "76501800",
+                                "author": "Anonim",
+                                "content": "Setuju, estimasi harga penting banget buat pembaca.",
+                                "create_date": "1788582000.0"
+                            }
+                        ]
+                    },
+                    {
+                        "id": "76501711",
+                        "author": "MotorFans99",
+                        "content": "Desainnya keren, semoga cepat masuk Indonesia.",
+                        "create_date": "1788581500.0",
+                        "pin": null,
+                        "child": []
+                    }
+                ]
+            }
+        }
+    }
+}
