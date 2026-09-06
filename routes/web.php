@@ -67,7 +67,11 @@ Route::get('/', function (SearchSuggestionService $searchSuggestionService) {
         ]);
 
     return Inertia::render('Welcome', [
-        'categories' => Category::active()->withCount('entities')->orderBy('name')->get(['id', 'name', 'slug']),
+        'categories' => Category::active()
+            ->whereDoesntHave('children')
+            ->withCount('entities')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug']),
         'searchSuggestions' => $searchSuggestionService->getSuggestions(),
         'topEntities' => $topEntities,
         'recentEntities' => $recentEntities,
