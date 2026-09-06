@@ -103,8 +103,7 @@ class SourceSeeder extends Seeder
                 // Kompas Gramedia network already blocked on kompas.com itself), and
                 // Oto.com's own robots.txt explicitly disallows *userReviews* paths. Same
                 // scoped-subforum pattern as kaskus_politik — reuses KaskusAdapter
-                // unchanged. Seeded disabled pending a live operator check.
-                'enabled' => false,
+                // unchanged. Enabled for live operator check (6 Sep 2026).
                 'crawl_policy' => [
                     'rate_limit_per_minute' => 10,
                     'listing_url' => 'https://www.kaskus.co.id/komunitas/28/otomotif',
@@ -120,8 +119,7 @@ class SourceSeeder extends Seeder
                 // (Wardah, Erigo, Scarlett Whitening, etc.) have near-zero coverage from
                 // the generic YouTube/Kaskus name-search sources. Same scoped-subforum
                 // pattern as kaskus_politik/kaskus_otomotif — reuses KaskusAdapter
-                // unchanged. Seeded disabled pending a live operator check.
-                'enabled' => false,
+                // unchanged. Enabled for live operator check (6 Sep 2026).
                 'crawl_policy' => [
                     'rate_limit_per_minute' => 10,
                     'listing_url' => 'https://www.kaskus.co.id/komunitas/306/fashion',
@@ -171,9 +169,8 @@ class SourceSeeder extends Seeder
                 // depend on Kompas Gramedia's blocked apis.kompas.com; Oto.com's robots.txt
                 // explicitly disallows userReviews). Detik's own native comment API
                 // (apicomment.detik.com/graphql) was reverse-engineered instead — see
-                // docs/superpowers/specs/2026-09-06-detik-adapter-design.md. Seeded
-                // disabled pending a live operator check, same DoD as every other source.
-                'enabled' => false,
+                // docs/superpowers/specs/2026-09-06-detik-adapter-design.md. Enabled for
+                // live operator check (6 Sep 2026).
                 'crawl_policy' => ['rate_limit_per_minute' => 20],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
