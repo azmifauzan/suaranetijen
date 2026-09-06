@@ -222,8 +222,15 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
 
     protected function externalIdFromUrl(string $url): ?string
     {
+        // Kaskus thread IDs used to be purely numeric; current threads use a
+        // 24-character hex ObjectId (e.g. "6a979916e2919ca47207a8da"). A
+        // digits-only pattern here would greedily match just the ID's leading
+        // digit run (e.g. "6") and silently truncate it, colliding every
+        // thread whose ID happens to start with the same digit(s) onto the
+        // same source_items row. Confirmed live against
+        // kaskus.co.id/komunitas/28/otomotif (6 Sep 2026).
         $path = trim((string) parse_url($url, PHP_URL_PATH), '/');
-        if (preg_match('~/thread/([0-9]+)~i', '/'.$path, $matches) === 1) {
+        if (preg_match('~/thread/([0-9a-f]+)~i', '/'.$path, $matches) === 1) {
             return $matches[1];
         }
 

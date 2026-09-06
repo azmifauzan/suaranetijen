@@ -104,6 +104,26 @@ it('runs the KASKUS adapter only when the public page and robots preflight pass'
         ->and($opinions[0]->text)->not->toContain('Promo');
 });
 
+it('extracts the full hex ObjectId thread id instead of truncating it to its leading digits', function () {
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) {
+        return match (true) {
+            str_contains($request->url(), '/komunitas/28/otomotif') => Http::response(
+                '<a href="/thread/6a979916e2919ca47207a8da/cars-and-coffee">Cars and Coffee</a>'
+            ),
+            default => throw new RuntimeException("Unexpected KASKUS request [{$request->url()}]."),
+        };
+    });
+
+    $adapter = new KaskusAdapter;
+    $batch = $adapter->discover(new CrawlCursor('kaskus_otomotif', metadata: [
+        'listing_url' => 'https://www.kaskus.co.id/komunitas/28/otomotif',
+    ]));
+
+    expect($batch->documents)->toHaveCount(1)
+        ->and($batch->documents[0]->externalId)->toBe('6a979916e2919ca47207a8da');
+});
+
 it('rejects a KASKUS thread_url pointing outside the kaskus.co.id host without crawling it', function () {
     Http::preventStrayRequests();
 
