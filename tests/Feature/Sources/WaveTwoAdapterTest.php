@@ -100,8 +100,8 @@ it('runs the KASKUS adapter only when the public page and robots preflight pass'
         ->and($batch->documents[0]->externalId)->toBe('12345')
         ->and($opinions)->toHaveCount(1)
         ->and($opinions[0]->text)->toContain('stabil')
-        ->and($opinions[0]->text)->not->toContain('Pendapat sebelumnya')
-        ->and($opinions[0]->text)->not->toContain('Promo');
+        ->and($opinions[0]->text)->not->toContain('WTS')
+        ->and($opinions[0]->text)->not->toContain('murah');
 });
 
 it('extracts the full hex ObjectId thread id instead of truncating it to its leading digits', function () {

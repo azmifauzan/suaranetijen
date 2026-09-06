@@ -220,16 +220,21 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
         // short/no-space text and get filtered by
         // AbstractHttpSourceAdapter::extractHtmlOpinions()'s single-token
         // guard and the excluded-terms list below.
+        //
+        // Deliberately no `//body`/`//article`/generic fallback here (unlike
+        // every other HTML adapter): confirmed live (6 Sep 2026) that a
+        // fraction of FlareSolverr-routed fetches return the page before the
+        // post list has hydrated (or a WAF-degraded response under load) —
+        // the SSR shell (breadcrumb/title/byline) is present but no
+        // "html-content" nodes exist yet. Falling back to a broad selector
+        // on that shell reproduces the exact whole-page-scrape bug this
+        // fixes. Finding zero opinions on an unhydrated fetch and letting
+        // the next crawl cycle retry is correct; scraping breadcrumb noise
+        // (with a byline that can include a username) is not.
         return $this->extractHtmlOpinions(
             $doc,
             [
                 '//*[contains(@class, "html-content")]',
-                '//*[contains(concat(" ", normalize-space(@class), " "), " post-content ")]',
-                '//*[contains(concat(" ", normalize-space(@class), " "), " post-body ")]',
-                '//*[contains(concat(" ", normalize-space(@class), " "), " post ")]',
-                '//article',
-                '//main',
-                '//body',
             ],
             ['wts', 'jual', 'dijual', 'promo', 'iklan', 'penawaran', 'offer', 'memberi reputasi'],
             ['adapter' => 'kaskus']
