@@ -44,9 +44,43 @@ test('public document shell exposes Indonesian SEO defaults', function () {
 
     expect($response->getContent())
         ->not->toContain('laravel/vue-starter-kit')
-        ->not->toContain('laravel.com/docs/starter-kits');
+        ->not->toContain('laravel.com/docs/starter-kits')
+        ->not->toContain('Laravel');
 
     expect(substr_count($response->getContent(), '<title'))->toBe(1);
+});
+
+test('public document shell exposes SuaraNetijen favicon assets', function () {
+    $response = $this->get('/');
+    $favicon = file_get_contents(public_path('favicon.ico'));
+    $appleTouchIcon = imagecreatefrompng(public_path('apple-touch-icon.png'));
+
+    $response
+        ->assertSee('href="/favicon.ico?v=2"', false)
+        ->assertSee('href="/favicon.svg?v=2"', false)
+        ->assertSee('href="/apple-touch-icon.png?v=2"', false);
+
+    expect($appleTouchIcon)->toBeInstanceOf(GdImage::class);
+
+    $applePixel = imagecolorsforindex($appleTouchIcon, imagecolorat($appleTouchIcon, 30, 30));
+
+    expect($applePixel['green'])
+        ->toBeGreaterThan($applePixel['red'])
+        ->toBeGreaterThan($applePixel['blue']);
+
+    expect($favicon)->toBeString();
+
+    $entryOffset = unpack('V', substr($favicon, 18, 4))[1];
+    $entrySize = unpack('V', substr($favicon, 14, 4))[1];
+    $faviconImage = imagecreatefromstring(substr($favicon, $entryOffset, $entrySize));
+
+    expect($faviconImage)->toBeInstanceOf(GdImage::class);
+
+    $faviconPixel = imagecolorsforindex($faviconImage, imagecolorat($faviconImage, 10, 10));
+
+    expect($faviconPixel['green'])
+        ->toBeGreaterThan($faviconPixel['red'])
+        ->toBeGreaterThan($faviconPixel['blue']);
 });
 
 test('missing Inertia pages render the branded error component', function () {

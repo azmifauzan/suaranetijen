@@ -9,7 +9,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{{ $status }} — {{ $title }} | SuaraNetijen</title>
-        <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+        <link rel="icon" href="{{ asset('favicon.svg') }}?v=2" type="image/svg+xml">
         <style>
             :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
             * { box-sizing: border-box; }
