@@ -133,6 +133,49 @@ class SourceSeeder extends Seeder
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
             [
+                'key' => 'kaskus_bisnis',
+                'name' => 'KASKUS Bisnis',
+                'adapter' => 'kaskus',
+                'source_type' => SourceType::Forum,
+                // Added for the SaaS & Software category (6 Sep 2026): confirmed real
+                // and active via live web search (71.1K threads, 14.7K members) —
+                // small-business owners discussing tools/software (Mekari, Accurate,
+                // Canva, etc.) fits this forum's audience better than a general tech
+                // forum would. MediaKonsumen only had one weak organic hit (Accurate
+                // POS) for this category. Same scoped-subforum pattern as
+                // kaskus_otomotif/kaskus_fashion/kaskus_isp — reuses KaskusAdapter
+                // unchanged. Seeded disabled pending a live operator check, same DoD
+                // gate as every other source.
+                'enabled' => false,
+                'crawl_policy' => [
+                    'rate_limit_per_minute' => 10,
+                    'listing_url' => 'https://www.kaskus.co.id/komunitas/30/bisnis',
+                ],
+                'retention_policy' => ['raw_ttl_hours' => 72],
+            ],
+            [
+                'key' => 'kaskus_kuliner',
+                'name' => 'KASKUS Cooking & Resto Guide',
+                'adapter' => 'kaskus',
+                'source_type' => SourceType::Forum,
+                // Added for the FMCG category (6 Sep 2026): confirmed real and active
+                // via live web search (9.2K threads, 17.5K members) — the weakest fit
+                // of the 5 new Post-MVP-5 categories, since packaged FMCG brands
+                // (Indomie, Mayora, Wings, etc.) rarely draw long-form netizen
+                // opinion the way VPS/phones/cars do (confirmed live: MediaKonsumen
+                // search returned zero real hits for Indomie/Mayora). This is the
+                // closest food-adjacent Kaskus community found, not a confirmed
+                // strong signal — worth a live operator check before trusting it.
+                // Same scoped-subforum pattern as the other Kaskus sources — reuses
+                // KaskusAdapter unchanged. Seeded disabled pending that check.
+                'enabled' => false,
+                'crawl_policy' => [
+                    'rate_limit_per_minute' => 10,
+                    'listing_url' => 'https://www.kaskus.co.id/komunitas/29/cooking--resto-guide',
+                ],
+                'retention_policy' => ['raw_ttl_hours' => 72],
+            ],
+            [
                 'key' => 'kaskus_isp',
                 'name' => 'KASKUS Internet Service & Networking',
                 'adapter' => 'kaskus',
