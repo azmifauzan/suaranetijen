@@ -42,6 +42,10 @@ return [
             'https://wolipop.detik.com/fashion/sitemap_news.xml',
             'https://wolipop.detik.com/beauty/sitemap_news.xml',
             'https://hot.detik.com/celebs/sitemap_news.xml',
+            'https://sport.detik.com/sepakbola/sitemap_news.xml',
+            'https://sport.detik.com/raket/sitemap_news.xml',
+            'https://finance.detik.com/berita-ekonomi-bisnis/sitemap_news.xml',
+            'https://hot.detik.com/music/sitemap_news.xml',
         ],
     ],
 

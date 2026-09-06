@@ -170,7 +170,14 @@ class SourceSeeder extends Seeder
                 // explicitly disallows userReviews). Detik's own native comment API
                 // (apicomment.detik.com/graphql) was reverse-engineered instead — see
                 // docs/superpowers/specs/2026-09-06-detik-adapter-design.md. Enabled for
-                // live operator check (6 Sep 2026).
+                // live operator check (6 Sep 2026). Desk list expanded same day to cover
+                // Atlet/Pengusaha/Kreator Konten (config/sources.php's 'detik.desks'):
+                // sport.detik.com/sepakbola+raket, finance.detik.com/berita-ekonomi-bisnis,
+                // hot.detik.com/music — zero adapter code change, config-only. A live
+                // finance.detik.com/berita-ekonomi-bisnis article ("CT AI Bukan untuk
+                // Gantikan Kreativitas...") confirmed a direct Chairul Tanjung mention.
+                // inet.detik.com/startup was checked and rejected — its sitemap returns
+                // HTTP 200 with an empty body right now.
                 'crawl_policy' => ['rate_limit_per_minute' => 20],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
