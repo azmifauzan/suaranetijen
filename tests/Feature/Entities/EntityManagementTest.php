@@ -24,6 +24,27 @@ test('admin can view entities list with filters', function () {
         );
 });
 
+test('admin can paginate through entities list and customize per page', function () {
+    $admin = User::factory()->admin()->create();
+    Entity::factory()->count(35)->create();
+
+    $this->actingAs($admin)
+        ->get('/admin/entities?page=2&per_page=10')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Admin/Entities/Index')
+            ->has('entities.data', 10)
+            ->where('entities.current_page', 2)
+            ->where('entities.per_page', 10)
+            ->where('entities.total', 35)
+            ->where('entities.last_page', 4)
+            ->where('filters.per_page', 10)
+            ->has('entities.prev_page_url')
+            ->has('entities.next_page_url')
+            ->has('entities.links')
+        );
+});
+
 test('admin can create entity with automatic primary alias', function () {
     $admin = User::factory()->admin()->create();
     $category = Category::factory()->create();

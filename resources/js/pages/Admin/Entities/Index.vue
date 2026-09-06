@@ -15,13 +15,23 @@ interface EntityItem {
     parent?: { id: number; name: string } | null;
 }
 
+interface PaginationLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
 interface PaginatedData<T> {
     data: T[];
     current_page: number;
     last_page: number;
+    per_page: number;
     total: number;
+    from: number | null;
+    to: number | null;
     prev_page_url: string | null;
     next_page_url: string | null;
+    links: PaginationLink[];
 }
 
 const props = defineProps<{
@@ -33,6 +43,7 @@ const props = defineProps<{
         category_id?: number | null;
         type?: string | null;
         status?: string | null;
+        per_page?: number | null;
     };
 }>();
 
@@ -40,6 +51,7 @@ const search = ref(props.filters.search || '');
 const categoryId = ref<number | null>(props.filters.category_id || null);
 const type = ref<string | null>(props.filters.type || null);
 const status = ref<string | null>(props.filters.status || null);
+const perPage = ref<number>(props.filters.per_page || 25);
 
 const showCreateModal = ref(false);
 const newName = ref('');
@@ -49,6 +61,16 @@ const newCategoryId = ref<number | null>(null);
 const newParentId = ref<number | null>(null);
 const newDescription = ref('');
 
+function formatPaginationLabel(label: string): string {
+    if (label.includes('Previous') || label.includes('&laquo;')) {
+        return '← Prev';
+    }
+    if (label.includes('Next') || label.includes('&raquo;')) {
+        return 'Next →';
+    }
+    return label;
+}
+
 function applyFilters() {
     router.get(
         '/admin/entities',
@@ -57,6 +79,7 @@ function applyFilters() {
             category_id: categoryId.value || undefined,
             type: type.value || undefined,
             status: status.value || undefined,
+            per_page: perPage.value !== 25 ? perPage.value : undefined,
         },
         { preserveState: true, replace: true }
     );
@@ -226,6 +249,98 @@ function toggleStatus(entity: EntityItem) {
                     </tr>
                 </tbody>
             </table>
+
+            <!-- Pagination Controls -->
+            <div
+                v-if="entities.total > 0"
+                class="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-neutral-200 px-4 py-3 dark:border-neutral-800 sm:px-6"
+            >
+                <div class="flex flex-wrap items-center gap-4 text-xs text-neutral-500 dark:text-neutral-400">
+                    <div>
+                        Showing
+                        <span class="font-medium text-neutral-900 dark:text-neutral-100">{{ entities.from ?? 0 }}</span>
+                        to
+                        <span class="font-medium text-neutral-900 dark:text-neutral-100">{{ entities.to ?? 0 }}</span>
+                        of
+                        <span class="font-medium text-neutral-900 dark:text-neutral-100">{{ entities.total }}</span>
+                        entities
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span>Per page:</span>
+                        <select
+                            v-model="perPage"
+                            class="rounded border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
+                            @change="applyFilters"
+                        >
+                            <option :value="10">10</option>
+                            <option :value="25">25</option>
+                            <option :value="50">50</option>
+                            <option :value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Pagination navigation links -->
+                <div v-if="entities.last_page > 1" class="flex items-center gap-1">
+                    <!-- Mobile view: Prev / Next buttons -->
+                    <div class="flex items-center justify-between gap-2 sm:hidden w-full">
+                        <Link
+                            v-if="entities.prev_page_url"
+                            :href="entities.prev_page_url"
+                            preserve-scroll
+                            class="rounded-md border border-neutral-300 px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                        >
+                            ← Prev
+                        </Link>
+                        <span
+                            v-else
+                            class="cursor-not-allowed rounded-md border border-neutral-200 px-3 py-1 text-xs text-neutral-400 dark:border-neutral-800 dark:text-neutral-600"
+                        >
+                            ← Prev
+                        </span>
+
+                        <span class="text-xs text-neutral-500">
+                            {{ entities.current_page }} / {{ entities.last_page }}
+                        </span>
+
+                        <Link
+                            v-if="entities.next_page_url"
+                            :href="entities.next_page_url"
+                            preserve-scroll
+                            class="rounded-md border border-neutral-300 px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                        >
+                            Next →
+                        </Link>
+                        <span
+                            v-else
+                            class="cursor-not-allowed rounded-md border border-neutral-200 px-3 py-1 text-xs text-neutral-400 dark:border-neutral-800 dark:text-neutral-600"
+                        >
+                            Next →
+                        </span>
+                    </div>
+
+                    <!-- Desktop view: numbered links -->
+                    <nav aria-label="Pagination" class="hidden sm:flex items-center gap-1">
+                        <template v-for="(link, index) in entities.links" :key="index">
+                            <span
+                                v-if="!link.url"
+                                class="rounded-md border border-neutral-200 px-2.5 py-1 text-xs text-neutral-400 dark:border-neutral-800 dark:text-neutral-600 cursor-not-allowed select-none"
+                                v-html="formatPaginationLabel(link.label)"
+                            />
+                            <Link
+                                v-else
+                                :href="link.url"
+                                preserve-scroll
+                                class="rounded-md border px-2.5 py-1 text-xs font-medium transition"
+                                :class="link.active
+                                    ? 'border-emerald-600 bg-emerald-600 text-white shadow-xs dark:border-emerald-500 dark:bg-emerald-500'
+                                    : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700'"
+                                v-html="formatPaginationLabel(link.label)"
+                            />
+                        </template>
+                    </nav>
+                </div>
+            </div>
         </div>
 
         <!-- Create Entity Modal -->

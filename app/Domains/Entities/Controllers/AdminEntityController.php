@@ -30,6 +30,10 @@ class AdminEntityController extends Controller
         $categoryId = $request->integer('category_id');
         $type = $request->string('type')->trim()->value();
         $status = $request->string('status')->trim()->value();
+        $perPage = $request->integer('per_page', 25);
+        if ($perPage < 5 || $perPage > 100) {
+            $perPage = 25;
+        }
 
         $entities = Entity::query()
             ->with(['category', 'parent'])
@@ -44,7 +48,7 @@ class AdminEntityController extends Controller
             ->when($type !== '', fn ($query) => $query->where('type', $type))
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->orderBy('name')
-            ->paginate(25)
+            ->paginate($perPage)
             ->withQueryString();
 
         $categories = Category::query()->orderBy('name')->get(['id', 'name']);
@@ -59,6 +63,7 @@ class AdminEntityController extends Controller
                 'category_id' => $categoryId > 0 ? $categoryId : null,
                 'type' => $type !== '' ? $type : null,
                 'status' => $status !== '' ? $status : null,
+                'per_page' => $perPage !== 25 ? $perPage : null,
             ],
         ]);
     }
