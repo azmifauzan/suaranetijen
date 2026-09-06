@@ -145,9 +145,9 @@ class SourceSeeder extends Seeder
                 // category still relies on the generic kaskus query-rotation and
                 // MediaKonsumen's organic complaint coverage. Same scoped-subforum
                 // pattern as kaskus_otomotif/kaskus_fashion/kaskus_politik — reuses
-                // KaskusAdapter unchanged. Seeded disabled pending a live operator
-                // check, same DoD gate as every other source.
-                'enabled' => false,
+                // KaskusAdapter unchanged. Enabled after a clean live operator check
+                // (6 Sep 2026): preflight healthy, 35 documents discovered, 0
+                // ingestion_failures.
                 'crawl_policy' => [
                     'rate_limit_per_minute' => 10,
                     'listing_url' => 'https://www.kaskus.co.id/komunitas/183/internet-service-amp-networking',
@@ -221,9 +221,8 @@ class SourceSeeder extends Seeder
                 // native reader comments (real text confirmed live in
                 // .comment-content, e.g. "Thank. Infomu membantu banget..."), though
                 // volume is sparse (0 comments on most articles, ~4 on evergreen
-                // guides). Seeded disabled pending a live operator check, same DoD gate
-                // as every other source added this project.
-                'enabled' => false,
+                // guides). Enabled after a clean live operator check (6 Sep 2026):
+                // preflight healthy, 0 ingestion_failures in the first cycles.
                 'crawl_policy' => ['rate_limit_per_minute' => 20],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
@@ -240,9 +239,9 @@ class SourceSeeder extends Seeder
                 // freshness with no JS execution. Discovery is a 3-level rotation
                 // (alphabet -> brand -> product page) since the site's own sitemap.xml
                 // only ever lists ~4 recently-touched products, not a full catalog —
-                // see FemaleDailyAdapter::discover(). Seeded disabled pending a live
-                // operator check, same DoD gate as every other source.
-                'enabled' => false,
+                // see FemaleDailyAdapter::discover(). Enabled after a clean live
+                // operator check (6 Sep 2026): preflight healthy, real Emina product
+                // URLs discovered correctly, 0 ingestion_failures in the first cycles.
                 'crawl_policy' => ['rate_limit_per_minute' => 20],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
