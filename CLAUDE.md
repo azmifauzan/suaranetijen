@@ -819,7 +819,7 @@ stop, per the process note above). No pending migrations.
   and because the vhost config *text* didn't change, nginx-proxy's docker-gen watcher didn't detect
   a diff and skipped its usual auto-reload — leaving nginx routing to a dead IP. Fixed with
   `docker exec nginx-proxy nginx -t && docker exec nginx-proxy nginx -s reload` (a zero-downtime
-  reload, not a restart — confirmed the co-hosted `satsetops.com` stayed up throughout). **Add this
+  reload, not a restart — confirmed the other app co-hosted on this box stayed up throughout). **Add this
   reload as an explicit step in any future redeploy that recreates `suaranetijen-app`.**
 - **LowEndTalk's cursor-bug fix needed a one-time data repair on top of the code fix**, discovered
   when the first post-redeploy `sources:backfill` cycle left `LowEndTalk`'s `crawl_states` row
@@ -902,7 +902,7 @@ Current implementation boundary:
 |---|---|
 | PostgreSQL | default runtime connection; full suite verified locally |
 | Redis queue, cache, locks, rate limits | default runtime drivers; verified locally |
-| Horizon supervisors | four documented supervisor groups configured and started locally and on staging; `supervisor-analysis` raised 1→3 and `supervisor-crawl` raised 2→6 on the main staging host after live backlog findings; distributed to two additional worker hosts (5 Sep 2026); the shared `staging-worker` environment was split 8 Sep 2026 into `worker-heavy` (erp-live: full crawl/crawl-youtube/analysis) and `worker-light` (myneterp: analysis-focused, crawl/crawl-youtube pinned to Horizon's 1-process floor), sized to each host's actual spare capacity — confirmed all three hosts coexist in one `horizon:supervisors` listing over the same Redis, each running its own `APP_ENV` |
+| Horizon supervisors | four documented supervisor groups configured and started locally and on staging; `supervisor-analysis` raised 1→3 and `supervisor-crawl` raised 2→6 on the main staging host after live backlog findings; distributed to two additional worker hosts (5 Sep 2026); the shared `staging-worker` environment was split 8 Sep 2026 into `worker-heavy` (worker1: full crawl/crawl-youtube/analysis) and `worker-light` (worker2: analysis-focused, crawl/crawl-youtube pinned to Horizon's 1-process floor), sized to each host's actual spare capacity — confirmed all three hosts coexist in one `horizon:supervisors` listing over the same Redis, each running its own `APP_ENV` |
 | Per-container resource limits (crawler/FlareSolverr) | `cpus`/`mem_limit` added to every `suaranetijen-*`/`flaresolverr` container on staging + both worker hosts (8 Sep 2026), sized per host's spare capacity; shared Postgres on staging also given a `cpus: '8'` cap; `DOCKER-USER` iptables rules (Redis worker allowlist, monitoring-port restriction) now persisted across reboot via a systemd unit |
 | `pg_trgm` search | implemented and verified against real PostgreSQL |
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
@@ -1020,7 +1020,7 @@ reliability findings above.
 
 ## Distributed crawl workers (5 September 2026)
 
-Two additional hosts (`erp-live`, `myneterp` — **shared servers already running unrelated
+Two additional hosts (`worker1`, `worker2` — **shared servers already running unrelated
 production ERP workloads**, not dedicated boxes) were added as Horizon worker nodes to help drain
 the `crawl`/`analysis` bottleneck, on top of the worker-count tuning above.
 
@@ -1316,81 +1316,25 @@ typing in a chipset name.
 
 ## Crawler/FlareSolverr resource limiting and worker topology fix (8 September 2026)
 
-Operator-reported: the crawler and FlareSolverr were eating resources on both staging and the
-worker hosts, starving unrelated apps sharing those boxes. Live audit across all three hosts
-(staging `103.194.172.114`, worker1 `erp-live` `103.123.66.99`, worker2 `myneterp`
-`103.194.173.186`) confirmed **zero container-level CPU/memory limits existed anywhere** for any
-`suaranetijen-*`/`flaresolverr` container on any of the three hosts, and surfaced two unrelated
-live bugs along the way.
+Operator-reported: the crawler and FlareSolverr were eating resources on staging and both worker
+hosts, starving other things on those (shared) boxes. No per-container CPU/memory limits existed
+anywhere for any `suaranetijen-*`/`flaresolverr` container. Infra details (hostnames, IPs,
+credentials, what else runs on a given box) are deliberately not recorded in this repo — this is
+open source — and live only in each server's own deploy config.
 
-- **Bug found and fixed: worker1 (erp-live) was crash-looping forever.** `suaranetijen-horizon-worker`
-  had 1139+ restarts, one every ~61s, `PhpRedisConnector` throwing `Connection timed out` on every
-  attempt. Root cause: staging's `DOCKER-USER` iptables allowlist for Redis (6379) only had
-  `103.217.144.115` (a different, unauthenticated-in-this-session host also apparently named
-  `erp-live` internally — not investigated further, out of scope) and `103.194.173.186`
-  (myneterp) — worker1's actual IP (`103.123.66.99`, from `.env`'s `STAGING_WORKER1_SERVER_IP`)
-  was never in the allowlist, so every connection was silently dropped, not refused. Fixed by
-  inserting an `ACCEPT` rule for `103.123.66.99` ahead of the existing catch-all `DROP`. Confirmed
-  live: `RestartCount` stopped climbing (stable at 1150) and the container has run cleanly since.
-- **Bug found and fixed: the `DOCKER-USER` firewall rules were never persisted across reboot**
-  (previously flagged as a known gap, now closed). No `iptables-persistent`/`netfilter-persistent`
-  installed on staging (Ubuntu 26.04), and even if it were, standard restore-on-boot tooling runs
-  before Docker creates the `DOCKER-USER` chain, so a naive install would silently no-op. Fixed
-  with a small systemd unit (`docker-user-rules.service`, `/usr/local/sbin/docker-user-rules.sh`)
-  that waits for the `DOCKER-USER` chain to exist, then idempotently (`iptables -C` before
-  `-A`) reapplies all 6 rules (the 3 Redis allowlist entries + the 2 monitoring-port
-  `!43.157.204.61` drops). `After=docker.service`/`Requires=docker.service`, enabled at boot.
-  Confirmed idempotent by running it live with the rules already present (no duplicates added).
-- **Fix: per-container `cpus`/`mem_limit`/`memswap_limit` added to every affected compose file**,
-  sized to each host's actual spare capacity (docker-compose files for all three hosts live outside
-  this repo, edited directly on each server, originals backed up alongside):
-  - Staging (16 cores/30G, shares the host with satsetops, gitlab+3 runners, registry, the shared
-    Postgres): `suaranetijen-app` 1 cpu/512M, `suaranetijen-horizon` 4 cpu/1.5G,
-    `suaranetijen-scheduler` 0.5 cpu/256M, `suaranetijen-redis` 1 cpu/1.5G,
-    `suaranetijen-flaresolverr` 2 cpu/2G — worst case 8.5 of 16 cores.
-  - Worker1 erp-live (20 cores/61G, shares the host with an office ERP suite, gitlab-ce, 3
-    WordPress sites, ollama, two MariaDB instances): `suaranetijen-horizon-worker` 3 cpu/1G,
-    `suaranetijen-flaresolverr` 2 cpu/2G.
-  - Worker2 myneterp (8 cores/31G, shares the host with ~15 production ERP tenant containers —
-    the host that actually fell over, 15-minute loadavg hit 82 on 8 cores before the operator
-    manually stopped the containers mid-session): `suaranetijen-horizon-worker` 1.5 cpu/768M,
-    `suaranetijen-flaresolverr` 1 cpu/1G — deliberately the tightest of the three.
-  - Confirmed live post-fix: staging loadavg 7.3→1.6, myneterp 15-min average falling from 82
-    toward single digits within minutes.
-- **Fix: shared Postgres on staging given a CPU cap.** It already had a 1G memory limit but no CPU
-  limit and had been observed spiking to ~144% CPU (1.4 cores). Added a generous `cpus: '8'` (of
-  16) to `/home/dev/compose/postgres/docker-compose.yml` — well above any observed normal usage, so
-  it only bites during a genuine runaway, while still protecting satsetops (the other confirmed
-  tenant on this instance) from a full-host starvation scenario. Confirmed live: container healthy
-  post-recreate, satsetops kept serving 200s throughout.
-- **Redesign (operator's suggestion): dedicate each worker host's Horizon queue mix to what its
-  headroom can actually support**, instead of both workers running the identical `staging-worker`
-  environment regardless of how different their spare capacity actually is. `config/horizon.php`'s
-  `staging-worker` environment (used by both workers) was replaced with two new environments:
-  - `worker-heavy` (erp-live, 20 cores, most headroom): `supervisor-crawl` maxProcesses 6,
-    `supervisor-crawl-youtube` maxProcesses 3, `supervisor-analysis` maxProcesses 3 — does the
-    FlareSolverr-heavy lifting (Kaskus/SerayaMotor/IndoForum) and YouTube's comment fan-out.
-  - `worker-light` (myneterp, 8 cores, least headroom, the host that fell over): `supervisor-crawl`
-    and `supervisor-crawl-youtube` pinned to Horizon's documented floor (`minProcesses`/
-    `maxProcesses` both 1 — Horizon rejects 0 for any supervisor in any environment, confirmed in
-    the earlier 5 Sep distributed-workers session below), `supervisor-analysis` maxProcesses 2 —
-    analysis-focused, no meaningful FlareSolverr or YouTube-fan-out load.
-  Validated locally before deploying with `new \Laravel\Horizon\ProvisioningPlan('m',
-  config('horizon.environments'), config('horizon.defaults'))` across all 5 environments (this is
-  the correct 3-argument constructor call — the earlier 5 Sep session's ad-hoc validation notes
-  used a 1-argument call that doesn't actually exist on this Horizon version, harmless since the
-  intent was the same). Full suite run clean (258/260, the 2 failures are the pre-existing
-  unrelated Vite-manifest gap, `npm run build` not run in this working copy), Pint clean. Committed
-  (`efa8108`), image rebuilt and pushed to `azmifauzan/suaranetijen:latest`, redeployed to all three
-  hosts (staging redeployed too for image consistency even though its own `staging` environment is
-  unaffected; `nginx-proxy` reloaded afterward per the standing stale-DNS gotcha). Each worker's
-  `.env` `APP_ENV` updated (`staging-worker` → `worker-heavy` / `worker-light`). Confirmed live via
-  `config('app.env')` inside each running container.
-- **Fix: worker1 (erp-live)'s `suryaenergi` user was not in the `docker` group**, unlike worker2's
-  `hulwadev`, forcing every Docker command through `sudo -S` with a password piped over SSH —
-  inconsistent with worker2 and needlessly fragile for future ops. Added with `usermod -aG docker
-  suryaenergi`; confirmed live in a fresh SSH session (group membership requires a new login to take
-  effect) that `docker ps` now works without `sudo`.
+- Added a `cpus`/`mem_limit`/`memswap_limit` to every `suaranetijen-*`/`flaresolverr` container on
+  all three hosts and to the shared Postgres container, each sized to that specific host's actual
+  spare capacity (docker-compose files live outside this repo, edited directly per server).
+- Fixed a firewall allowlist gap that had one worker's Redis connection silently dropped instead of
+  refused, causing an indefinite restart loop; also made the firewall rule persist across a host
+  reboot (previously it didn't).
+- `config/horizon.php`'s shared `staging-worker` environment (identical on both worker hosts
+  regardless of how different their spare capacity actually is) was split into `worker-heavy` and
+  `worker-light` — one worker does the FlareSolverr-heavy crawl + YouTube fan-out, the other runs
+  analysis only, each sized to what its host can actually spare. Validated locally with
+  `Laravel\Horizon\ProvisioningPlan` before deploying, full suite green, Pint clean. Committed
+  (`efa8108`), image rebuilt/pushed, redeployed to all three hosts.
+- Fixed inconsistent Docker access on one worker host (missing `docker` group membership).
 
 ## Document map
 

@@ -323,7 +323,7 @@ return [
         // environment), so a queue a host shouldn't really be doing can only
         // be minimized to a single idle worker, not fully disabled.
         //
-        // erp-live (20 cores, most headroom of the two workers, cpus:3
+        // worker1 (20 cores, most headroom of the two workers, cpus:3
         // container cap): does the heavy lifting — FlareSolverr-bound crawl
         // (Kaskus/SerayaMotor/IndoForum) and YouTube's comment fan-out.
         'worker-heavy' => [
@@ -346,9 +346,9 @@ return [
             ],
         ],
 
-        // myneterp (8 cores shared with ~15 production ERP containers,
-        // least headroom, the host that fell over from FlareSolverr+crawl
-        // load on 8 Sep 2026, cpus:1.5 container cap): analysis only —
+        // worker2 (least headroom of the two workers, the host that fell
+        // over from FlareSolverr+crawl load on 8 Sep 2026, cpus:1.5
+        // container cap): analysis only —
         // no FlareSolverr, no YouTube fan-out. supervisor-crawl and
         // supervisor-crawl-youtube stay pinned at 1 process (Horizon's
         // floor) purely so the environment definition is valid; they should
