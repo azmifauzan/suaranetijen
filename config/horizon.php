@@ -311,23 +311,60 @@ return [
             'supervisor-maintenance' => [],
         ],
 
-        // Distributed crawl workers (5 Sep 2026): dedicated hosts that mainly
-        // help drain the crawl/analysis bottleneck — they don't serve web
-        // traffic or run the scheduler. Same Redis/DB as staging, just a
-        // different APP_ENV so Horizon gives them their own worker
-        // allocation instead of the main host's. Horizon requires
+        // Distributed crawl workers (5 Sep 2026), split by host headroom
+        // (8 Sep 2026): they don't serve web traffic or run the scheduler,
+        // and each container is docker-capped to a `cpus` budget sized to
+        // what its shared host can actually spare (see docker-compose.yml
+        // on each worker) — the maxProcesses below are sized to not
+        // massively oversubscribe that cpus cap. Horizon requires
         // minProcesses >= 1 for every supervisor in every environment (0 is
         // rejected at boot — confirmed live, it crash-loops Horizon on
         // *every* host reading this file, not just the one selecting this
-        // environment), so supervisor-critical/maintenance can only be
-        // minimized to a single idle worker here, not fully disabled.
-        'staging-worker' => [
+        // environment), so a queue a host shouldn't really be doing can only
+        // be minimized to a single idle worker, not fully disabled.
+        //
+        // erp-live (20 cores, most headroom of the two workers, cpus:3
+        // container cap): does the heavy lifting — FlareSolverr-bound crawl
+        // (Kaskus/SerayaMotor/IndoForum) and YouTube's comment fan-out.
+        'worker-heavy' => [
             'supervisor-critical' => [
                 'minProcesses' => 1,
                 'maxProcesses' => 1,
             ],
             'supervisor-crawl' => [
-                'maxProcesses' => 4,
+                'maxProcesses' => 6,
+            ],
+            'supervisor-crawl-youtube' => [
+                'maxProcesses' => 3,
+            ],
+            'supervisor-analysis' => [
+                'maxProcesses' => 3,
+            ],
+            'supervisor-maintenance' => [
+                'minProcesses' => 1,
+                'maxProcesses' => 1,
+            ],
+        ],
+
+        // myneterp (8 cores shared with ~15 production ERP containers,
+        // least headroom, the host that fell over from FlareSolverr+crawl
+        // load on 8 Sep 2026, cpus:1.5 container cap): analysis only —
+        // no FlareSolverr, no YouTube fan-out. supervisor-crawl and
+        // supervisor-crawl-youtube stay pinned at 1 process (Horizon's
+        // floor) purely so the environment definition is valid; they should
+        // sit idle almost all the time.
+        'worker-light' => [
+            'supervisor-critical' => [
+                'minProcesses' => 1,
+                'maxProcesses' => 1,
+            ],
+            'supervisor-crawl' => [
+                'minProcesses' => 1,
+                'maxProcesses' => 1,
+            ],
+            'supervisor-crawl-youtube' => [
+                'minProcesses' => 1,
+                'maxProcesses' => 1,
             ],
             'supervisor-analysis' => [
                 'maxProcesses' => 2,
