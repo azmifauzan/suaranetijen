@@ -56,6 +56,18 @@ return [
             'https://sport.detik.com/raket/sitemap_news.xml',
             'https://finance.detik.com/berita-ekonomi-bisnis/sitemap_news.xml',
             'https://hot.detik.com/music/sitemap_news.xml',
+            // Remaining subdomains added 8 Sep 2026 (live robots.txt + sitemap
+            // freshness check — see docs/superpowers/specs/2026-09-06-detik-adapter-design.md
+            // for the pattern this follows). 20.detik.com (pure video, its
+            // /video/ and /detailvideo/ paths are robots-disallowed) and
+            // foto.detik.com (sitemap_news.xml frozen since Jan 2018, dead;
+            // */komentar$ also disallowed) were checked and excluded.
+            'https://news.detik.com/berita/sitemap_news.xml',
+            'https://inet.detik.com/gadget/sitemap_news.xml',
+            'https://inet.detik.com/consumer/sitemap_news.xml',
+            'https://travel.detik.com/travel-news/sitemap_news.xml',
+            'https://food.detik.com/kabar-kuliner/sitemap_news.xml',
+            'https://health.detik.com/berita-detikhealth/sitemap_news.xml',
         ],
     ],
 
