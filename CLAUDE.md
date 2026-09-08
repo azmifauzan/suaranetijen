@@ -1194,7 +1194,7 @@ live and fixed.
   same-request duplicate — that normalizes the same. Regression test added
   (`AdminEntityCandidatesTest.php`).
 - **First live LLM connectivity + `entities:scan-candidates` run, real credentials
-  (`https://ai.sumopod.com`, `qwen3.7-flash-2026-07-15`)**: raw `/chat/completions` call returns
+  (configured OpenAI-compatible provider)**: raw `/chat/completions` call returns
   200 with a real completion (confirmed the model also returns a `reasoning_content` field
   alongside `content` — `LlmClient` only reads `choices.0.message.content`, so this is harmless,
   just worth knowing if debugging why a response "looks empty" when tested with a non-JSON prompt,
