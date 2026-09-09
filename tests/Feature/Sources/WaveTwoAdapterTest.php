@@ -296,9 +296,14 @@ it('routes KASKUS discovery through FlareSolverr when configured, instead of req
             return Http::response("User-agent: *\nAllow: /\n");
         }
 
+        if ($request->url() === 'http://flaresolverr:8191/v1' && $request->method() === 'POST' && $request['cmd'] === 'sessions.create') {
+            return Http::response(['status' => 'ok', 'session' => $request['session']]);
+        }
+
         if ($request->url() === 'http://flaresolverr:8191/v1' && $request->method() === 'POST') {
             expect($request['cmd'])->toBe('request.get')
-                ->and($request['url'])->toContain('/search');
+                ->and($request['url'])->toContain('/search')
+                ->and($request['session'])->not->toBeEmpty();
 
             return Http::response([
                 'status' => 'ok',

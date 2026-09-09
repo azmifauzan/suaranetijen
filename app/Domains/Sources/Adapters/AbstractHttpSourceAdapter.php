@@ -15,6 +15,7 @@ use DOMNode;
 use DOMXPath;
 use GuzzleHttp\Psr7\Response as Psr7Response;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 use Throwable;
@@ -117,17 +118,29 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
      * no changes: FlareSolverr's own HTTP status is always 200 (a JSON
      * envelope) — the target page's real status/body live in solution.*.
      *
+     * Reuses one FlareSolverr browser session per target host instead of
+     * issuing a bare 'request.get' every call: solving a Cloudflare
+     * challenge from scratch on every single fetch is what made a
+     * high-volume source (hundreds of thread fetches per crawl cycle) time
+     * out most of the time under load, even with capacity to spare — a
+     * session's clearance cookies cover every subsequent request until it
+     * expires.
+     *
      * @param  array<string, mixed>  $query
      */
     private function requestViaFlareSolverr(string $url, array $query, string $flareSolverrUrl): Response
     {
         $targetUrl = $query === [] ? $url : $url.(str_contains($url, '?') ? '&' : '?').http_build_query($query);
+        $sessionId = $this->flareSolverrSessionId($targetUrl);
+        $maxTimeout = (int) config('services.flaresolverr.max_timeout_ms', 60000);
 
-        $envelope = Http::timeout(90)->post(rtrim($flareSolverrUrl, '/').'/v1', [
-            'cmd' => 'request.get',
-            'url' => $targetUrl,
-            'maxTimeout' => (int) config('services.flaresolverr.max_timeout_ms', 60000),
-        ]);
+        $this->ensureFlareSolverrSession($flareSolverrUrl, $sessionId);
+        $envelope = $this->postFlareSolverrRequest($flareSolverrUrl, $targetUrl, $sessionId, $maxTimeout);
+
+        if ($this->flareSolverrSessionMissing($envelope)) {
+            $this->ensureFlareSolverrSession($flareSolverrUrl, $sessionId, forceRecreate: true);
+            $envelope = $this->postFlareSolverrRequest($flareSolverrUrl, $targetUrl, $sessionId, $maxTimeout);
+        }
 
         $solution = (array) $envelope->json('solution', []);
 
@@ -136,6 +149,52 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
             [],
             (string) ($solution['response'] ?? '')
         ));
+    }
+
+    private function flareSolverrSessionId(string $targetUrl): string
+    {
+        return 'src-'.substr(md5((string) parse_url($targetUrl, PHP_URL_HOST)), 0, 16);
+    }
+
+    /**
+     * Best-effort: a failure here just means the next request.get falls
+     * back to solving its own challenge from scratch, same as before this
+     * session-reuse existed — never worth failing the caller over.
+     */
+    private function ensureFlareSolverrSession(string $flareSolverrUrl, string $sessionId, bool $forceRecreate = false): void
+    {
+        $cacheKey = "flaresolverr:session:{$sessionId}";
+
+        if (! $forceRecreate && Cache::has($cacheKey)) {
+            return;
+        }
+
+        try {
+            Http::timeout(30)->post(rtrim($flareSolverrUrl, '/').'/v1', [
+                'cmd' => 'sessions.create',
+                'session' => $sessionId,
+            ]);
+        } catch (Throwable) {
+            return;
+        }
+
+        Cache::put($cacheKey, true, now()->addMinutes(25));
+    }
+
+    private function postFlareSolverrRequest(string $flareSolverrUrl, string $targetUrl, string $sessionId, int $maxTimeout): Response
+    {
+        return Http::timeout(90)->post(rtrim($flareSolverrUrl, '/').'/v1', [
+            'cmd' => 'request.get',
+            'url' => $targetUrl,
+            'session' => $sessionId,
+            'maxTimeout' => $maxTimeout,
+        ]);
+    }
+
+    private function flareSolverrSessionMissing(Response $envelope): bool
+    {
+        return $envelope->json('status') === 'error'
+            && str_contains((string) $envelope->json('message'), 'session');
     }
 
     protected function fetchHttpDocument(SourceDocumentRef $ref): FetchedDocument
