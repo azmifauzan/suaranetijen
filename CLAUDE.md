@@ -1336,6 +1336,42 @@ open source — and live only in each server's own deploy config.
   (`efa8108`), image rebuilt/pushed, redeployed to all three hosts.
 - Fixed inconsistent Docker access on one worker host (missing `docker` group membership).
 
+## Prod 500 incident: `suaranetijen-redis` OOM crash-loop (14 September 2026)
+
+Reported: `/` and every `/e/{slug}` route on the public site returning 500 (APP_DEBUG=false, so a
+generic error page — `/up` still returned 200, meaning the app booted fine, only requests needing
+a session/cache dependency failed).
+
+- **Root cause:** `suaranetijen-redis`'s in-memory dataset had grown to ~5.6GB (`RDB memory usage
+  when created 5647.68 Mb` in its own startup log), but its container `mem_limit` was left at
+  `1536m` in the main host's `docker-compose.yml` — a stale value from the 8 September
+  resource-limiting session in the note above. A separate live `docker update --memory 4g` hotfix
+  had been applied on top at some point (matching the "live hot-patch not yet baked into the
+  compose file" gap already flagged elsewhere in this doc) but even that wasn't enough headroom,
+  and none of it was reflected in the compose file — so redis crash-looped on every RDB load
+  (~20s per attempt, thousands of restarts), and every request whose session middleware needed a
+  Redis round-trip died with `RedisException: read error on connection to
+  suaranetijen-redis:6379`, confirmed by reproducing the exact exception via `php artisan tinker`
+  on the app container. Laravel's own exception log (`storage/logs/laravel.log`) had nothing from
+  today — the failure mode isn't being captured by the app's normal exception logging, a gap worth
+  revisiting (check `LOG_CHANNEL` behavior under this kind of infra-level dependency failure).
+- **Fix:** raised `suaranetijen-redis`'s memory limit live (`docker update --memory 8g
+  --memory-swap 8g`, confirmed via `docker inspect`) to stop the crash-loop immediately — redis
+  finished loading its RDB (`Done loading RDB, keys loaded: 190052`) and started accepting
+  connections again, then confirmed `/` and `/e/kopi-kenangan` both back to 200. **Also fixed the
+  compose file itself** (`mem_limit`/`memswap_limit` 1536m → 8g, backed up the original first) so
+  the correct limit survives a future `--force-recreate` instead of silently reverting, closing
+  the exact "hot-patch not persisted" gap that caused this incident in the first place.
+- **Not yet investigated:** why the crash didn't show up in `monitor:metrics` or get caught before
+  a user/crawler-bot report — this class of failure (a dependency container OOM-looping, app
+  container itself healthy) isn't one of the signals `CheckSystemMetricsCommand` currently checks;
+  worth adding a Redis-reachability check there. Also worth setting up alerting on container
+  restart counts generally, since `RestartCount` on `suaranetijen-redis` was in the thousands by
+  the time this was caught.
+- Server hostnames/IPs/credentials for this incident are intentionally not recorded here — see the
+  standing "infra details live outside this repo" note; they're in the operator's local, gitignored
+  `.env`.
+
 ## Document map
 
 | File | Purpose |

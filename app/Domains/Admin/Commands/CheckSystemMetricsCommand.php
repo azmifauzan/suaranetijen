@@ -10,6 +10,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 
 class CheckSystemMetricsCommand extends Command
 {
@@ -36,6 +37,19 @@ class CheckSystemMetricsCommand extends Command
         $metrics = [];
         $now = CarbonImmutable::now();
         $oneDayAgo = $now->subDay();
+
+        // 0. Redis reachability (session/cache/queue all depend on it — an outage here
+        // takes down the public site and silently stalls every scheduled crawl job).
+        $redisLatencyMs = null;
+        try {
+            $start = microtime(true);
+            Redis::connection()->ping();
+            $redisLatencyMs = round((microtime(true) - $start) * 1000, 1);
+            $metrics[] = ['Redis Reachability', "OK ({$redisLatencyMs}ms)"];
+        } catch (\Throwable $e) {
+            $metrics[] = ['Redis Reachability', 'UNREACHABLE'];
+            $alerts[] = "Redis unreachable: {$e->getMessage()}";
+        }
 
         // 1. Queue depth and age
         $queueDepth = 0;

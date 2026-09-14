@@ -12,6 +12,7 @@ use App\Domains\Sources\Models\SourceDocument;
 use App\Domains\Sources\Models\SourceItem;
 use App\Models\User;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Redis;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('admin can view sources and toggle kill switch', function () {
@@ -194,4 +195,15 @@ test('backup and monitor metrics commands execute successfully', function () {
 
     $this->artisan('monitor:metrics')
         ->assertExitCode(0);
+});
+
+test('monitor metrics flags unreachable redis as a breach without crashing', function () {
+    Redis::shouldReceive('connection')
+        ->andThrow(new RuntimeException('read error on connection to suaranetijen-redis:6379'));
+
+    $this->artisan('monitor:metrics')
+        ->assertExitCode(0);
+
+    $this->artisan('monitor:metrics', ['--fail-on-breach' => true])
+        ->assertExitCode(1);
 });
