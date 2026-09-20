@@ -48,7 +48,7 @@ class SumopodService
 
             $errorMsg = $response->json('message') ?? 'Unknown error';
 
-            throw new RuntimeException("Gagal membuat payment link Sumopod: {$errorMsg}");
+            throw new RuntimeException("Gagal membuat link pembayaran: {$errorMsg}");
         }
 
         $data = $response->json();
@@ -59,7 +59,7 @@ class SumopodService
                 'order_id' => $params['order_id'],
             ]);
 
-            throw new RuntimeException('Respons payment Sumopod tidak valid.');
+            throw new RuntimeException('Respons pembayaran tidak valid.');
         }
 
         return [

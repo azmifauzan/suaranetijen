@@ -171,8 +171,23 @@ test('homepage includes sponsor teaser with active board data', function () {
         ->assertInertia(fn ($page) => $page
             ->component('Welcome')
             ->has('sponsorTeaser')
+            ->where('sponsorTeaser.is_empty', false)
             ->where('sponsorTeaser.top_entry.name', $entity->name)
             ->where('sponsorTeaser.total_settled_amount', 80000)
+        );
+});
+
+test('homepage sponsor teaser still renders an invite when the board is empty', function () {
+    // No SponsoredEntry rows at all — the board must still surface a payload so the frontend
+    // can show an empty-state invite instead of hiding the feature entirely (docs/26): with no
+    // sponsor ever shown, nobody would discover the feature exists to become the first one.
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Welcome')
+            ->has('sponsorTeaser')
+            ->where('sponsorTeaser.is_empty', true)
+            ->where('sponsorTeaser.top_entries', [])
         );
 });
 

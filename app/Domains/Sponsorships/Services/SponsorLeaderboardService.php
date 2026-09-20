@@ -271,14 +271,16 @@ class SponsorLeaderboardService
      *
      * @return array<string, mixed>|null
      */
-    public function getHomepageTeaser(int $limit = 3): ?array
+    /**
+     * Always returns a payload, even with an empty board — an empty board still needs to
+     * invite the *first* sponsor (docs/26), not disappear until one already exists.
+     *
+     * @return array<string, mixed>
+     */
+    public function getHomepageTeaser(int $limit = 3): array
     {
         $period = $this->getActivePeriod();
         $leaderboard = $this->getLeaderboard($period, $limit);
-
-        if ($leaderboard->isEmpty()) {
-            return null;
-        }
 
         $totalAmount = (int) SponsoredEntry::query()
             ->where('period_id', $period->id)
@@ -289,6 +291,7 @@ class SponsorLeaderboardService
             'period_key' => $period->key,
             'period_name' => $period->name,
             'total_settled_amount' => $totalAmount,
+            'is_empty' => $leaderboard->isEmpty(),
             'top_entry' => $leaderboard->first(),
             'top_entries' => $leaderboard->all(),
         ];

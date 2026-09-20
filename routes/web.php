@@ -15,6 +15,7 @@ use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Domains\Sentiment\Services\ScoreCalculator;
 use App\Domains\Sponsorships\Controllers\Api\SponsorLeaderboardController;
 use App\Domains\Sponsorships\Controllers\Api\SponsorshipOrderController;
+use App\Domains\Sponsorships\Controllers\Api\SponsorUrlPreviewController;
 use App\Domains\Sponsorships\Controllers\Api\SumopodRelayWebhookController;
 use App\Domains\Sponsorships\Controllers\SponsorBoardPageController;
 use App\Domains\Sponsorships\Services\SponsorLeaderboardService;
@@ -86,6 +87,9 @@ Route::get('/', function (SearchSuggestionService $searchSuggestionService, Spon
 
 Route::get('/sponsor', [SponsorBoardPageController::class, 'index'])->name('sponsor.index');
 Route::get('/api/sponsor/leaderboard', [SponsorLeaderboardController::class, 'index'])->name('api.sponsor.leaderboard');
+Route::post('/api/sponsor/preview', SponsorUrlPreviewController::class)
+    ->middleware('throttle:20,1')
+    ->name('api.sponsor.preview');
 Route::post('/api/sponsor/webhooks/sumopod-relay', [SumopodRelayWebhookController::class, 'handle'])
     ->middleware('throttle:120,1')
     ->name('api.sponsor.webhooks.relay');

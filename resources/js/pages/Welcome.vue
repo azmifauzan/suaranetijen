@@ -68,6 +68,7 @@ interface SponsorTeaser {
     period_key: string;
     period_name: string;
     total_settled_amount: number;
+    is_empty: boolean;
     top_entry?: {
         name: string;
         settled_total_amount: number;
@@ -187,7 +188,7 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
 
                     <!-- Papan Sponsor Homepage Teaser (docs/26) -->
                     <div
-                        v-if="sponsorTeaser && sponsorTeaser.top_entries && sponsorTeaser.top_entries.length > 0"
+                        v-if="sponsorTeaser && !sponsorTeaser.is_empty"
                         class="mx-auto mt-6 max-w-2xl rounded-2xl border border-[#ecdabf] bg-gradient-to-r from-[#fffaf0] via-[#fffdf9] to-[#fff8eb] p-4 text-left shadow-sm"
                     >
                         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#f1dfc5] pb-2.5 text-xs">
@@ -225,6 +226,25 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                             </Link>
                         </div>
                     </div>
+
+                    <!-- Empty-board invite: the board must not simply disappear before anyone
+                         has ever sponsored — that's how nobody discovers the feature exists. -->
+                    <Link
+                        v-else-if="sponsorTeaser && sponsorTeaser.is_empty"
+                        :href="sponsorPage()"
+                        class="mx-auto mt-6 flex max-w-2xl items-center justify-between gap-3 rounded-2xl border border-dashed border-[#ecdabf] bg-[#fffaf0] p-4 text-left shadow-sm transition hover:border-[#d97706] hover:bg-[#fff6e6]"
+                    >
+                        <div class="flex items-center gap-2 text-xs">
+                            <Trophy class="size-4 shrink-0 text-[#d97706]" />
+                            <span class="text-[#856b47]">
+                                <span class="font-bold text-[#92400e]">Papan Sponsor masih kosong.</span>
+                                Jadi brand, produk, atau layanan pertama yang tampil di sini.
+                            </span>
+                        </div>
+                        <span class="flex shrink-0 items-center gap-1 text-xs font-bold text-[#b45309]">
+                            Sponsori sekarang <ArrowRight class="size-3.5" />
+                        </span>
+                    </Link>
 
                     <div
                         class="mt-5 flex flex-wrap items-center justify-center gap-2 text-xs text-[#667861]"

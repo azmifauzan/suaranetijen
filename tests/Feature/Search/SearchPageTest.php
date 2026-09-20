@@ -24,8 +24,19 @@ test('search page includes the sponsor leaderboard teaser, separate from search 
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Search/Index')
+            ->where('sponsorTeaser.is_empty', false)
             ->where('sponsorTeaser.top_entry.name', $entity->name)
             ->where('sponsorTeaser.total_settled_amount', 70000)
+        );
+});
+
+test('search page sponsor teaser still renders an invite when the board is empty', function () {
+    $this->get('/search')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Search/Index')
+            ->where('sponsorTeaser.is_empty', true)
+            ->where('sponsorTeaser.top_entries', [])
         );
 });
 

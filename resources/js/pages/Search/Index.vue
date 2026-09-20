@@ -59,6 +59,7 @@ interface SponsorTeaser {
     period_key: string;
     period_name: string;
     total_settled_amount: number;
+    is_empty: boolean;
     top_entry?: {
         name: string;
         settled_total_amount: number;
@@ -275,8 +276,25 @@ const clearSearch = () => {
 
             <!-- Papan Sponsor teaser (docs/26): a separate, clearly labelled band — never
                  injected into the result list below and never affecting its order/relevance. -->
+            <Link
+                v-if="sponsorTeaser && sponsorTeaser.is_empty"
+                :href="sponsorPage()"
+                class="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-dashed border-[#ecdabf] bg-[#fffaf0] p-4 text-left shadow-sm transition hover:border-[#d97706] hover:bg-[#fff6e6]"
+            >
+                <div class="flex items-center gap-2 text-xs">
+                    <Trophy class="size-4 shrink-0 text-[#d97706]" />
+                    <span class="text-[#856b47]">
+                        <span class="font-bold text-[#92400e]">Papan Sponsor masih kosong.</span>
+                        Jadi yang pertama tampil di sini.
+                    </span>
+                </div>
+                <span class="flex shrink-0 items-center gap-1 text-xs font-bold text-[#b45309]">
+                    Sponsori sekarang <ArrowRight class="size-3.5" />
+                </span>
+            </Link>
+
             <div
-                v-if="sponsorTeaser && sponsorTeaser.top_entries && sponsorTeaser.top_entries.length > 0"
+                v-else-if="sponsorTeaser && !sponsorTeaser.is_empty"
                 class="mb-6 rounded-2xl border border-[#ecdabf] bg-gradient-to-r from-[#fffaf0] via-[#fffdf9] to-[#fff8eb] p-4 text-left shadow-sm"
             >
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#f1dfc5] pb-2.5 text-xs">
