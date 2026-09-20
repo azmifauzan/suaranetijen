@@ -1422,6 +1422,75 @@ deploy-side change, not a code change.
   Horizon queue workers pointed at the main host's `DB_HOST`/`REDIS_HOST` by IP, never construct
   URLs from `APP_URL`, so they needed no change.
 
+## Google Analytics and Google OAuth login (20 September 2026)
+
+Operator-requested, same session as the domain migration above.
+
+- **Google Analytics**: new GA4 property + web data stream created directly in the Analytics
+  console (account/property "SuaraNetijen", Indonesia timezone/IDR, `https://suaranetijen.id` web
+  stream, measurement ID `G-8JTWTLSMWX`). Wired via `config('services.google_analytics.id')`
+  (`GOOGLE_ANALYTICS_ID` env) and a conditional `gtag.js` snippet in `resources/views/app.blade.php`
+  — renders nothing when the env var is unset, so it's a no-op on any environment that hasn't
+  configured it (local/testing included).
+- **Google OAuth login/register**: `laravel/socialite` added; `GoogleAuthController`
+  (`app/Http/Controllers/Auth/GoogleAuthController.php`, routes in `routes/auth.php`) handles
+  `/auth/google/redirect` and `/auth/google/callback` behind Fortify's existing `guest` middleware.
+  Callback resolution order: match by `users.google_id` (new nullable/unique column,
+  `2026_09_20_000001_add_google_id_to_users_table.php`), else match by email and link the existing
+  password account (`google_id` backfilled, no duplicate created), else create a new user
+  (`email_verified_at` set immediately — Google already verified it — random 32-char password via
+  `Str::password()` since `google_id` is nullable but `password` isn't). Both the invalid-state
+  case and a denied consent grant are caught with a single broad `catch (Throwable)` — Socialite
+  doesn't surface them as distinguishably different failures, both are a failed
+  token/user exchange. `GoogleAuthButton.vue` (inline Google "G" mark SVG, no new icon dependency)
+  added above the existing form on both `auth/Login.vue` and `auth/Register.vue`, plain `<a>`
+  navigation (not an Inertia visit) since leaving the SPA to Google's consent screen is required.
+- **Google Cloud Console setup**, done live in-browser against the same `suaranetijen` GCP
+  project the YouTube adapter already uses: configured the OAuth consent screen (External audience,
+  app name/support/contact email, homepage/privacy/terms links pointing at the live site,
+  `suaranetijen.id` authorized domain) and created a Web application OAuth client with both the
+  production (`https://suaranetijen.id/auth/google/callback`) and local-dev
+  (`http://localhost:8000/auth/google/callback`) redirect URIs registered. Only requests the
+  default non-sensitive `openid profile email` scopes, so **published straight to production**
+  (no Google verification review needed) — any Google account can sign in, not just allow listed
+  test users.
+- **Real bug found and fixed while wiring local `.env` for a live click-through test — not
+  specific to Google OAuth, a footgun in how this session edited env files generally**: appending
+  new `KEY=value` lines with a bare `echo '...' >> .env` (no verifying the file already ends in a
+  newline) silently glued the new line onto the end of whatever the last line already was if that
+  last line lacked a trailing newline. Local `.env` had no trailing newline after
+  `STAGING_WORKER2_PASSWORD=hulwaco2020`, so appending `GOOGLE_CLIENT_ID=...` produced
+  `STAGING_WORKER2_PASSWORD=hulwaco2020GOOGLE_CLIENT_ID=868919707785-...` on one line — corrupting
+  the stored SSH password for `worker2` and silently dropping `GOOGLE_CLIENT_ID` entirely (Dotenv
+  parsed the merged line as only the first key). Caught immediately via
+  `php artisan config:show services.google` returning a null `client_id`; fixed by splitting the
+  line back apart and confirmed the reconstructed password was still correct with a live `plink`
+  login to `worker2` before moving on. Staging's `.env` append earlier in this same session
+  (`GOOGLE_ANALYTICS_ID`) was checked too and was *not* corrupted, since that file already ended in
+  a newline — but this is a real, generally-applicable gotcha for any future env-file edit in this
+  project: check for a trailing newline (or use a heredoc, as the corrected staging append did)
+  before ever using a bare `>>` append.
+- **Verified end-to-end against the real Google endpoint, not mocked**: with real credentials in
+  local `.env`, clicking "Masuk dengan Google" on `http://localhost:8000/login` redirected to the
+  actual `accounts.google.com` sign-in chooser with the correct `client_id`, `redirect_uri`,
+  `scope=openid+profile+email`, and a CSRF `state` param — confirming the full redirect leg works
+  against Google for real, not just against Socialite's own mocked driver in the Pest suite
+  (`tests/Feature/Auth/GoogleAuthenticationTest.php`, 7 tests: new-user creation, linking an
+  existing password account by email, logging in an existing Google-linked user, both the
+  invalid-state and denied-consent failure paths, and that an already-authenticated user can't hit
+  either route). The actual sign-in step (entering real Google credentials) was deliberately not
+  automated further — that's a live credential entry, out of scope for anything this session should
+  script.
+- **Deployed to staging same session**: image rebuilt/pushed, staging `.env` got the production
+  `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`GOOGLE_REDIRECT_URI` (appended via heredoc this time,
+  not the bare `>>` that caused the bug above), `suaranetijen-app`/`-horizon`/`-scheduler`
+  recreated (`horizon:terminate` first) and the new migration run. Hit the same
+  nginx-proxy-caches-the-old-container-IP 502 already documented earlier in this file after the
+  domain-migration redeploy — same fix (`docker exec nginx-proxy nginx -s reload`). Confirmed live:
+  `https://suaranetijen.id/login` serves the `gtag('config', 'G-8JTWTLSMWX')` snippet, and the
+  deployed `Login-*.js`/`Register-*.js` asset hashes match the build this session verified locally
+  in a real browser (same file, so the same Google button and behavior).
+
 ## Document map
 
 | File | Purpose |
