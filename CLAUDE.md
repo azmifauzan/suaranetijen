@@ -276,7 +276,9 @@ Core tables (`docs/06-domain-data-model.md`): `entities`, `entity_aliases`, `cat
 `sources`, `source_documents`, `source_items`, `sentiment_observations` (unique
 `(entity_id, source_item_id)`), `sentiment_daily`, `sentiment_snapshots`, `themes`,
 `theme_aliases`, `theme_observations`, `entity_theme_daily`, `entity_theme_snapshots` (`docs/25`),
-`user_ratings` (unique `(user_id, entity_id)`), `rating_snapshots`.
+`user_ratings` (unique `(user_id, entity_id)`), `rating_snapshots`, `sponsor_periods`,
+`sponsored_entries` (unique `(period_id, entity_id)`), `sponsorship_orders`,
+`sponsorship_relay_events` (unique `svix_id`) (`docs/26`).
 
 Operational: `crawl_states`, `ingestion_failures`, `unmatched_mentions`, `search_queries`,
 `source_preflight_logs`.
@@ -306,22 +308,30 @@ Modular monolith, one codebase, workload separated by queue rather than by servi
 ```text
 app/Domains/
   Entities/  Search/  Sources/  Ingestion/
-  Sentiment/  Themes/  Rankings/  Ratings/  Moderation/  Admin/
+  Sentiment/  Themes/  Rankings/  Ratings/  Moderation/  Admin/  Sponsorships/
 ```
+
+`Sponsorships` (added 20 September 2026, `docs/26`) is the Papan Sponsor paid-leaderboard domain
+— separate ranking/payment context sharing only the `entities` table, per its own ADR-007/011-style
+no-hidden-mixing rule.
 
 Extract a service only after a measured bottleneck — `docs/05-technical-architecture.md`.
 
 ## Routes
 
 Public: `/`, `/search?q=`, `/e/{slug}`, `/category/{slug}`, `/top/{slug}`, `/methodology`,
-`/sources`, `/about`, `/terms`, `/privacy`.
+`/sources`, `/about`, `/terms`, `/privacy`, `/sponsor` (Papan Sponsor, `docs/26`).
 
 Internal web API (not a public developer API): `GET /api/search?q=`,
 `GET /api/entities/{slug}`, `GET /api/categories/{slug}/ranking`,
-`PUT|DELETE /api/entities/{id}/rating`.
+`PUT|DELETE /api/entities/{id}/rating`, `GET /api/sponsor/leaderboard`,
+`POST /api/sponsor/orders` (no auth — guest checkout, `docs/26`),
+`GET /api/sponsor/orders/{order}` (auth), `POST /api/sponsor/preview` (URL-first entity match),
+`POST /api/sponsor/webhooks/sumopod-relay` (internal — called only by the `satsetui` relay, never
+by Sumopod directly).
 
 Admin: entities, aliases, categories, sources, crawl jobs, unmatched mentions, sentiment
-diagnostics, ratings/moderation.
+diagnostics, ratings/moderation, sponsorship moderation (`/admin/sponsorship`).
 
 ## Search and SEO
 
@@ -930,6 +940,8 @@ Current implementation boundary:
 | Entity candidate pipeline (`docs/23` "Growth") | implemented (5 Sep 2026), not yet deployed to staging — closes the previously-untouched gap where zero-result search queries were logged but nothing turned that into new-entity candidates |
 | Shared LLM settings (`llm_settings`, `/admin/llm-settings`) | implemented — OpenAI-compatible chat completions over plain HTTP, no new SDK dependency; meant to be the one place any future LLM feature (e.g. the still-unimplemented `docs/10` ambiguous-entity-matching fallback) resolves its client through |
 | Tokoh Publik category / `person` entity type (ADR-010 override) | `EntityType::Person` + Tokoh Publik category tree implemented, 25 seed entities added, generic pipeline unchanged; `kaskus_politik` Source seeded `enabled: false` pending live check; not yet deployed to staging |
+| Papan Sponsor / paid leaderboard (`docs/26`) | implemented and deployed to staging, verified live end-to-end in-browser through to the Sumopod payment-confirmation modal (stopped short of an actual paid transaction). Weekly + all-time board, community (accumulating) model, guest checkout, URL-first entity match with auto-create-on-payment override — see the dated session notes below for the full build/review/fix history |
+| Sumopod QRIS payment, relayed via `satsetui`'s central webhook ingress | implemented on both repos; `satsetui` registered as a 4th relay destination (`SNT-SPN-` prefix); live secrets wired on both ends and config-verified; not yet exercised end-to-end with a real payment |
 
 The repository's `.env.example` now carries the PostgreSQL + Redis baseline. Tests retain isolated
 SQLite/array/sync defaults (with the trigram shim above) unless an explicit integration run
@@ -1490,6 +1502,106 @@ Operator-requested, same session as the domain migration above.
   `https://suaranetijen.id/login` serves the `gtag('config', 'G-8JTWTLSMWX')` snippet, and the
   deployed `Login-*.js`/`Register-*.js` asset hashes match the build this session verified locally
   in a real browser (same file, so the same Google button and behavior).
+
+## Papan Sponsor / paid leaderboard implementation (20 September 2026)
+
+Built, reviewed, and deployed the entire feature described in `docs/26` — an already-drafted plan
+doc, not built by this session's author from scratch; this session reviewed the existing
+uncommitted implementation, fixed real gaps found in that review, then extended it per live
+operator direction through several rounds. `docs/26` itself carries the full design rationale for
+every decision below; this is the build/deploy narrative.
+
+- **Initial review found and fixed 9 real gaps** in the uncommitted implementation before first
+  commit: the all-time leaderboard didn't exist (period-scoped only, contradicting the plan and
+  the UI's own "Semua Waktu" tab); `Person`-type (public-figure) entities could be sponsored
+  despite the documented MVP exclusion; the admin moderation controller used the exact
+  `back()->with('success', ...)` silent-flash bug this codebase's CLAUDE.md already documents as
+  fixed everywhere else (switched to `Inertia::flash('toast', ...)`); the relay webhook returned
+  422 (non-retryable) for *every* exception including transient DB errors, which would have
+  silently dropped real payment confirmations instead of letting satsetui's retry-with-backoff
+  redeliver them (split into a dedicated `SponsorshipRelayWebhookRejected` → 422 vs any other
+  `Throwable` → 500); the relay payload was parsed from `Request::all()` instead of the exact
+  signed raw body; `redirect_url` accepted any external URL (open redirect; fixed with a
+  parsed-host comparison, not a `starts_with` check, which a `suaranetijen.id.evil.com`-style
+  subdomain would have defeated); three `firstOrCreate` calls could race under concurrency
+  (switched to `createOrFirst`); two latent phpstan bugs (a dead nullable-fallback on
+  `entity->category`, since `category_id` is schema-guaranteed non-null; a null-unsafe
+  `predictPosition()`, unused but real).
+- **Sumopod QRIS via satsetui's central webhook relay, not a direct Sumopod subscription**: this
+  repo's `SumopodService` creates payments directly against Sumopod's API (reusing the same
+  API key satsetui/satsetops/fabriku already share — one Sumopod merchant project account-wide),
+  but the *webhook* comes back through `satsetui`'s existing `/webhooks/sumopod` ingress
+  (Svix-verified once there) and is relayed here over an internal HMAC-signed endpoint,
+  `POST /api/sponsor/webhooks/sumopod-relay` — one fewer public Sumopod-facing endpoint to secure.
+  `satsetui` was extended the same session (separate repo, `D:\dev\satsetui`) to add
+  `DESTINATION_SUARANETIJEN` and an `SNT-SPN-` order-id-prefix route in `resolveDestination()`,
+  mirroring the existing satsetops/fabriku pattern exactly, with a new routing test
+  (`CentralWebhookRoutingTest.php`). Real secrets generated and wired on both ends (staging
+  `.env` on both hosts, `docker-compose` container recreate on both), config-verified live
+  (`config('services.sumopod.live.internal_endpoints.suaranetijen')` resolves correctly on
+  satsetui; `config('sponsorship.sumopod.relay_secret')` resolves non-empty here) — not yet
+  exercised with an actual completed payment.
+- **Real mail wired for the first time in this repo**: `MAIL_MAILER` was `log` (no real delivery)
+  on both local and staging; switched staging to the shared Brevo SMTP account other operator apps
+  already use (`suaranetijen.id` was already a verified sender domain there), needed because guest
+  checkout emails a magic-login link.
+- **Guest checkout (no account required)** — checked live against Outbid/Pamerin/RankUp, none
+  gate submission behind a pre-existing account. A guest's email resolves-or-creates a real `User`
+  (never a parallel guest-identity table) and the session is logged in immediately
+  (`Auth::login()`), which is what makes the post-payment status page work with no token scheme —
+  by the time Sumopod's redirect lands, the session is already authenticated. A signed
+  `sponsor.access.login` magic link is also emailed for later access from another device.
+- **Fixed a real layout bug found from a live screenshot** (initially misread as a browser
+  extension artifact): `resources/js/app.ts`'s global Inertia layout resolver defaults every page
+  to `AppLayout` (the authenticated dashboard shell with sidebar) unless explicitly exempted —
+  `Sponsor/*` wasn't in that exemption list, so the public `/sponsor` page was being double-wrapped
+  (`AppLayout` around the page's own `PublicLayout`), rendering the admin sidebar over the public
+  site. One-line fix (`case name.startsWith('Sponsor/'):`), confirmed live.
+- **Input flow rebuilt three times this session to match reference, each round re-verified live in
+  a real browser rather than guessed**: (1) originally a name-search-in-a-modal flow; (2) rebuilt
+  as URL-first — paste a URL, `FetchUrlPreview` fetches it server-side for its `<title>`
+  (SSRF-guarded: public-IP-only via an injectable `HostResolver`, redirects never auto-followed),
+  matched against existing entities via the same `SearchService` used by `/search`; (3) moved the
+  entire gathering flow out of a modal onto the page itself (confirmed live against pamerin.id and
+  rankup.uno interactively, not just their marketing copy — Pamerin's own input reveals a live
+  preview card and the rest of the form inline, no popup at all) — a modal now appears only at the
+  final payment-confirmation step, showing an order summary before charging. A leaderboard search
+  filter (rankup.uno pattern, client-side over the already-loaded board) was added at the same
+  time, entirely separate from the URL-match flow and from organic search.
+- **Auto-create-entity-on-payment — a deliberate override of `docs/26`'s original "no auto-create,
+  admin-workflow only" MVP constraint**, per explicit operator direction, re-verified against the
+  same three reference sites (none of them gate on an existing "entity" concept the way this app
+  did). A URL that matches no existing entity now reveals a name (prefilled, editable) + category
+  picker instead of a dead end; the entity is created at order-creation time as `type = brand` but
+  `status = Disabled`, non-searchable, non-rankable — confirmed invisible to `EntityMatcher`,
+  `SearchService`, and `EntityShowController` (all three already scope on
+  `active()`/`searchable()`, so a Disabled entity 404s on direct URL access too) — and
+  `ProcessSponsorshipRelayWebhook` flips it to `Active`/searchable/rankable only on a confirmed
+  `payment.completed`, in the same transaction as the settlement update. An abandoned or failed
+  order leaves an inert, invisible row, never a real listing. Public-figure/political exclusion is
+  unaffected — the new-entity path only ever creates `Brand`. Also fixed in the same pass: a URL
+  typed without `http(s)://` (e.g. `samsung.com`) silently failed detection (`new URL()` requires
+  a scheme) — normalized to `https://` client-side before validation, matching Pamerin's own input.
+- **Empty-board cold-start gap, found by direct operator question ("if there's no sponsor yet, how
+  would anyone know they can submit one?")**: the homepage/search teaser originally returned `null`
+  and disappeared entirely when the board was empty, so the feature had no discovery path until a
+  sponsor already existed. `getHomepageTeaser()` now always returns a payload
+  (`is_empty: true/false`) and both surfaces render a dashed-border "Papan Sponsor masih kosong —
+  jadi yang pertama" invite instead of hiding.
+- **SEO copy — researched instead of guessed**, per explicit operator pushback on an initial
+  "leaderboard"-first draft: live-checked pamerin.id, rankup.uno, and getrankedlive.com's actual
+  title tags and body copy. All three lead Indonesian in visible copy ("Papan Peringkat", "Naikkan
+  peringkatmu") and use "Leaderboard" only as a secondary synonym in the `<title>` tag alongside
+  the brand name. Homepage/search meta descriptions mention "papan peringkat sponsor" (no bare
+  English word); the `/sponsor` page's own title is "Papan Peringkat Sponsor ... (leaderboard)".
+- No visible "Sumopod" brand text remains in user-facing copy (was in one disclosure line and two
+  exception messages) — the payment mechanism is described only as "QRIS".
+- **Deployed to staging after every round** (5 redeploys this session, each preceded by the full
+  local gate: Pest, Pint, phpstan, `npm run build`), each verified live in a real browser via
+  `claude-in-chrome` through to the Sumopod payment-confirmation modal — stopped short of an
+  actual paid transaction each time, since that would create a real Sumopod payment intent and (in
+  the guest-checkout case) send a real email through the shared Brevo account. First real
+  end-to-end payment is still unverified.
 
 ## Document map
 

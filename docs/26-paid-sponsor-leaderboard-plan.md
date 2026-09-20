@@ -1,13 +1,19 @@
 # 26 - Paid Sponsor Leaderboard Plan
 
-**Status:** Proposed product and architecture plan  
-**Date:** 20 September 2026  
-**Scope:** Homepage discovery and monetisation for existing entities
+**Status:** Implemented and deployed to staging (20 September 2026) — Phase 1 and 2 done, see
+`CLAUDE.md`'s "Papan Sponsor / paid leaderboard implementation" notes for the build/deploy
+narrative. First real end-to-end payment not yet verified.  
+**Date:** 20 September 2026 (revised same day — see "Phase 2.5" in Rollout sequence)  
+**Scope:** Homepage/search discovery and monetisation, entity-centric (existing or URL-matched/
+auto-created — see the override section below)
 
-This document records a proposal for an Outbid/Pamerin-style paid leaderboard. It is not yet a
-replacement for the frozen product decisions in the earlier documents. Until this proposal is
-approved, Sentimen Netijen, Rating Netijen, Top Suara Netijen, search relevance, and organic
-rankings keep their existing definitions.
+This document originated as a proposal for an Outbid/Pamerin-style paid leaderboard and was built
+out the same day, including two rounds of revision to track reference behavior more closely (see
+"Guest checkout" and "URL-first submission and new-entity override" below, both of which override
+constraints stated earlier in this same document). It remains additive to the frozen product
+decisions in the earlier documents — Sentimen Netijen, Rating Netijen, Top Suara Netijen, search
+relevance, and organic rankings keep their existing definitions; a sponsor payment never touches
+any of them.
 
 ## Decision summary
 
@@ -143,6 +149,12 @@ visually distinct sponsor notice and a top-three preview:
 Implementation placement is immediately after `EntitySearch` in `Welcome.vue`, before the
 “Coba cari” suggestions. The existing autocomplete remains textual and relevance-driven; paid
 entries must not be injected into its result list or used as a search tie-breaker.
+
+**Implemented, with two additions beyond the original mockup:** (1) the same teaser also appears
+on `/search` (a separate band, above the results list, never mixed into it or affecting relevance)
+for reach beyond the homepage alone; (2) an empty board doesn't disappear — it shows a "Papan
+Sponsor masih kosong — jadi yang pertama" invite linking to `/sponsor`, since a board that vanishes
+until someone already sponsored has no way for the *first* sponsor to discover the feature exists.
 
 Each sponsor card should show:
 
@@ -284,20 +296,28 @@ SuaraNetijen never receives a Sumopod-signed webhook body directly. Instead:
 on this Sumopod account, so no separate confirmation from Sumopod's docs is needed beyond what
 `satsetui`'s working integration already proves.
 
-## API and page surface (proposed)
+## API and page surface (implemented)
 
-- `GET /sponsor` — full public board and rules.
-- `GET /api/sponsor/leaderboard` — public active-period preview with an explicit period/filter.
-- `POST /api/sponsor/orders` — authenticated order creation.
-- `GET /api/sponsor/orders/{order}` — authenticated order status.
+- `GET /sponsor` — public board, rules, and the inline sponsor-entry form (no separate page for
+  submission — it lives on this same page, below the hero).
+- `GET /api/sponsor/leaderboard` — public leaderboard for a period (`?period=<key>` or `all` for
+  the all-time archive).
+- `POST /api/sponsor/preview` — URL-first step: fetches the given URL server-side
+  (SSRF-guarded, see above), returns its title plus up to 5 matching existing entities. No auth
+  required; throttled.
+- `POST /api/sponsor/orders` — order creation. **No auth required** (guest checkout, see below) —
+  either `entity_id` (existing-entity match) or `new_entity_name` + `new_entity_category_id` +
+  `new_entity_url` (no match found; creates a `Disabled` entity, see the override section above).
+- `GET /api/sponsor/orders/{order}` — authenticated order status (owner or admin only).
 - `POST /api/sponsor/webhooks/sumopod-relay` — internal endpoint, called only by the `satsetui`
   relay, never by Sumopod directly; excluded from normal CSRF handling but requires the
   `X-Webhook-Signature` HMAC check described above. Not `{provider}`-parameterised — Sumopod is
   the only provider reachable this way for MVP.
-- Admin resources for periods, entries, orders, moderation, refunds/pauses, and reconciliation.
+- `GET /admin/sponsorship` + entry pause/remove actions — admin moderation (periods, entries,
+  recent orders). Refunds and full reconciliation tooling not built.
 
-All frontend route calls should use the project's Wayfinder-generated route functions when the
-feature is implemented.
+All frontend route calls use the project's Wayfinder-generated route functions
+(`@/routes/sponsor`).
 
 ## Trust, moderation, and privacy guardrails
 
@@ -340,21 +360,34 @@ configurable, default Rp1.000. Provider: Sumopod (QRIS) via the existing `satset
 Refunds and eligible entity types stay as scoped in this document. Record these in the relevant
 product and architecture documents once Phase 1 begins.
 
-### Phase 1 — Read-only board
+### Phase 1 — Read-only board (done)
 
-Build the entity-linked projection, public board, homepage teaser, rules page, and fixture-backed
-ranking tests without accepting real payments.
+Entity-linked projection, public board, homepage/search teaser, fixture-backed ranking tests.
 
-### Phase 2 — Payments
+### Phase 2 — Payments (done)
 
-Add authenticated checkout against Sumopod, the `sumopod-relay` internal webhook endpoint and its
-signature verification, idempotent order processing keyed on `X-Webhook-Id`, reconciliation, and
-admin pause/refund controls. Before this phase can go live end-to-end, coordinate with the
-`satsetui` repo to add SuaraNetijen as a fourth relay destination (`DESTINATION_SUARANETIJEN`,
-`SNT-SPN-` prefix in `resolveDestination()`, `internal_endpoints`/`internal_secrets` config+env) —
-that change ships independently and isn't part of this repo's implementation.
+Checkout against Sumopod, the `sumopod-relay` internal webhook endpoint and its signature
+verification, idempotent order processing keyed on `X-Webhook-Id`, admin pause/remove controls.
+`satsetui` was extended as a fourth relay destination (`DESTINATION_SUARANETIJEN`, `SNT-SPN-`
+prefix) in the same session, and both apps' live secrets are wired and config-verified. **Not yet
+verified**: an actual completed payment round-trip — every check this far stopped at the
+payment-confirmation step deliberately, to avoid creating a real Sumopod charge. Refunds and full
+reconciliation tooling remain unbuilt.
 
-### Phase 3 — Measurement and iteration
+### Phase 2.5 — Post-launch revisions (done, all shipped same session as Phase 2)
+
+Checked directly against Outbid/Pamerin/RankUp/getRanked (live interaction, not just their
+marketing copy) and revised to match more closely:
+
+- Guest checkout — no account required (see "Guest checkout" above).
+- URL-first inline submission, not a modal — a modal now appears only at final payment
+  confirmation (see "URL-first submission and new-entity override" above).
+- No-match URLs create a new entity instead of dead-ending at an admin workflow, gated invisible
+  until payment confirms (same section).
+- A leaderboard search filter (rankup.uno pattern).
+- Indonesian-first SEO copy, "leaderboard" only as a secondary synonym.
+
+### Phase 3 — Measurement and iteration (not started)
 
 Measure impressions, outbound clicks, conversion to paid placement, re-bid rate, repeat sponsors,
 and trust signals such as search completion. Do not optimise the feature by changing organic

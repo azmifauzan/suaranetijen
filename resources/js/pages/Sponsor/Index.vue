@@ -456,7 +456,7 @@ function formatRupiah(amount: number): string {
                 </p>
 
                 <!-- Step 1: URL first — fetch the site, then match against existing entities. -->
-                <div class="mt-6 max-w-lg">
+                <div class="mt-6">
                     <label class="block text-xs font-bold text-[#31483b]">
                         Link Website Resmi Entitas
                     </label>
@@ -575,7 +575,7 @@ function formatRupiah(amount: number): string {
                 <!-- Step 2: appears once an entity is confirmed or a new one is ready to name. -->
                 <template v-if="hasSponsorTarget">
                     <!-- Guest email (no account required) -->
-                    <div v-if="!currentUser" class="mt-6 max-w-lg">
+                    <div v-if="!currentUser" class="mt-6">
                         <label class="block text-xs font-bold text-[#31483b]">
                             Email
                         </label>
@@ -591,7 +591,7 @@ function formatRupiah(amount: number): string {
                     </div>
 
                     <!-- Contribution Amount -->
-                    <div class="mt-6 max-w-lg">
+                    <div class="mt-6">
                         <label class="block text-xs font-bold text-[#31483b]">
                             Nominal Sponsor (Kelipatan Rp{{ incrementAmount.toLocaleString('id-ID') }})
                         </label>
@@ -631,7 +631,7 @@ function formatRupiah(amount: number): string {
                     <!-- Rank Prediction Callout -->
                     <div
                         v-if="predictedRank"
-                        class="mt-4 max-w-lg rounded-xl border border-[#fed7aa] bg-[#fffbf2] p-3 text-xs text-[#9a6a24]"
+                        class="mt-4 rounded-xl border border-[#fed7aa] bg-[#fffbf2] p-3 text-xs text-[#9a6a24]"
                     >
                         <span class="font-bold">Estimasi Posisi:</span>
                         Dengan tambahan {{ formatRupiah(contributionAmount) }}, entitas ini diperkirakan menempati posisi
@@ -641,13 +641,13 @@ function formatRupiah(amount: number): string {
                     <!-- Error message -->
                     <div
                         v-if="errorMessage"
-                        class="mt-4 flex max-w-lg items-center gap-2 rounded-xl bg-[#fdf2f2] p-3 text-xs text-[#b91c1c]"
+                        class="mt-4 flex items-center gap-2 rounded-xl bg-[#fdf2f2] p-3 text-xs text-[#b91c1c]"
                     >
                         <AlertCircle class="size-4 shrink-0" />
                         <span>{{ errorMessage }}</span>
                     </div>
 
-                    <div class="mt-6 max-w-lg pt-4 border-t border-[#edf1eb]">
+                    <div class="mt-6 pt-4 border-t border-[#edf1eb]">
                         <button
                             type="button"
                             class="w-full rounded-full bg-[#d97706] py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#b45309] disabled:opacity-50"
