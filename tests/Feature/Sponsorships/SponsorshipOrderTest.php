@@ -6,15 +6,92 @@ use App\Domains\Entities\Models\Entity;
 use App\Domains\Sponsorships\Enums\SponsorshipOrderStatus;
 use App\Domains\Sponsorships\Models\SponsorshipOrder;
 use App\Models\User;
+use App\Notifications\SponsorGuestAccessNotification;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 
-test('guest cannot create sponsorship order', function () {
+test('guest without an account can create a sponsorship order by email, no login required', function () {
+    Notification::fake();
+    $entity = Entity::factory()->create(['status' => EntityStatus::Active, 'searchable' => true]);
+
+    Http::fake([
+        'https://api-pay.sumopod.com/api/v1/payments' => Http::response([
+            'payment_id' => 'pay_guest_123',
+            'payment_link_url' => 'https://checkout.sumopod.com/pay/order-guest-123',
+            'status' => 'pending',
+        ], 200),
+    ]);
+
+    $response = $this->postJson(route('api.sponsor.orders.store'), [
+        'entity_id' => $entity->id,
+        'amount' => 50000,
+        'email' => 'sponsor-guest@example.com',
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.payment_link_url', 'https://checkout.sumopod.com/pay/order-guest-123');
+
+    $user = User::query()->where('email', 'sponsor-guest@example.com')->first();
+    expect($user)->not->toBeNull();
+
+    $orderId = $response->json('data.id');
+    $this->assertDatabaseHas('sponsorship_orders', [
+        'id' => $orderId,
+        'user_id' => $user->id,
+        'amount' => 50000,
+    ]);
+
+    // The guest's session is now authenticated as the resolved user (survives the
+    // Sumopod checkout redirect, so the post-payment status page works with no token).
+    $this->assertAuthenticatedAs($user);
+
+    Notification::assertSentTo($user, SponsorGuestAccessNotification::class);
+});
+
+test('guest checkout reuses an existing account by email instead of duplicating it', function () {
+    Notification::fake();
+    $existing = User::factory()->create(['email' => 'returning-sponsor@example.com']);
+    $entity = Entity::factory()->create(['status' => EntityStatus::Active, 'searchable' => true]);
+
+    Http::fake([
+        'https://api-pay.sumopod.com/api/v1/payments' => Http::response([
+            'payment_id' => 'pay_returning_123',
+            'payment_link_url' => 'https://checkout.sumopod.com/pay/order-returning-123',
+            'status' => 'pending',
+        ], 200),
+    ]);
+
+    $this->postJson(route('api.sponsor.orders.store'), [
+        'entity_id' => $entity->id,
+        'amount' => 50000,
+        'email' => 'returning-sponsor@example.com',
+    ])->assertCreated();
+
+    $this->assertDatabaseCount('users', 1);
+    $this->assertAuthenticatedAs($existing);
+});
+
+test('guest without an email is rejected', function () {
     $entity = Entity::factory()->create(['status' => EntityStatus::Active, 'searchable' => true]);
 
     $this->postJson(route('api.sponsor.orders.store'), [
         'entity_id' => $entity->id,
         'amount' => 50000,
-    ])->assertUnauthorized();
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['email']);
+});
+
+test('a banned guest cannot create a sponsorship order', function () {
+    User::factory()->create(['email' => 'banned@example.com', 'is_banned' => true]);
+    $entity = Entity::factory()->create(['status' => EntityStatus::Active, 'searchable' => true]);
+
+    $this->postJson(route('api.sponsor.orders.store'), [
+        'entity_id' => $entity->id,
+        'amount' => 50000,
+        'email' => 'banned@example.com',
+    ])->assertForbidden();
+
+    $this->assertDatabaseCount('sponsorship_orders', 0);
 });
 
 test('authenticated user can create order and receives payment url', function () {

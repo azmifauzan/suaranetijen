@@ -19,7 +19,6 @@ import {
 import { computed, ref, watch } from 'vue';
 import PublicSeo from '@/components/PublicSeo.vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
-import { login } from '@/routes';
 import { show as showEntity } from '@/routes/entities';
 import { index as sponsorPage } from '@/routes/sponsor';
 
@@ -87,6 +86,9 @@ const contributionAmount = ref<number>(10000);
 const customAmount = ref<string>('10000');
 const isSubmitting = ref(false);
 const errorMessage = ref<string | null>(null);
+const guestEmail = ref<string>('');
+
+const isValidGuestEmail = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.value.trim()));
 
 const presetAmounts = [10000, 25000, 50000, 100000, 250000];
 
@@ -168,6 +170,7 @@ function closeSponsorModal() {
     isModalOpen.value = false;
     selectedEntity.value = null;
     searchQuery.value = '';
+    guestEmail.value = '';
     errorMessage.value = null;
 }
 
@@ -187,6 +190,11 @@ async function submitOrder() {
         return;
     }
 
+    if (!currentUser.value && !isValidGuestEmail.value) {
+        errorMessage.value = 'Masukkan email yang valid untuk melanjutkan.';
+        return;
+    }
+
     isSubmitting.value = true;
     errorMessage.value = null;
 
@@ -202,7 +210,9 @@ async function submitOrder() {
             body: JSON.stringify({
                 entity_id: selectedEntity.value.id,
                 amount: contributionAmount.value,
-                redirect_url: window.location.origin + `/sponsor?order_id=new`,
+                // No redirect_url: the backend builds the correct post-payment URL itself
+                // (with the real order id, known only after creation) as its own default.
+                ...(currentUser.value ? {} : { email: guestEmail.value.trim() }),
             }),
         });
 
@@ -233,8 +243,8 @@ function formatRupiah(amount: number): string {
 <template>
     <PublicLayout>
         <PublicSeo
-            title="Papan Sponsor — SuaraNetijen"
-            description="Papan peringkat exposure publik untuk brand, produk, dan layanan Indonesia berdasarkan nominal sponsor terkonfirmasi."
+            title="Papan Peringkat Sponsor Brand, Produk, dan Layanan Indonesia"
+            description="Papan peringkat sponsor (leaderboard) SuaraNetijen: peringkat exposure publik untuk brand, produk, dan layanan Indonesia berdasarkan nominal sponsor terkonfirmasi."
             canonical-path="/sponsor"
         />
 
@@ -328,7 +338,6 @@ function formatRupiah(amount: number): string {
 
                         <div class="flex items-center gap-3">
                             <button
-                                v-if="currentUser"
                                 type="button"
                                 class="inline-flex items-center gap-2 rounded-full bg-[#d97706] px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#b45309] hover:shadow-lg"
                                 @click="openSponsorModal()"
@@ -336,14 +345,6 @@ function formatRupiah(amount: number): string {
                                 <Plus class="size-4" />
                                 Sponsori Entitas
                             </button>
-                            <Link
-                                v-else
-                                :href="login()"
-                                class="inline-flex items-center gap-2 rounded-full bg-[#d97706] px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#b45309] hover:shadow-lg"
-                            >
-                                <Plus class="size-4" />
-                                Masuk untuk Sponsori
-                            </Link>
                         </div>
                     </div>
 
@@ -694,6 +695,22 @@ function formatRupiah(amount: number): string {
                     </div>
                 </div>
 
+                <!-- Guest email (no account required) -->
+                <div v-if="!currentUser" class="mt-6">
+                    <label class="block text-xs font-bold text-[#31483b]">
+                        Email
+                    </label>
+                    <input
+                        v-model="guestEmail"
+                        type="email"
+                        placeholder="nama@email.com"
+                        class="mt-1.5 w-full rounded-xl border border-[#cfd9ce] py-2.5 px-4 text-sm text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
+                    />
+                    <p class="mt-1.5 text-[11px] text-[#788a7e]">
+                        Tidak perlu akun. Kami kirim link masuk ke email ini agar Anda bisa cek status sponsor kapan saja.
+                    </p>
+                </div>
+
                 <!-- Contribution Amount -->
                 <div class="mt-6">
                     <label class="block text-xs font-bold text-[#31483b]">
@@ -756,7 +773,7 @@ function formatRupiah(amount: number): string {
                     <button
                         type="button"
                         class="w-full rounded-full bg-[#d97706] py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#b45309] disabled:opacity-50"
-                        :disabled="isSubmitting || !selectedEntity"
+                        :disabled="isSubmitting || !selectedEntity || (!currentUser && !isValidGuestEmail)"
                         @click="submitOrder()"
                     >
                         <span v-if="isSubmitting">Memproses ke QRIS...</span>

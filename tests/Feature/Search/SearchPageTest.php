@@ -1,8 +1,33 @@
 <?php
 
+use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Search\Models\SearchQuery;
+use App\Domains\Sponsorships\Enums\SponsoredEntryStatus;
+use App\Domains\Sponsorships\Models\SponsoredEntry;
+use App\Domains\Sponsorships\Services\SponsorLeaderboardService;
+
+test('search page includes the sponsor leaderboard teaser, separate from search results', function () {
+    $service = app(SponsorLeaderboardService::class);
+    $period = $service->getActivePeriod();
+    $entity = Entity::factory()->create(['status' => EntityStatus::Active, 'searchable' => true]);
+
+    SponsoredEntry::factory()->create([
+        'period_id' => $period->id,
+        'entity_id' => $entity->id,
+        'settled_total_amount' => 70000,
+        'status' => SponsoredEntryStatus::Active,
+    ]);
+
+    $this->get('/search')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Search/Index')
+            ->where('sponsorTeaser.top_entry.name', $entity->name)
+            ->where('sponsorTeaser.total_settled_amount', 70000)
+        );
+});
 
 test('GET /search renders Search/Index page', function () {
     $category = Category::factory()->create(['name' => 'Cloud', 'slug' => 'cloud']);

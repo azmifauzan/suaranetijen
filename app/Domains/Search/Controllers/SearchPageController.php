@@ -4,6 +4,7 @@ namespace App\Domains\Search\Controllers;
 
 use App\Domains\Entities\Models\Category;
 use App\Domains\Search\Services\SearchService;
+use App\Domains\Sponsorships\Services\SponsorLeaderboardService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -12,7 +13,8 @@ use Inertia\Response;
 class SearchPageController extends Controller
 {
     public function __construct(
-        protected SearchService $searchService
+        protected SearchService $searchService,
+        protected SponsorLeaderboardService $sponsorLeaderboardService
     ) {}
 
     /**
@@ -45,6 +47,9 @@ class SearchPageController extends Controller
             'meta' => $searchResults['meta'],
             'categories' => $categories,
             'selectedCategory' => $categorySlug,
+            // Sponsor visibility (docs/26): same teaser as the homepage, never affecting
+            // result ordering or relevance — a separate, clearly labelled band only.
+            'sponsorTeaser' => $this->sponsorLeaderboardService->getHomepageTeaser(3),
         ]);
     }
 }

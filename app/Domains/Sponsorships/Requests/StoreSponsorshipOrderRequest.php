@@ -27,10 +27,13 @@ class StoreSponsorshipOrderRequest extends FormRequest
 
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * No account is required to sponsor an entity (docs/26) — a guest supplies an email
+     * instead, and a real User is resolved/created from it in the controller.
      */
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return true;
     }
 
     /**
@@ -45,6 +48,7 @@ class StoreSponsorshipOrderRequest extends FormRequest
         return [
             'entity_id' => ['required', 'integer', 'exists:entities,id'],
             'amount' => ['required', 'integer', "min:{$min}"],
+            'email' => [$this->user() ? 'nullable' : 'required', 'email', 'max:255'],
             // Sumopod redirects the user's browser here after checkout, so an arbitrary
             // external URL would be an open redirect through our own payment flow. Only
             // accept a return URL on this app's own origin.
@@ -71,6 +75,8 @@ class StoreSponsorshipOrderRequest extends FormRequest
             'entity_id.exists' => 'Entitas yang dipilih tidak ditemukan.',
             'amount.required' => 'Nominal sponsor wajib diisi.',
             'amount.min' => 'Nominal sponsor minimal Rp1.000.',
+            'email.required' => 'Masukkan email untuk melanjutkan tanpa akun.',
+            'email.email' => 'Format email tidak valid.',
         ];
     }
 }

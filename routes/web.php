@@ -113,8 +113,11 @@ Route::middleware(['auth', 'throttle:ratings'])->group(function (): void {
     Route::delete('/api/entities/{entity}/rating', [RatingController::class, 'destroy'])->name('api.entities.rating.destroy');
 });
 
+// No `auth` middleware: sponsoring doesn't require an account (docs/26) — a guest's email
+// resolves/creates a real User inside the controller instead.
+Route::middleware('throttle:30,1')->post('/api/sponsor/orders', [SponsorshipOrderController::class, 'store'])->name('api.sponsor.orders.store');
+
 Route::middleware(['auth', 'throttle:30,1'])->group(function (): void {
-    Route::post('/api/sponsor/orders', [SponsorshipOrderController::class, 'store'])->name('api.sponsor.orders.store');
     Route::get('/api/sponsor/orders/{order}', [SponsorshipOrderController::class, 'show'])->name('api.sponsor.orders.show');
 });
 

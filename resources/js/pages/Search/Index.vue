@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { index as searchPage } from '@/routes/search';
+import { index as sponsorPage } from '@/routes/sponsor';
 import { show as showEntity } from '@/routes/entities';
+import { ArrowRight, Trophy } from '@lucide/vue';
 import { Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
@@ -44,12 +46,33 @@ interface SearchMeta {
     total: number;
 }
 
+interface SponsorTeaserItem {
+    id: number;
+    rank: number;
+    name: string;
+    slug: string;
+    category_name: string;
+    settled_total_amount: number;
+}
+
+interface SponsorTeaser {
+    period_key: string;
+    period_name: string;
+    total_settled_amount: number;
+    top_entry?: {
+        name: string;
+        settled_total_amount: number;
+    };
+    top_entries: SponsorTeaserItem[];
+}
+
 const props = defineProps<{
     query: string;
     results: SearchResultItem[];
     meta: SearchMeta;
     categories: CategoryItem[];
     selectedCategory: string | null;
+    sponsorTeaser?: SponsorTeaser | null;
 }>();
 
 const searchInput = ref(props.query || '');
@@ -114,8 +137,8 @@ const clearSearch = () => {
             "
             :description="
                 query
-                    ? `Hasil pencarian ${query} di SuaraNetijen: temukan entitas dan ringkasan opini netizen.`
-                    : 'Cari brand, produk, dan layanan di Indonesia untuk melihat sentimen publik dan opini netizen.'
+                    ? `Hasil pencarian ${query} di SuaraNetijen: temukan entitas, ringkasan opini netizen, dan papan peringkat sponsor.`
+                    : 'Cari brand, produk, dan layanan di Indonesia untuk melihat sentimen publik, opini netizen, dan papan peringkat sponsor.'
             "
             canonical-path="/search"
             :robots="
@@ -247,6 +270,45 @@ const clearSearch = () => {
                     <p class="mt-1 text-sm text-neutral-500">
                         Ditemukan {{ meta.total }} entitas publik
                     </p>
+                </div>
+            </div>
+
+            <!-- Papan Sponsor teaser (docs/26): a separate, clearly labelled band — never
+                 injected into the result list below and never affecting its order/relevance. -->
+            <div
+                v-if="sponsorTeaser && sponsorTeaser.top_entries && sponsorTeaser.top_entries.length > 0"
+                class="mb-6 rounded-2xl border border-[#ecdabf] bg-gradient-to-r from-[#fffaf0] via-[#fffdf9] to-[#fff8eb] p-4 text-left shadow-sm"
+            >
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#f1dfc5] pb-2.5 text-xs">
+                    <div class="flex items-center gap-2 font-bold text-[#92400e]">
+                        <Trophy class="size-4 text-[#d97706]" />
+                        <span>Papan Sponsor · {{ sponsorTeaser.period_name }}</span>
+                    </div>
+                    <Link
+                        :href="sponsorPage()"
+                        class="flex items-center gap-1 font-bold text-[#b45309] hover:underline"
+                    >
+                        Lihat papan <ArrowRight class="size-3.5" />
+                    </Link>
+                </div>
+                <p class="mt-2 text-[11px] leading-relaxed text-[#856b47]">
+                    Urutan berdasarkan nominal sponsor terkonfirmasi; tidak memengaruhi hasil pencarian di bawah ini.
+                </p>
+                <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <Link
+                        v-for="entry in sponsorTeaser.top_entries.slice(0, 3)"
+                        :key="entry.id"
+                        :href="showEntity(entry.slug)"
+                        class="flex items-center justify-between rounded-xl border border-[#f0dfc8] bg-white/80 px-3 py-2 text-xs transition hover:border-[#d97706] hover:bg-white"
+                    >
+                        <div class="truncate mr-2">
+                            <span class="font-bold text-[#92400e]">#{{ entry.rank }}</span>
+                            <span class="ml-1.5 font-semibold text-[#292218]">{{ entry.name }}</span>
+                        </div>
+                        <span class="text-[11px] font-bold text-[#b45309] shrink-0">
+                            Rp{{ entry.settled_total_amount.toLocaleString('id-ID') }}
+                        </span>
+                    </Link>
                 </div>
             </div>
 

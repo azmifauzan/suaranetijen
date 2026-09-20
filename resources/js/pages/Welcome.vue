@@ -132,7 +132,7 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
     <PublicLayout>
         <PublicSeo
             title="Sentimen Publik Brand, Produk, Tokoh dan Layanan Indonesia"
-            description="Cari tahu opini netizen tentang brand, produk, tokoh dan layanan di Indonesia lewat sentimen publik dan rating pengguna di SuaraNetijen."
+            description="Cari tahu opini netizen tentang brand, produk, tokoh dan layanan di Indonesia lewat sentimen publik dan rating pengguna, plus papan peringkat sponsor untuk mendukung favoritmu di SuaraNetijen."
             canonical-path="/"
         />
         <main>

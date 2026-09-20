@@ -5,6 +5,7 @@ namespace App\Domains\Sponsorships\Controllers\Api;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Sponsorships\Models\SponsorshipOrder;
 use App\Domains\Sponsorships\Requests\StoreSponsorshipOrderRequest;
+use App\Domains\Sponsorships\Services\ResolveGuestSponsorUser;
 use App\Domains\Sponsorships\Services\SponsorshipOrderService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -14,13 +15,20 @@ class SponsorshipOrderController extends Controller
 {
     public function store(
         StoreSponsorshipOrderRequest $request,
-        SponsorshipOrderService $orderService
+        SponsorshipOrderService $orderService,
+        ResolveGuestSponsorUser $resolveGuestUser
     ): JsonResponse {
         /** @var Entity $entity */
         $entity = Entity::query()->findOrFail((int) $request->validated('entity_id'));
 
+        $user = $request->user() ?? $resolveGuestUser->handle((string) $request->validated('email'), $request);
+
+        if ($user->isBanned()) {
+            abort(403, 'Akun ini tidak dapat membuat pesanan sponsor.');
+        }
+
         $order = $orderService->createOrder(
-            $request->user(),
+            $user,
             $entity,
             (int) $request->validated('amount'),
             $request->validated('redirect_url')
