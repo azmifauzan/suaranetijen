@@ -15,11 +15,13 @@ import {
     terms,
 } from '@/routes';
 import { index as searchPage } from '@/routes/search';
+import { index as sponsorPage } from '@/routes/sponsor';
 
 const page = usePage();
 const menuOpen = ref(false);
 const navigation = [
     { label: 'Jelajahi', href: searchPage() },
+    { label: 'Papan Sponsor', href: sponsorPage() },
     { label: 'Cara kerja', href: methodology() },
     { label: 'Tentang kami', href: about() },
 ];

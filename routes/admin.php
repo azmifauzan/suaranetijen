@@ -8,6 +8,7 @@ use App\Domains\Entities\Controllers\AdminEntityCandidatesController;
 use App\Domains\Entities\Controllers\AdminEntityController;
 use App\Domains\Entities\Controllers\AdminLlmSettingsController;
 use App\Domains\Sources\Controllers\AdminSourceController;
+use App\Domains\Sponsorships\Controllers\AdminSponsorshipController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')->group(function (): void {
@@ -49,4 +50,9 @@ Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')
     Route::get('/operations/unmatched-mentions', [AdminOperationsController::class, 'unmatchedMentions'])->name('operations.unmatched-mentions');
     Route::post('/operations/items/{sourceItem}/replay', [AdminOperationsController::class, 'replayItem'])->name('operations.items.replay');
     Route::post('/operations/failures/{failure}/retry', [AdminOperationsController::class, 'retryFailure'])->name('operations.failures.retry');
+
+    // Sponsorship moderation
+    Route::get('/sponsorship', [AdminSponsorshipController::class, 'index'])->name('sponsorship.index');
+    Route::post('/sponsorship/entries/{entry}/toggle-status', [AdminSponsorshipController::class, 'toggleEntryStatus'])->name('sponsorship.entries.toggle-status');
+    Route::post('/sponsorship/entries/{entry}/remove', [AdminSponsorshipController::class, 'removeEntry'])->name('sponsorship.entries.remove');
 });

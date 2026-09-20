@@ -18,6 +18,7 @@ import {
     Smartphone,
     Sparkles,
     Star,
+    Trophy,
     Wifi,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -27,7 +28,9 @@ import PublicSeo from '@/components/PublicSeo.vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { methodology, sources } from '@/routes';
 import { show as showCategory } from '@/routes/categories';
+import { show as showEntity } from '@/routes/entities';
 import { index as searchPage } from '@/routes/search';
+import { index as sponsorPage } from '@/routes/sponsor';
 
 interface CategoryItem {
     id: number;
@@ -52,17 +55,39 @@ interface SearchSuggestion {
     source: 'trending' | 'top_score' | 'fallback';
 }
 
+interface SponsorTeaserItem {
+    id: number;
+    rank: number;
+    name: string;
+    slug: string;
+    category_name: string;
+    settled_total_amount: number;
+}
+
+interface SponsorTeaser {
+    period_key: string;
+    period_name: string;
+    total_settled_amount: number;
+    top_entry?: {
+        name: string;
+        settled_total_amount: number;
+    };
+    top_entries: SponsorTeaserItem[];
+}
+
 const props = withDefaults(
     defineProps<{
         categories: CategoryItem[];
         searchSuggestions?: SearchSuggestion[];
         topEntities?: EntityItem[];
         recentEntities?: EntityItem[];
+        sponsorTeaser?: SponsorTeaser | null;
     }>(),
     {
         searchSuggestions: () => [],
         topEntities: () => [],
         recentEntities: () => [],
+        sponsorTeaser: null,
     },
 );
 
@@ -159,6 +184,48 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                         Cari dulu, lihat apa kata netijen.
                     </p>
                     <div class="mx-auto mt-8 max-w-2xl"><EntitySearch /></div>
+
+                    <!-- Papan Sponsor Homepage Teaser (docs/26) -->
+                    <div
+                        v-if="sponsorTeaser && sponsorTeaser.top_entries && sponsorTeaser.top_entries.length > 0"
+                        class="mx-auto mt-6 max-w-2xl rounded-2xl border border-[#ecdabf] bg-gradient-to-r from-[#fffaf0] via-[#fffdf9] to-[#fff8eb] p-4 text-left shadow-sm"
+                    >
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#f1dfc5] pb-2.5 text-xs">
+                            <div class="flex items-center gap-2 font-bold text-[#92400e]">
+                                <Trophy class="size-4 text-[#d97706]" />
+                                <span>Papan Sponsor · {{ sponsorTeaser.period_name }}</span>
+                                <span v-if="sponsorTeaser.top_entry" class="hidden sm:inline font-semibold text-[#b45309]">
+                                    ( #1 {{ sponsorTeaser.top_entry.name }} · Rp{{ sponsorTeaser.top_entry.settled_total_amount.toLocaleString('id-ID') }} )
+                                </span>
+                            </div>
+                            <Link
+                                :href="sponsorPage()"
+                                class="flex items-center gap-1 font-bold text-[#b45309] hover:underline"
+                            >
+                                Lihat papan <ArrowRight class="size-3.5" />
+                            </Link>
+                        </div>
+                        <p class="mt-2 text-[11px] leading-relaxed text-[#856b47]">
+                            Urutan berdasarkan nominal sponsor terkonfirmasi; tidak memengaruhi skor ataupun hasil pencarian.
+                        </p>
+                        <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                            <Link
+                                v-for="entry in sponsorTeaser.top_entries.slice(0, 3)"
+                                :key="entry.id"
+                                :href="showEntity(entry.slug)"
+                                class="flex items-center justify-between rounded-xl border border-[#f0dfc8] bg-white/80 px-3 py-2 text-xs transition hover:border-[#d97706] hover:bg-white"
+                            >
+                                <div class="truncate mr-2">
+                                    <span class="font-bold text-[#92400e]">#{{ entry.rank }}</span>
+                                    <span class="ml-1.5 font-semibold text-[#292218]">{{ entry.name }}</span>
+                                </div>
+                                <span class="text-[11px] font-bold text-[#b45309] shrink-0">
+                                    Rp{{ entry.settled_total_amount.toLocaleString('id-ID') }}
+                                </span>
+                            </Link>
+                        </div>
+                    </div>
+
                     <div
                         class="mt-5 flex flex-wrap items-center justify-center gap-2 text-xs text-[#667861]"
                     >
