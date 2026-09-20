@@ -54,6 +54,12 @@ interface UserOrderInfo {
     payment_link_url: string | null;
 }
 
+interface CategoryItem {
+    id: number;
+    name: string;
+    slug: string;
+}
+
 const props = defineProps<{
     periods: PeriodItem[];
     activePeriod: { id: number; key: string; name: string };
@@ -67,6 +73,7 @@ const props = defineProps<{
     minAmount: number;
     incrementAmount: number;
     userOrder?: UserOrderInfo | null;
+    categories: CategoryItem[];
 }>();
 
 const page = usePage();
@@ -94,6 +101,15 @@ const previewError = ref<string | null>(null);
 const urlPreview = ref<{ title: string; url: string } | null>(null);
 const candidates = ref<Array<{ id: number; name: string; slug: string; category_name: string; type_label: string }>>([]);
 const selectedEntity = ref<{ id: number; name: string; slug: string } | null>(null);
+// New-entity mode: the retrieved URL matched no existing entity, so the user names it and picks
+// a category instead (RankUp asks the same at submission) — the entity itself isn't created
+// until the payment actually confirms (docs/26; see ProcessSponsorshipRelayWebhook).
+const newEntityName = ref('');
+const newEntityCategoryId = ref<number | null>(null);
+const isNewEntityMode = computed(
+    () => !!urlPreview.value && !isFetchingPreview.value && candidates.value.length === 0 && !selectedEntity.value,
+);
+const hasSponsorTarget = computed(() => !!selectedEntity.value || isNewEntityMode.value);
 const contributionAmount = ref<number>(10000);
 const customAmount = ref<string>('10000');
 const isSubmitting = ref(false);
@@ -139,14 +155,21 @@ const predictedRank = computed(() => {
 
 // URL-first preview + match, mirroring Pamerin's flow (confirmed live): paste a URL, the site
 // is fetched server-side for its title, and only then does the rest of the form appear — here,
-// "the rest" is a list of existing entities matched by that title (never a new listing, per
-// this app's entity-centric constraint).
-function isLikelyUrl(value: string): boolean {
+// "the rest" is either a match against existing entities, or (no match) a name + category to
+// register a new one, created only once payment confirms.
+//
+// A bare domain (no http/https typed) must still work — Pamerin's own input accepts that — so
+// this normalizes before validating/sending rather than rejecting anything without a scheme.
+function normalizeUrlInput(value: string): string | null {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
     try {
-        const parsed = new URL(value.trim());
-        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        const parsed = new URL(withScheme);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? withScheme : null;
     } catch {
-        return false;
+        return null;
     }
 }
 
@@ -157,8 +180,11 @@ watch(urlInput, (value) => {
     candidates.value = [];
     previewError.value = null;
     selectedEntity.value = null;
+    newEntityName.value = '';
+    newEntityCategoryId.value = null;
 
-    if (!isLikelyUrl(value)) {
+    const normalized = normalizeUrlInput(value);
+    if (!normalized) {
         return;
     }
 
@@ -173,7 +199,7 @@ watch(urlInput, (value) => {
                     Accept: 'application/json',
                     'X-CSRF-TOKEN': csrfToken || '',
                 },
-                body: JSON.stringify({ url: value.trim() }),
+                body: JSON.stringify({ url: normalized }),
             });
             const json = await res.json();
 
@@ -190,6 +216,10 @@ watch(urlInput, (value) => {
                 category_name: item.category_name || item.category?.name || 'Umum',
                 type_label: item.type_label || 'Entitas',
             }));
+
+            if (candidates.value.length === 0) {
+                newEntityName.value = json.preview.title;
+            }
         } catch {
             previewError.value = 'Gagal mengambil informasi dari URL tersebut.';
         } finally {
@@ -211,8 +241,18 @@ function selectEntityAndScrollToForm(entity: { id: number; name: string; slug: s
 }
 
 function openConfirmModal() {
-    if (!selectedEntity.value) {
+    if (!selectedEntity.value && !isNewEntityMode.value) {
         errorMessage.value = 'Silakan pilih entitas yang ingin disponsori.';
+        return;
+    }
+
+    if (isNewEntityMode.value && !newEntityName.value.trim()) {
+        errorMessage.value = 'Nama entitas wajib diisi.';
+        return;
+    }
+
+    if (isNewEntityMode.value && !newEntityCategoryId.value) {
+        errorMessage.value = 'Pilih kategori entitas.';
         return;
     }
 
@@ -240,7 +280,7 @@ function closeConfirmModal() {
 }
 
 async function submitOrder() {
-    if (!selectedEntity.value) return;
+    if (!selectedEntity.value && !isNewEntityMode.value) return;
 
     isSubmitting.value = true;
     errorMessage.value = null;
@@ -255,11 +295,17 @@ async function submitOrder() {
                 'X-CSRF-TOKEN': csrfToken || '',
             },
             body: JSON.stringify({
-                entity_id: selectedEntity.value.id,
                 amount: contributionAmount.value,
                 // No redirect_url: the backend builds the correct post-payment URL itself
                 // (with the real order id, known only after creation) as its own default.
                 ...(currentUser.value ? {} : { email: guestEmail.value.trim() }),
+                ...(selectedEntity.value
+                    ? { entity_id: selectedEntity.value.id }
+                    : {
+                          new_entity_name: newEntityName.value.trim(),
+                          new_entity_category_id: newEntityCategoryId.value,
+                          new_entity_url: urlPreview.value?.url,
+                      }),
             }),
         });
 
@@ -475,14 +521,38 @@ function formatRupiah(amount: number): string {
                         </button>
                     </div>
 
-                    <!-- No match: SuaraNetijen never auto-creates a listing from a URL, so this
-                         is a dead end pending the existing admin/entity workflow (docs/26). -->
+                    <!-- No match: register it as a new entity instead (docs/26 override) — it's
+                         created now but Disabled/invisible everywhere, and only flips to a real,
+                         visible listing once the payment actually confirms. -->
                     <div
-                        v-if="urlPreview && !isFetchingPreview && candidates.length === 0 && !selectedEntity"
-                        class="mt-2 rounded-xl border border-[#e5d4b8] bg-[#fffaf0] p-3 text-xs text-[#7c694e]"
+                        v-if="isNewEntityMode"
+                        class="mt-3 rounded-xl border border-[#e5d4b8] bg-[#fffaf0] p-3"
                     >
-                        Entitas untuk situs ini belum terdaftar di SuaraNetijen. Hubungi admin untuk menambahkannya
-                        sebelum bisa disponsori.
+                        <p class="text-xs text-[#7c694e]">
+                            Belum terdaftar di SuaraNetijen. Daftarkan sebagai entitas baru — akan tampil di papan
+                            begitu pembayaran terkonfirmasi.
+                        </p>
+                        <label class="mt-3 block text-xs font-bold text-[#31483b]">
+                            Nama Entitas
+                        </label>
+                        <input
+                            v-model="newEntityName"
+                            type="text"
+                            placeholder="Nama brand, produk, atau layanan"
+                            class="mt-1.5 w-full rounded-xl border border-[#cfd9ce] py-2.5 px-4 text-sm text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
+                        />
+                        <label class="mt-3 block text-xs font-bold text-[#31483b]">
+                            Kategori
+                        </label>
+                        <select
+                            v-model="newEntityCategoryId"
+                            class="mt-1.5 w-full rounded-xl border border-[#cfd9ce] bg-white py-2.5 px-4 text-sm text-[#18392d] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
+                        >
+                            <option :value="null" disabled>Pilih kategori...</option>
+                            <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                                {{ cat.name }}
+                            </option>
+                        </select>
                     </div>
 
                     <div
@@ -502,8 +572,8 @@ function formatRupiah(amount: number): string {
                     </div>
                 </div>
 
-                <!-- Step 2: appears only once an entity is confirmed. -->
-                <template v-if="selectedEntity">
+                <!-- Step 2: appears once an entity is confirmed or a new one is ready to name. -->
+                <template v-if="hasSponsorTarget">
                     <!-- Guest email (no account required) -->
                     <div v-if="!currentUser" class="mt-6 max-w-lg">
                         <label class="block text-xs font-bold text-[#31483b]">
@@ -581,7 +651,10 @@ function formatRupiah(amount: number): string {
                         <button
                             type="button"
                             class="w-full rounded-full bg-[#d97706] py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#b45309] disabled:opacity-50"
-                            :disabled="!currentUser && !isValidGuestEmail"
+                            :disabled="
+                                (!currentUser && !isValidGuestEmail) ||
+                                (isNewEntityMode && (!newEntityName.trim() || !newEntityCategoryId))
+                            "
                             @click="openConfirmModal()"
                         >
                             Lanjut ke Pembayaran QRIS ({{ formatRupiah(contributionAmount) }})
@@ -879,7 +952,11 @@ function formatRupiah(amount: number): string {
                 <div class="mt-5 space-y-3 rounded-2xl border border-[#e5e9e2] bg-[#f8faf7] p-4 text-sm">
                     <div class="flex items-center justify-between">
                         <span class="text-[#637568]">Entitas</span>
-                        <span class="font-bold text-[#18392d]">{{ selectedEntity?.name }}</span>
+                        <span class="font-bold text-[#18392d]">{{ selectedEntity?.name || newEntityName }}</span>
+                    </div>
+                    <div v-if="isNewEntityMode" class="flex items-center justify-between">
+                        <span class="text-[#637568]">Status</span>
+                        <span class="font-bold text-[#92400e]">Entitas baru — aktif setelah bayar</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-[#637568]">Nominal</span>

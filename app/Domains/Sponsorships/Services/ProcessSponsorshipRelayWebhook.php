@@ -2,6 +2,7 @@
 
 namespace App\Domains\Sponsorships\Services;
 
+use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Sponsorships\Enums\SponsoredEntryStatus;
 use App\Domains\Sponsorships\Enums\SponsorshipOrderStatus;
 use App\Domains\Sponsorships\Enums\SponsorshipRelayEventStatus;
@@ -163,6 +164,20 @@ class ProcessSponsorshipRelayWebhook
                             $entry->status = SponsoredEntryStatus::Active;
                         }
                         $entry->save();
+
+                        // An entity auto-created from a URL with no existing match
+                        // (SponsorshipOrderService::createOrderForNewEntity) is created Disabled
+                        // and non-searchable/non-rankable — invisible everywhere until this exact
+                        // moment, the first confirmed payment. Never true for a pre-existing
+                        // entity: createOrder() already refuses to sponsor a non-Active one.
+                        $entity = $entry->entity()->lockForUpdate()->first();
+                        if ($entity && $entity->status === EntityStatus::Disabled) {
+                            $entity->update([
+                                'status' => EntityStatus::Active,
+                                'searchable' => true,
+                                'rankable' => true,
+                            ]);
+                        }
                     }
                 }
 

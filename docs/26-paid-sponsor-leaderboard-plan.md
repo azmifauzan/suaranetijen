@@ -35,17 +35,78 @@ not a review, endorsement, or guarantee of traffic, sales, followers, or sentime
 
 Recommended MVP constraints:
 
-- Sponsor only an existing active/searchable brand, product, or service.
-- Do not accept arbitrary external URLs as listings in the first version.
-- Do not auto-create an entity from a submitted URL; missing entities go through the existing
-  admin/entity workflow.
+- Sponsor an existing active/searchable brand, product, or service, **or** register a new one by
+  URL (revised — see "URL-first submission and new-entity override" below). No arbitrary listing
+  type beyond an entity: a sponsored URL always becomes a `brand`-type `Entity`, matched or
+  created, never a standalone unattached listing.
 - Exclude public-figure/political sponsorship from the first release until a separate policy review
   is complete.
-- Display the board publicly, but require authentication for creating or managing a payment order.
+- Display the board publicly. No account is required to create a payment order (revised — see
+  "Guest checkout" below): a guest's email resolves or creates a real `User` and the browser
+  session is logged in immediately, so "managing" an order (viewing its status) still only ever
+  works for its owner, just not gated behind a pre-existing account.
 - Show a configurable minimum and increment; do not hard-code pricing in PHP. Default minimum
   Rp1.000, default increment Rp1.000 — both read from config, not constants.
 - Weekly season for the active board, with an all-time archive. A lifetime-only board can lock the
   top positions and reduce repeat participation.
+
+## Guest checkout (revised, post-launch)
+
+**Decision: no account required to sponsor.** Checked live against Outbid/Pamerin/RankUp — none
+of them gate submission behind a pre-existing account; Pamerin's flow is link → nominal → pay,
+nothing else. A guest supplies only an email.
+
+- The email resolves-or-creates a real `User` row (never a parallel guest-identity table), and the
+  browser session is logged in immediately (`Auth::login()`) — this is what makes the post-payment
+  status page work with no token scheme: by the time Sumopod redirects back, the session is
+  already authenticated as that user.
+- A signed magic-login link is also emailed (`SponsorGuestAccessNotification` /
+  `sponsor.access.login`), 7-day expiry, so the same guest can get back in from another device or
+  after the session lapses — without ever setting a password.
+- Existing anti-abuse minimums (rate limiting, ban check) apply identically to a guest-resolved
+  user as to an already-authenticated one.
+
+## URL-first submission and new-entity override (revised, post-launch)
+
+**Decision: sponsoring a URL that matches no existing entity now creates one, instead of dead-
+ending at "contact an admin".** This overrides the MVP constraint stated in "Product concept"
+above and in the original rollout notes. Checked live against Pamerin, RankUp, and getRanked: all
+three let anyone submit any URL directly — Pamerin has no entity/curation concept at all, RankUp
+and getRanked both ask for a category at submission time (mirrored here) and auto-fill a
+description from the page's own meta tags.
+
+**What's preserved, not overridden:** the underlying precision-over-recall / no-unvetted-listing
+principle still holds — it's just enforced by *payment*, not by an admin gate:
+
+- The entity is created at order-creation time as `type = brand`, the submitted category, but
+  `status = Disabled`, `searchable = false`, `rankable = false`. `EntityMatcher`, `SearchService`,
+  and sentiment/ranking queries already scope on `active()`/`searchable()` (confirmed:
+  `EntityMatcher::match()` queries `Entity::query()->active()->searchable()`, and
+  `EntityShowController`'s lookup is `active()`-scoped too, so a Disabled entity 404s on direct
+  URL access) — so the entity is fully invisible everywhere until it flips.
+- `ProcessSponsorshipRelayWebhook` flips it to `Active`/searchable/rankable only on a confirmed
+  `payment.completed`, in the same transaction as the settlement update. An abandoned, failed, or
+  expired order leaves an inert, invisible row — never a real listing, and never something a
+  crawler or search query can find.
+- `docs/13`'s `noindex`-below-threshold and every other public-score/ranking rule apply unchanged
+  once the entity is Active — becoming visible doesn't grant a free pass into sentiment scoring or
+  ranking eligibility, those still need their own opinion volume.
+- Public-figure/political exclusion is unaffected: `SponsorshipOrderService` still rejects
+  `EntityType::Person`, and the new-entity path only ever creates `Brand`, so this override
+  cannot be used to backdoor a Tokoh Publik-style entity.
+
+**Flow:** paste a URL (scheme-optional — a bare domain is normalized to `https://` client-side,
+matching Pamerin's own input) → `FetchUrlPreview` fetches it server-side (SSRF-guarded: public-IP
+resolve only, redirects never auto-followed) and returns its `<title>` → that title is searched
+against existing entities. A match lets the user pick it (existing flow, unchanged). No match
+reveals a name (prefilled, editable) + category picker instead of a dead end, and submitting goes
+through `SponsorshipOrderService::createOrderForNewEntity()`.
+
+**Not implemented, deliberately:** no description/favicon auto-fill from the fetched page beyond
+the title (RankUp/getRanked also auto-fill a description; SuaraNetijen's `Entity.description`
+column is left null here — a future pass could extract `og:description`, low priority); no
+dedicated moderation queue for auto-created entities beyond the existing admin entity list (an
+admin can already edit/disable any entity, auto-created or not).
 
 ## Ranking rules
 
@@ -58,7 +119,7 @@ The proposed active-board order is:
 Only confirmed `capture`/`settlement` payments count. Pending, expired, denied, and cancelled
 orders do not affect a position.
 
-**Decision: community model.** Any authenticated user may top up any entity's sponsor total; a
+**Decision: community model.** Anyone (guest or authenticated) may top up any entity's sponsor total; a
 re-bid is a target total charged only for the difference, and multiple sponsors can accumulate on
 the same entity. This avoids building an entity-claim/verification flow before launch. The
 disclosure copy states this explicitly (see below) so users understand a total is a sum of

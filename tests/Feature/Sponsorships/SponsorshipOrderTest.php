@@ -2,6 +2,7 @@
 
 use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Enums\EntityType;
+use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Sponsorships\Enums\SponsorshipOrderStatus;
 use App\Domains\Sponsorships\Models\SponsorshipOrder;
@@ -92,6 +93,91 @@ test('a banned guest cannot create a sponsorship order', function () {
     ])->assertForbidden();
 
     $this->assertDatabaseCount('sponsorship_orders', 0);
+});
+
+test('sponsoring a URL with no existing entity match creates one, Disabled and invisible until payment', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+
+    Http::fake([
+        'https://api-pay.sumopod.com/api/v1/payments' => Http::response([
+            'payment_id' => 'pay_newentity_1',
+            'payment_link_url' => 'https://checkout.sumopod.com/pay/order-newentity-1',
+            'status' => 'pending',
+        ], 200),
+    ]);
+
+    $response = $this->actingAs($user)->postJson(route('api.sponsor.orders.store'), [
+        'new_entity_name' => 'Brand Baru Belum Terdaftar',
+        'new_entity_category_id' => $category->id,
+        'new_entity_url' => 'https://brand-baru.example/',
+        'amount' => 10000,
+    ]);
+
+    $response->assertCreated();
+
+    $entity = Entity::query()->where('name', 'Brand Baru Belum Terdaftar')->first();
+    expect($entity)->not->toBeNull()
+        ->and($entity->type)->toBe(EntityType::Brand)
+        ->and($entity->category_id)->toBe($category->id)
+        ->and($entity->status)->toBe(EntityStatus::Disabled)
+        ->and($entity->searchable)->toBeFalse()
+        ->and($entity->rankable)->toBeFalse();
+
+    $this->assertDatabaseHas('entity_aliases', [
+        'entity_id' => $entity->id,
+        'alias' => 'Brand Baru Belum Terdaftar',
+    ]);
+
+    $this->assertDatabaseHas('sponsorship_orders', [
+        'id' => $response->json('data.id'),
+        'amount' => 10000,
+        'status' => SponsorshipOrderStatus::Pending->value,
+    ]);
+});
+
+test('new-entity sponsorship requires a name and a category', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+
+    $this->actingAs($user)->postJson(route('api.sponsor.orders.store'), [
+        'new_entity_category_id' => $category->id,
+        'new_entity_url' => 'https://brand-baru.example/',
+        'amount' => 10000,
+    ])->assertUnprocessable()->assertJsonValidationErrors(['new_entity_name']);
+
+    $this->actingAs($user)->postJson(route('api.sponsor.orders.store'), [
+        'new_entity_name' => 'Brand Baru',
+        'new_entity_url' => 'https://brand-baru.example/',
+        'amount' => 10000,
+    ])->assertUnprocessable()->assertJsonValidationErrors(['new_entity_category_id']);
+
+    $this->assertDatabaseCount('sponsorship_orders', 0);
+});
+
+test('a duplicate entity name gets a unique slug instead of failing', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+    Entity::factory()->create(['name' => 'Kopi Kenangan', 'slug' => 'kopi-kenangan']);
+
+    Http::fake([
+        'https://api-pay.sumopod.com/api/v1/payments' => Http::response([
+            'payment_id' => 'pay_dup_1',
+            'payment_link_url' => 'https://checkout.sumopod.com/pay/order-dup-1',
+            'status' => 'pending',
+        ], 200),
+    ]);
+
+    $this->actingAs($user)->postJson(route('api.sponsor.orders.store'), [
+        'new_entity_name' => 'Kopi Kenangan',
+        'new_entity_category_id' => $category->id,
+        'new_entity_url' => 'https://kopikenangan.example/',
+        'amount' => 10000,
+    ])->assertCreated();
+
+    $this->assertDatabaseCount('entities', 2);
+    $slugs = Entity::query()->where('name', 'Kopi Kenangan')->pluck('slug');
+    expect($slugs->unique())->toHaveCount(2);
 });
 
 test('authenticated user can create order and receives payment url', function () {

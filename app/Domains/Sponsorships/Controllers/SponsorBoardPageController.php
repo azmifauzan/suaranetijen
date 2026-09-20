@@ -2,6 +2,7 @@
 
 namespace App\Domains\Sponsorships\Controllers;
 
+use App\Domains\Entities\Models\Category;
 use App\Domains\Sponsorships\Models\SponsorshipOrder;
 use App\Domains\Sponsorships\Services\SponsorLeaderboardService;
 use App\Http\Controllers\Controller;
@@ -59,6 +60,7 @@ class SponsorBoardPageController extends Controller
             'minAmount' => (int) config('sponsorship.min_amount', 1000),
             'incrementAmount' => (int) config('sponsorship.increment_amount', 1000),
             'userOrder' => $userOrder,
+            'categories' => Category::active()->orderBy('name')->get(['id', 'name', 'slug']),
         ]);
     }
 }

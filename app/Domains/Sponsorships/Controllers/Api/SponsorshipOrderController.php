@@ -18,21 +18,31 @@ class SponsorshipOrderController extends Controller
         SponsorshipOrderService $orderService,
         ResolveGuestSponsorUser $resolveGuestUser
     ): JsonResponse {
-        /** @var Entity $entity */
-        $entity = Entity::query()->findOrFail((int) $request->validated('entity_id'));
-
         $user = $request->user() ?? $resolveGuestUser->handle((string) $request->validated('email'), $request);
 
         if ($user->isBanned()) {
             abort(403, 'Akun ini tidak dapat membuat pesanan sponsor.');
         }
 
-        $order = $orderService->createOrder(
-            $user,
-            $entity,
-            (int) $request->validated('amount'),
-            $request->validated('redirect_url')
-        );
+        $amount = (int) $request->validated('amount');
+        $redirectUrl = $request->validated('redirect_url');
+        $entityId = $request->validated('entity_id');
+
+        if ($entityId !== null) {
+            /** @var Entity $entity */
+            $entity = Entity::query()->findOrFail((int) $entityId);
+
+            $order = $orderService->createOrder($user, $entity, $amount, $redirectUrl);
+        } else {
+            $order = $orderService->createOrderForNewEntity(
+                $user,
+                (string) $request->validated('new_entity_name'),
+                (int) $request->validated('new_entity_category_id'),
+                (string) $request->validated('new_entity_url'),
+                $amount,
+                $redirectUrl
+            );
+        }
 
         return response()->json([
             'message' => 'Pesanan sponsor berhasil dibuat.',

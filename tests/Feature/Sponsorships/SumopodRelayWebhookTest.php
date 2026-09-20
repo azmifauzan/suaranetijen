@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Sponsorships\Enums\SponsoredEntryStatus;
 use App\Domains\Sponsorships\Enums\SponsorshipOrderStatus;
@@ -110,6 +111,49 @@ test('it successfully settles order and updates entry total on payment.completed
         'svix_id' => 'svix_event_001',
         'status' => 'delivered',
     ]);
+});
+
+test('payment.completed activates a Disabled entity created via the new-entity sponsor flow', function () {
+    $user = User::factory()->create();
+    $period = SponsorPeriod::factory()->create();
+    $entity = Entity::factory()->create([
+        'status' => EntityStatus::Disabled,
+        'searchable' => false,
+        'rankable' => false,
+    ]);
+
+    $entry = SponsoredEntry::factory()->create([
+        'period_id' => $period->id,
+        'entity_id' => $entity->id,
+        'settled_total_amount' => 0,
+        'first_settled_at' => null,
+        'status' => SponsoredEntryStatus::Pending,
+    ]);
+
+    $order = SponsorshipOrder::factory()->create([
+        'sponsored_entry_id' => $entry->id,
+        'user_id' => $user->id,
+        'amount' => 10000,
+        'provider_order_id' => 'SNT-SPN-201',
+        'provider_payment_id' => 'pay_201',
+        'status' => SponsorshipOrderStatus::Pending,
+    ]);
+
+    $payload = [
+        'event_type' => 'payment.completed',
+        'data' => ['order_id' => 'SNT-SPN-201', 'payment_id' => 'pay_201', 'amount' => 10000],
+    ];
+    $headers = createSignedHeaders(json_encode($payload), 'svix_new_entity_activate');
+
+    $this->postJson(route('api.sponsor.webhooks.relay'), $payload, $headers)->assertOk();
+
+    $entity->refresh();
+    expect($entity->status)->toBe(EntityStatus::Active)
+        ->and($entity->searchable)->toBeTrue()
+        ->and($entity->rankable)->toBeTrue();
+
+    $entry->refresh();
+    expect($entry->settled_total_amount)->toBe(10000);
 });
 
 test('community model: multiple sponsors accumulate on the same entity', function () {

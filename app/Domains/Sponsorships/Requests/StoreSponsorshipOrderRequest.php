@@ -46,7 +46,13 @@ class StoreSponsorshipOrderRequest extends FormRequest
         $min = (int) config('sponsorship.min_amount', 1000);
 
         return [
-            'entity_id' => ['required', 'integer', 'exists:entities,id'],
+            // Either an existing entity_id, or a URL match that came back with no candidates —
+            // the latter case submits new_entity_* fields instead (docs/26: sponsoring a URL
+            // with no existing match creates the entity, Disabled until payment confirms).
+            'entity_id' => ['required_without:new_entity_name', 'nullable', 'integer', 'exists:entities,id'],
+            'new_entity_name' => ['required_without:entity_id', 'nullable', 'string', 'max:255'],
+            'new_entity_category_id' => ['required_without:entity_id', 'nullable', 'integer', 'exists:categories,id'],
+            'new_entity_url' => ['required_without:entity_id', 'nullable', 'url', 'max:2048'],
             'amount' => ['required', 'integer', "min:{$min}"],
             'email' => [$this->user() ? 'nullable' : 'required', 'email', 'max:255'],
             // Sumopod redirects the user's browser here after checkout, so an arbitrary
@@ -71,8 +77,12 @@ class StoreSponsorshipOrderRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'entity_id.required' => 'Pilih entitas yang ingin disponsori.',
+            'entity_id.required_without' => 'Pilih entitas yang ingin disponsori.',
             'entity_id.exists' => 'Entitas yang dipilih tidak ditemukan.',
+            'new_entity_name.required_without' => 'Nama entitas wajib diisi.',
+            'new_entity_category_id.required_without' => 'Pilih kategori entitas.',
+            'new_entity_category_id.exists' => 'Kategori tidak ditemukan.',
+            'new_entity_url.required_without' => 'URL entitas wajib diisi.',
             'amount.required' => 'Nominal sponsor wajib diisi.',
             'amount.min' => 'Nominal sponsor minimal Rp1.000.',
             'email.required' => 'Masukkan email untuk melanjutkan tanpa akun.',
