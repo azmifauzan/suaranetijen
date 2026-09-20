@@ -30,6 +30,16 @@
             }
         </style>
 
+        @if ($gaId = config('services.google_analytics.id'))
+            <script async src="https://www.googletagmanager.com/gtag/js?id={{ $gaId }}"></script>
+            <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag() { dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', '{{ $gaId }}');
+            </script>
+        @endif
+
         <link rel="icon" href="/favicon.ico?v=2" type="image/x-icon" sizes="any">
         <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">

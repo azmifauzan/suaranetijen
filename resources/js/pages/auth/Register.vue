@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import GoogleAuthButton from '@/components/GoogleAuthButton.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -24,6 +25,14 @@ defineOptions({
 
 <template>
     <Head title="Daftar" />
+
+    <GoogleAuthButton label="Daftar dengan Google" />
+
+    <div class="text-muted-foreground my-2 flex items-center gap-3 text-xs">
+        <div class="h-px flex-1 bg-border" />
+        atau
+        <div class="h-px flex-1 bg-border" />
+    </div>
 
     <Form
         v-bind="store.form()"

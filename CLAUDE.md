@@ -926,7 +926,7 @@ Current implementation boundary:
 | Encrypted backups + restore verification, ops alerting (Epic 11, `docs/16`) | `backup:database` (daily + monthly `--verify`) and `monitor:metrics` (every 15 min) scheduled; local disk only, no off-host copy; alerting covers queue/job/crawl/parser metrics only, not the full `docs/16` list |
 | `app/Domains/*` modules | `Admin`, `Entities`, `Search`, `Sources`, `Ingestion`, `Sentiment`, `Themes`, `Ratings` present; ranking stays in `Sentiment`; `Rankings` and `Moderation` not implemented as separate modules |
 | Docker deploy artifacts | `Dockerfile`, `.dockerignore`, `docker-entrypoint.sh` added; image built locally and pushed to Docker Hub (`azmifauzan/suaranetijen`), staging server pulls and runs via its own `docker-compose.yml` (not in this repo) |
-| Staging environment | live at `https://suaranetijen.web.id`; see staging deployment notes above for the bugs found and fixed getting there |
+| Staging environment | live at `https://suaranetijen.id` (migrated from `suaranetijen.web.id` 20 Sep 2026, old domain 301-redirects); see staging deployment notes above for the bugs found and fixed getting there |
 | Entity candidate pipeline (`docs/23` "Growth") | implemented (5 Sep 2026), not yet deployed to staging — closes the previously-untouched gap where zero-result search queries were logged but nothing turned that into new-entity candidates |
 | Shared LLM settings (`llm_settings`, `/admin/llm-settings`) | implemented — OpenAI-compatible chat completions over plain HTTP, no new SDK dependency; meant to be the one place any future LLM feature (e.g. the still-unimplemented `docs/10` ambiguous-entity-matching fallback) resolves its client through |
 | Tokoh Publik category / `person` entity type (ADR-010 override) | `EntityType::Person` + Tokoh Publik category tree implemented, 25 seed entities added, generic pipeline unchanged; `kaskus_politik` Source seeded `enabled: false` pending live check; not yet deployed to staging |
@@ -1371,6 +1371,56 @@ a session/cache dependency failed).
 - Server hostnames/IPs/credentials for this incident are intentionally not recorded here — see the
   standing "infra details live outside this repo" note; they're in the operator's local, gitignored
   `.env`.
+
+## Domain migration: suaranetijen.web.id -> suaranetijen.id (20 September 2026)
+
+Operator-requested domain change. App code was already `.id`-clean (User-Agent strings, seeded
+admin emails, privacy contact address all already used `suaranetijen.id` — only the actually
+deployed staging domain and its infra config were still `.web.id`), so this was almost entirely a
+deploy-side change, not a code change.
+
+- **nginx-proxy vhost (`jonasal/nginx-certbot` image, `/home/dev/compose/nginx/user_conf.d/` on
+  the staging host):** added `suaranetijen.id.conf.nokey` (same `proxy_pass
+  http://suaranetijen-app:80` block as the old vhost; `.nokey` suffix is this image's own
+  documented mechanism — read directly from `/scripts/util.sh`/`run_certbot.sh` inside the running
+  container — for "config references a cert that doesn't exist yet, so exclude it from nginx's
+  active `conf.d/*.conf` glob until certbot successfully issues one, then auto-rename and reload").
+  Rewrote the old `suaranetijen.web.id.conf` in place as a bare 301 redirect to
+  `https://suaranetijen.id$request_uri`, keeping its still-valid existing cert (no need to reissue
+  it). Both files backed up (`.bak-<timestamp>`) before editing.
+- **Triggered cert issuance without touching the shared proxy container's uptime**: sending
+  `docker kill -s HUP nginx-proxy` runs this image's own `symlink_user_configs` +
+  `run_certbot.sh` + `nginx -s reload` cycle in place — confirmed via `start_nginx_certbot.sh`'s
+  `SIGHUP` trap — so `docker.mynet.co.id`, `git.mynet.co.id`, `satsetops.com` (unrelated apps
+  sharing this proxy) were never restarted or dropped.
+- **Real bug hit and fixed along the way, not caused by this session's config**: first cert
+  attempt failed ACME http-01 validation with a 404 from origin's default nginx error page, even
+  though a manually-placed token file at the exact same path returned 200 when curled with the
+  origin IP directly + a `Host` header. Root cause was outside this repo entirely — the
+  `suaranetijen.id` DNS record in Cloudflare wasn't actually pointed at this staging host's IP
+  (confirmed by the operator, then corrected in the Cloudflare dashboard) — Cloudflare's proxy
+  (orange-cloud) itself was never the problem, contrary to first suspicion; a proxied record works
+  fine for ACME http-01 as long as it resolves to the right origin, which the already-working old
+  domain demonstrated. Re-ran into Let's Encrypt's failed-authorization rate limit (5/hour per
+  hostname) from the earlier failed attempts and had to wait out the window before the retry
+  succeeded.
+- **App-side**: staging's `docker-compose.yml`-adjacent `.env` (outside this repo)
+  `APP_URL`/`SESSION_DOMAIN`/`MAIL_FROM_ADDRESS` updated to `suaranetijen.id`; `suaranetijen-app`/
+  `-horizon`/`-scheduler` recreated to pick up the new env (`horizon:terminate` first for a
+  graceful stop, matching the documented redeploy process). `suaranetijen-redis` was also recreated
+  as a side effect of the shared `env_file: .env` config hash changing — its ~280k-key dataset
+  survived via Compose's default anonymous-volume-preservation-on-recreate behavior (confirmed:
+  `Done loading RDB, keys loaded: 280084` in its restart log), same mechanism that saved it during
+  the earlier OOM incident above, but worth knowing this is implicit/undocumented-in-compose
+  behavior, not a named volume — a future compose edit that changes how the service is defined
+  could break this assumption.
+- **Confirmed live**: `https://suaranetijen.id/` returns 200 with `og:url` reflecting the new
+  domain, `/sitemap.xml` contains only `suaranetijen.id` URLs (0 `suaranetijen.web.id`), and
+  `https://suaranetijen.web.id/` 301-redirects to `https://suaranetijen.id/`.
+- **Not changed**: Cloudflare zone/DNS management itself (operator's own dashboard, not
+  SSH/repo-reachable), and the two distributed worker hosts (`worker1`/`worker2`) — they only run
+  Horizon queue workers pointed at the main host's `DB_HOST`/`REDIS_HOST` by IP, never construct
+  URLs from `APP_URL`, so they needed no change.
 
 ## Document map
 

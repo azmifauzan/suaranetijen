@@ -35,6 +35,16 @@ return [
         ],
     ],
 
+    'google_analytics' => [
+        'id' => env('GOOGLE_ANALYTICS_ID'),
+    ],
+
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL').'/auth/google/callback'),
+    ],
+
     'flaresolverr' => [
         'url' => env('FLARESOLVERR_URL'),
         // Kept below the ingestion jobs' 90s $timeout (see FetchSourceDocumentJob /
