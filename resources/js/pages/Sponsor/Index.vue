@@ -523,34 +523,11 @@ function formatRupiah(amount: number): string {
                 </div>
             </div>
 
-            <!-- Hero Section -->
-            <div class="relative overflow-hidden rounded-3xl border border-[#e8d7be] bg-gradient-to-br from-[#fffbf4] via-[#fffdf9] to-[#f7f3ea] p-6 sm:p-10">
-                <div class="pointer-events-none absolute -top-16 -right-16 size-72 rounded-full bg-[#fcedd2]/40 blur-3xl"></div>
-
-                <div class="relative z-10">
-                    <div class="inline-flex items-center gap-2 rounded-full border border-[#e4ccab] bg-[#fff6e6] px-3.5 py-1.5 text-xs font-bold tracking-wide text-[#8a5d1a]">
-                        <Trophy class="size-4 text-[#d97706]" />
-                        LEADERBOARD SUARANETIJEN
-                    </div>
-
-                    <div class="mt-4 max-w-2xl">
-                        <h1 class="text-3xl font-extrabold tracking-tight text-[#2b2419] sm:text-4xl">
-                            Leaderboard Sponsor
-                        </h1>
-                        <p class="mt-2 text-sm leading-relaxed text-[#6b5d49] sm:text-base">
-                            Tampilkan dan dukung brand, produk, atau layanan favoritmu. Peringkat exposure disusun berdasarkan nominal kontribusi sponsor terkonfirmasi.
-                        </p>
-                    </div>
-
-                    <!-- Mandatory Legal / Disclosure Notice -->
-                    <div class="mt-6 flex items-start gap-3 rounded-2xl border border-[#e5d4b8] bg-white/80 p-4 text-xs leading-relaxed text-[#7c694e] shadow-sm">
-                        <AlertCircle class="size-4 shrink-0 text-[#b45309]" />
-                        <div>
-                            <strong class="font-semibold text-[#54432c]">Keterbukaan & Independensi:</strong>
-                            Urutan leaderboard ini ditentukan murni berdasarkan nominal pembayaran sponsor terkonfirmasi. Penempatan sponsor sama sekali <em>tidak memengaruhi</em> Sentimen Netijen, Rating Netijen, tema suara netijen, ataupun hasil algoritma pencarian.
-                        </div>
-                    </div>
-                </div>
+            <!-- Header -->
+            <div class="mb-6">
+                <h1 class="text-2xl font-black tracking-tight text-[#18392d] sm:text-3xl">
+                    Leaderboard
+                </h1>
             </div>
 
             <!-- Bilah Statistik Ringkas (Pamerin / RankUp Style) -->
@@ -916,14 +893,6 @@ function formatRupiah(amount: number): string {
                     </Link>
                 </div>
 
-                <div class="flex items-center gap-4 text-xs text-[#66776b]">
-                    <span class="flex items-center gap-1.5">
-                        <Sparkles class="size-4 text-[#d97706]" /> Model Komunitas (Terakumulasi)
-                    </span>
-                    <span class="flex items-center gap-1.5">
-                        <Shield class="size-4 text-[#16a34a]" /> Pembayaran Resmi QRIS
-                    </span>
-                </div>
             </div>
 
             <!-- Leaderboard search (rankup.uno-style): filters the board below, never affects
