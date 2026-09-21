@@ -77,7 +77,8 @@ class SponsorshipOrderService
         int $categoryId,
         string $sourceUrl,
         int $amount,
-        ?string $redirectUrl = null
+        ?string $redirectUrl = null,
+        ?string $description = null
     ): SponsorshipOrder {
         $name = trim($name);
         if ($name === '') {
@@ -98,13 +99,15 @@ class SponsorshipOrderService
 
         $period = $this->leaderboardService->ensureCurrentWeeklyPeriod();
 
-        $order = DB::transaction(function () use ($user, $name, $category, $sourceUrl, $period, $amount): SponsorshipOrder {
+        $order = DB::transaction(function () use ($user, $name, $category, $sourceUrl, $amount, $period, $description): SponsorshipOrder {
             $entity = Entity::create([
                 'category_id' => $category->id,
                 'type' => EntityType::Brand,
                 'name' => $name,
                 'slug' => $this->uniqueSlug($name),
-                'description' => $sourceUrl,
+                // The sponsor's own description when they supplied one (pre-filled from the site's
+                // meta description, then edited), otherwise the submitted URL as before.
+                'description' => $description ?: $sourceUrl,
                 'status' => EntityStatus::Disabled,
                 'searchable' => false,
                 'rankable' => false,

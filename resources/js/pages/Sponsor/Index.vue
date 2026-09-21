@@ -98,7 +98,7 @@ const formSection = ref<HTMLElement | null>(null);
 const urlInput = ref('');
 const isFetchingPreview = ref(false);
 const previewError = ref<string | null>(null);
-const urlPreview = ref<{ title: string; url: string } | null>(null);
+const urlPreview = ref<{ title: string; url: string; description: string | null } | null>(null);
 const candidates = ref<Array<{ id: number; name: string; slug: string; category_name: string; type_label: string }>>([]);
 const selectedEntity = ref<{ id: number; name: string; slug: string } | null>(null);
 // New-entity mode: the retrieved URL matched no existing entity, so the user names it and picks
@@ -106,6 +106,9 @@ const selectedEntity = ref<{ id: number; name: string; slug: string } | null>(nu
 // until the payment actually confirms (docs/26; see ProcessSponsorshipRelayWebhook).
 const newEntityName = ref('');
 const newEntityCategoryId = ref<number | null>(null);
+// Pre-filled from the fetched page's own meta description (FetchUrlPreview), still fully editable;
+// only used on the new-entity path, where it lands in Entity.description.
+const newEntityDescription = ref('');
 const isNewEntityMode = computed(
     () => !!urlPreview.value && !isFetchingPreview.value && candidates.value.length === 0 && !selectedEntity.value,
 );
@@ -182,6 +185,7 @@ watch(urlInput, (value) => {
     selectedEntity.value = null;
     newEntityName.value = '';
     newEntityCategoryId.value = null;
+    newEntityDescription.value = '';
 
     const normalized = normalizeUrlInput(value);
     if (!normalized) {
@@ -219,6 +223,7 @@ watch(urlInput, (value) => {
 
             if (candidates.value.length === 0) {
                 newEntityName.value = json.preview.title;
+                newEntityDescription.value = json.preview.description || '';
             }
         } catch {
             previewError.value = 'Gagal mengambil informasi dari URL tersebut.';
@@ -305,6 +310,7 @@ async function submitOrder() {
                           new_entity_name: newEntityName.value.trim(),
                           new_entity_category_id: newEntityCategoryId.value,
                           new_entity_url: urlPreview.value?.url,
+                          new_entity_description: newEntityDescription.value.trim() || null,
                       }),
             }),
         });
@@ -553,6 +559,19 @@ function formatRupiah(amount: number): string {
                                 {{ cat.name }}
                             </option>
                         </select>
+                        <label class="mt-3 block text-xs font-bold text-[#31483b]">
+                            Deskripsi
+                        </label>
+                        <textarea
+                            v-model="newEntityDescription"
+                            rows="3"
+                            maxlength="500"
+                            placeholder="Deskripsi singkat brand, produk, atau layanan"
+                            class="mt-1.5 w-full rounded-xl border border-[#cfd9ce] py-2.5 px-4 text-sm text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
+                        ></textarea>
+                        <p class="mt-1.5 text-[11px] text-[#788a7e]">
+                            Kami isi otomatis dari deskripsi situs. Bisa Anda ubah.
+                        </p>
                     </div>
 
                     <div

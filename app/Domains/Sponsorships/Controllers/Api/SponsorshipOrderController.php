@@ -40,7 +40,8 @@ class SponsorshipOrderController extends Controller
                 (int) $request->validated('new_entity_category_id'),
                 (string) $request->validated('new_entity_url'),
                 $amount,
-                $redirectUrl
+                $redirectUrl,
+                $request->validated('new_entity_description')
             );
         }
 

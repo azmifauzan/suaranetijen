@@ -53,6 +53,7 @@ class StoreSponsorshipOrderRequest extends FormRequest
             'new_entity_name' => ['required_without:entity_id', 'nullable', 'string', 'max:255'],
             'new_entity_category_id' => ['required_without:entity_id', 'nullable', 'integer', 'exists:categories,id'],
             'new_entity_url' => ['required_without:entity_id', 'nullable', 'url', 'max:2048'],
+            'new_entity_description' => ['nullable', 'string', 'max:500'],
             'amount' => ['required', 'integer', "min:{$min}"],
             'email' => [$this->user() ? 'nullable' : 'required', 'email', 'max:255'],
             // Sumopod redirects the user's browser here after checkout, so an arbitrary

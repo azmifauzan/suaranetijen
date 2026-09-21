@@ -18,7 +18,7 @@ function fakePublicResolver(string $ip = '93.184.216.34'): void
     });
 }
 
-test('it fetches a URL, extracts its title, and returns matching entity candidates', function () {
+test('it fetches a URL, extracts its title and description, and returns matching entity candidates', function () {
     fakePublicResolver();
     $entity = Entity::factory()->create([
         'name' => 'Samsung',
@@ -27,16 +27,51 @@ test('it fetches a URL, extracts its title, and returns matching entity candidat
     ]);
 
     Http::fake([
-        'https://samsung.com/*' => Http::response('<html><head><title>Samsung Indonesia</title></head></html>', 200),
+        'https://samsung.com/*' => Http::response(
+            '<html><head><title>Samsung Indonesia</title>'
+            .'<meta property="og:description" content="Inovasi &amp; teknologi dari Samsung.">'
+            .'</head></html>',
+            200
+        ),
     ]);
 
     $response = $this->postJson(route('api.sponsor.preview'), ['url' => 'https://samsung.com/']);
 
     $response->assertOk()
         ->assertJsonPath('preview.title', 'Samsung Indonesia')
-        ->assertJsonPath('preview.url', 'https://samsung.com/');
+        ->assertJsonPath('preview.url', 'https://samsung.com/')
+        ->assertJsonPath('preview.description', 'Inovasi & teknologi dari Samsung.');
 
     expect(collect($response->json('candidates'))->pluck('id'))->toContain($entity->id);
+});
+
+test('it falls back to the plain meta description when there is no og:description', function () {
+    fakePublicResolver();
+
+    Http::fake([
+        'https://plain-meta.example/*' => Http::response(
+            '<html><head><title>Brand Punya Meta</title>'
+            .'<meta name="description" content="Deskripsi meta biasa.">'
+            .'</head></html>',
+            200
+        ),
+    ]);
+
+    $this->postJson(route('api.sponsor.preview'), ['url' => 'https://plain-meta.example/'])
+        ->assertOk()
+        ->assertJsonPath('preview.description', 'Deskripsi meta biasa.');
+});
+
+test('it returns a null description when the page has none', function () {
+    fakePublicResolver();
+
+    Http::fake([
+        'https://no-desc.example/*' => Http::response('<html><head><title>Tanpa Deskripsi</title></head></html>', 200),
+    ]);
+
+    $this->postJson(route('api.sponsor.preview'), ['url' => 'https://no-desc.example/'])
+        ->assertOk()
+        ->assertJsonPath('preview.description', null);
 });
 
 test('it reports no candidates instead of guessing when nothing matches', function () {

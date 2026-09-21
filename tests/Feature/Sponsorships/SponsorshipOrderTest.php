@@ -134,6 +134,34 @@ test('sponsoring a URL with no existing entity match creates one, Disabled and i
         'amount' => 10000,
         'status' => SponsorshipOrderStatus::Pending->value,
     ]);
+
+    // No description supplied: the submitted URL is stored as before, nothing regressed.
+    expect($entity->description)->toBe('https://brand-baru.example/');
+});
+
+test('a description supplied at sponsorship is stored on the new entity instead of the URL', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+
+    Http::fake([
+        'https://api-pay.sumopod.com/api/v1/payments' => Http::response([
+            'payment_id' => 'pay_newentity_desc',
+            'payment_link_url' => 'https://checkout.sumopod.com/pay/order-newentity-desc',
+            'status' => 'pending',
+        ], 200),
+    ]);
+
+    $this->actingAs($user)->postJson(route('api.sponsor.orders.store'), [
+        'new_entity_name' => 'Brand Berdeskripsi',
+        'new_entity_category_id' => $category->id,
+        'new_entity_url' => 'https://brand-berdeskripsi.example/',
+        'new_entity_description' => 'Kopi robusta panggang sendiri dari Bandung.',
+        'amount' => 10000,
+    ])->assertCreated();
+
+    $entity = Entity::query()->where('name', 'Brand Berdeskripsi')->first();
+    expect($entity)->not->toBeNull()
+        ->and($entity->description)->toBe('Kopi robusta panggang sendiri dari Bandung.');
 });
 
 test('new-entity sponsorship requires a name and a category', function () {
