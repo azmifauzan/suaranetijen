@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\URL;
 
 class SponsorGuestAccessNotification extends Notification
 {
-    public function __construct(private readonly bool $isNewUser) {}
+    public function __construct(private readonly bool $isNewUser = true) {}
 
     /**
      * @return array<int, string>
@@ -27,18 +27,11 @@ class SponsorGuestAccessNotification extends Notification
             ['user' => $notifiable->id]
         );
 
-        $message = (new MailMessage)
-            ->subject($this->isNewUser
-                ? 'Akun SuaraNetijen Anda Telah Dibuat'
-                : 'Tautan Masuk ke Akun SuaraNetijen Anda')
-            ->greeting($this->isNewUser ? 'Terima kasih telah menjadi sponsor!' : 'Halo kembali!')
-            ->line('Pesanan sponsor Anda di Papan Peringkat Sponsor SuaraNetijen sedang diproses.');
-
-        if ($this->isNewUser) {
-            $message->line('Kami telah membuatkan akun otomatis menggunakan alamat email ini agar Anda dapat memantau status sponsor Anda kapan saja — tanpa perlu kata sandi.');
-        }
-
-        return $message
+        return (new MailMessage)
+            ->subject('Akun SuaraNetijen Anda Telah Dibuat')
+            ->greeting('Terima kasih telah menjadi sponsor!')
+            ->line('Pesanan sponsor Anda di Papan Peringkat Sponsor SuaraNetijen sedang diproses.')
+            ->line('Kami telah membuatkan akun otomatis menggunakan alamat email ini agar Anda dapat memantau status sponsor Anda kapan saja — tanpa perlu kata sandi.')
             ->action('Masuk ke Akun Saya', $url)
             ->line('Tautan masuk ini berlaku selama 7 hari. Simpan email ini untuk akses berikutnya.');
     }

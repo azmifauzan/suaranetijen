@@ -70,6 +70,7 @@ test('guest checkout reuses an existing account by email instead of duplicating 
 
     $this->assertDatabaseCount('users', 1);
     $this->assertAuthenticatedAs($existing);
+    Notification::assertNotSentTo($existing, SponsorGuestAccessNotification::class);
 });
 
 test('guest without an email is rejected', function () {

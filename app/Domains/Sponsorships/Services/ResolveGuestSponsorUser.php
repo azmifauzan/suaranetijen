@@ -34,7 +34,9 @@ class ResolveGuestSponsorUser
         Auth::login($user, remember: true);
         $request->session()->regenerate();
 
-        $user->notify(new SponsorGuestAccessNotification($isNewUser));
+        if ($isNewUser) {
+            $user->notify(new SponsorGuestAccessNotification($isNewUser));
+        }
 
         return $user;
     }
