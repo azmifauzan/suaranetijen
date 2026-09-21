@@ -10,6 +10,8 @@ use App\Domains\Sponsorships\Models\SponsorshipOrder;
 use App\Domains\Sponsorships\Services\ProcessSponsorshipRelayWebhook;
 use App\Domains\Sponsorships\Services\SvixWebhookVerifier;
 use App\Models\User;
+use App\Notifications\SponsorPaymentCompletedNotification;
+use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
     config()->set('sponsorship.sumopod.relay_secret', 'test_shared_secret_abc123');
@@ -335,4 +337,59 @@ test('it acknowledges and ignores non-payment events', function () {
     $this->postJson(route('api.sponsor.webhooks.relay'), $payload, $headers)
         ->assertOk()
         ->assertJsonPath('result.status', 'ignored');
+});
+
+test('payment.completed succeeds when amount includes customer-paid fee but net_amount matches order amount and sends notification', function () {
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $period = SponsorPeriod::factory()->create();
+    $entity = Entity::factory()->create();
+
+    $entry = SponsoredEntry::factory()->create([
+        'period_id' => $period->id,
+        'entity_id' => $entity->id,
+        'settled_total_amount' => 0,
+        'status' => SponsoredEntryStatus::Pending,
+    ]);
+
+    $order = SponsorshipOrder::factory()->create([
+        'sponsored_entry_id' => $entry->id,
+        'user_id' => $user->id,
+        'amount' => 1000,
+        'provider_order_id' => 'SNT-SPN-FEE-TEST',
+        'provider_payment_id' => 'pay_fee_test',
+        'status' => SponsorshipOrderStatus::Pending,
+    ]);
+
+    $payload = [
+        'event_type' => 'payment.completed',
+        'data' => [
+            'order_id' => 'SNT-SPN-FEE-TEST',
+            'payment_id' => 'pay_fee_test',
+            'amount' => 1307,
+            'fee' => 307,
+            'net_amount' => 1000,
+            'payment_method' => 'qris',
+            'status' => 'completed',
+        ],
+    ];
+
+    $headers = createSignedHeaders(json_encode($payload), 'svix_fee_test');
+
+    $this->postJson(route('api.sponsor.webhooks.relay'), $payload, $headers)->assertOk();
+
+    $order->refresh();
+    expect($order->status)->toBe(SponsorshipOrderStatus::Paid);
+    expect($order->paid_at)->not->toBeNull();
+
+    $entry->refresh();
+    expect($entry->settled_total_amount)->toBe(1000);
+    expect($entry->status)->toBe(SponsoredEntryStatus::Active);
+
+    Notification::assertSentTo(
+        $user,
+        SponsorPaymentCompletedNotification::class,
+        fn ($notification) => $notification->order->id === $order->id
+    );
 });

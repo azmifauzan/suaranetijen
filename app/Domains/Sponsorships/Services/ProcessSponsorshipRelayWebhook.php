@@ -9,6 +9,7 @@ use App\Domains\Sponsorships\Enums\SponsorshipRelayEventStatus;
 use App\Domains\Sponsorships\Exceptions\SponsorshipRelayWebhookRejected;
 use App\Domains\Sponsorships\Models\SponsorshipOrder;
 use App\Domains\Sponsorships\Models\SponsorshipRelayEvent;
+use App\Notifications\SponsorPaymentCompletedNotification;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -65,6 +66,8 @@ class ProcessSponsorshipRelayWebhook
         $orderId = $data['order_id'] ?? null;
         $paymentId = $data['payment_id'] ?? null;
         $relayedAmount = $data['amount'] ?? null;
+        $relayedNetAmount = $data['net_amount'] ?? null;
+        $relayedFee = $data['fee'] ?? null;
 
         if (! is_string($orderId) || empty($orderId)) {
             $event->update([
@@ -77,7 +80,7 @@ class ProcessSponsorshipRelayWebhook
         }
 
         try {
-            DB::transaction(function () use ($event, $orderId, $paymentId, $relayedAmount, $eventType, $svixId): void {
+            DB::transaction(function () use ($event, $orderId, $paymentId, $relayedAmount, $relayedNetAmount, $relayedFee, $eventType, $svixId): void {
                 /** @var SponsorshipOrder|null $order */
                 $order = SponsorshipOrder::query()
                     ->where('provider_order_id', $orderId)
@@ -94,9 +97,20 @@ class ProcessSponsorshipRelayWebhook
                     throw new SponsorshipRelayWebhookRejected("Sponsorship order not found: {$orderId}");
                 }
 
-                // Correlation check: amount must match what was created on our side
-                if (! is_int($relayedAmount) || $relayedAmount !== $order->amount) {
-                    $error = "Amount mismatch: relayed={$relayedAmount}, expected={$order->amount}";
+                // Correlation check: amount must match what was created on our side.
+                // Sumopod sends 'amount' (gross amount paid by buyer, which may include buyer-paid QRIS fee/admin fee)
+                // and 'net_amount' (net amount received by merchant).
+                $orderAmount = (int) $order->amount;
+                $grossAmount = is_numeric($relayedAmount) ? (int) $relayedAmount : null;
+                $netAmount = is_numeric($relayedNetAmount) ? (int) $relayedNetAmount : null;
+                $fee = is_numeric($relayedFee) ? (int) $relayedFee : null;
+
+                $matchesAmount = ($grossAmount !== null && $grossAmount === $orderAmount)
+                    || ($netAmount !== null && $netAmount === $orderAmount)
+                    || ($grossAmount !== null && $fee !== null && ($grossAmount - $fee) === $orderAmount);
+
+                if (! $matchesAmount) {
+                    $error = "Amount mismatch: relayed_amount={$relayedAmount}, net_amount={$relayedNetAmount}, fee={$relayedFee}, expected={$order->amount}";
                     $event->update([
                         'status' => SponsorshipRelayEventStatus::Failed,
                         'last_error' => $error,
@@ -178,6 +192,17 @@ class ProcessSponsorshipRelayWebhook
                                 'rankable' => true,
                             ]);
                         }
+                    }
+
+                    // Send payment confirmation notification to user
+                    try {
+                        $order->user?->notify(new SponsorPaymentCompletedNotification($order, $entry));
+                    } catch (Throwable $mailEx) {
+                        Log::error('Failed to send SponsorPaymentCompletedNotification', [
+                            'order_id' => $order->id,
+                            'user_id' => $order->user_id,
+                            'error' => $mailEx->getMessage(),
+                        ]);
                     }
                 }
 
