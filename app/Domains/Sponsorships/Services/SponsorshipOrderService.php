@@ -32,8 +32,13 @@ class SponsorshipOrderService
      *
      * @throws ValidationException|Throwable
      */
-    public function createOrder(User $user, Entity $entity, int $amount, ?string $redirectUrl = null): SponsorshipOrder
-    {
+    public function createOrder(
+        User $user,
+        Entity $entity,
+        int $amount,
+        ?string $redirectUrl = null,
+        ?string $websiteUrl = null
+    ): SponsorshipOrder {
         if ($entity->status !== EntityStatus::Active || ! $entity->searchable) {
             throw ValidationException::withMessages([
                 'entity_id' => 'Entitas yang dipilih tidak aktif atau tidak dapat disponsori.',
@@ -46,6 +51,16 @@ class SponsorshipOrderService
             throw ValidationException::withMessages([
                 'entity_id' => 'Entitas tokoh publik belum dapat disponsori.',
             ]);
+        }
+
+        if ($websiteUrl) {
+            $normalizedWebsiteUrl = ! str_starts_with($websiteUrl, 'http://') && ! str_starts_with($websiteUrl, 'https://')
+                ? 'https://'.$websiteUrl
+                : $websiteUrl;
+
+            if (filter_var($normalizedWebsiteUrl, FILTER_VALIDATE_URL) && (! $entity->website_url || ! filter_var($entity->website_url, FILTER_VALIDATE_URL))) {
+                $entity->update(['website_url' => $normalizedWebsiteUrl]);
+            }
         }
 
         $this->assertValidAmount($amount);
@@ -99,7 +114,11 @@ class SponsorshipOrderService
 
         $period = $this->leaderboardService->ensureCurrentWeeklyPeriod();
 
-        $order = DB::transaction(function () use ($user, $name, $category, $sourceUrl, $amount, $period, $description): SponsorshipOrder {
+        $normalizedUrl = ! str_starts_with($sourceUrl, 'http://') && ! str_starts_with($sourceUrl, 'https://')
+            ? 'https://'.$sourceUrl
+            : $sourceUrl;
+
+        $order = DB::transaction(function () use ($user, $name, $category, $normalizedUrl, $amount, $period, $description): SponsorshipOrder {
             $entity = Entity::create([
                 'category_id' => $category->id,
                 'type' => EntityType::Brand,
@@ -107,8 +126,8 @@ class SponsorshipOrderService
                 'slug' => $this->uniqueSlug($name),
                 // The sponsor's own description when they supplied one (pre-filled from the site's
                 // meta description, then edited), otherwise the submitted URL as before.
-                'description' => $description ?: $sourceUrl,
-                'website_url' => $sourceUrl,
+                'description' => $description ?: $normalizedUrl,
+                'website_url' => $normalizedUrl,
                 'status' => EntityStatus::Disabled,
                 'searchable' => false,
                 'rankable' => false,
@@ -132,17 +151,10 @@ class SponsorshipOrderService
     private function assertValidAmount(int $amount): void
     {
         $minAmount = (int) config('sponsorship.min_amount', 1000);
-        $increment = (int) config('sponsorship.increment_amount', 1000);
 
         if ($amount < $minAmount) {
             throw ValidationException::withMessages([
                 'amount' => 'Nominal sponsor minimal adalah Rp'.number_format($minAmount, 0, ',', '.').'.',
-            ]);
-        }
-
-        if ($increment > 0 && ($amount % $increment) !== 0) {
-            throw ValidationException::withMessages([
-                'amount' => 'Nominal sponsor harus kelipatan Rp'.number_format($increment, 0, ',', '.').'.',
             ]);
         }
     }

@@ -912,8 +912,8 @@ Current implementation boundary:
 |---|---|
 | PostgreSQL | default runtime connection; full suite verified locally |
 | Redis queue, cache, locks, rate limits | default runtime drivers; verified locally |
-| Horizon supervisors | four documented supervisor groups configured and started locally and on staging; `supervisor-analysis` raised 1→3 and `supervisor-crawl` raised 2→6 on the main staging host after live backlog findings; distributed to two additional worker hosts (5 Sep 2026); the shared `staging-worker` environment was split 8 Sep 2026 into `worker-heavy` (worker1: full crawl/crawl-youtube/analysis) and `worker-light` (worker2: analysis-focused, crawl/crawl-youtube pinned to Horizon's 1-process floor), sized to each host's actual spare capacity — confirmed all three hosts coexist in one `horizon:supervisors` listing over the same Redis, each running its own `APP_ENV` |
-| Per-container resource limits (crawler/FlareSolverr) | `cpus`/`mem_limit` added to every `suaranetijen-*`/`flaresolverr` container on staging + both worker hosts (8 Sep 2026), sized per host's spare capacity; shared Postgres on staging also given a `cpus: '8'` cap; `DOCKER-USER` iptables rules (Redis worker allowlist, monitoring-port restriction) now persisted across reboot via a systemd unit |
+| Horizon supervisors | four documented supervisor groups configured and started locally and on staging; `supervisor-analysis` raised 1→3 and `supervisor-crawl` raised 2→6 on the main staging host after live backlog findings; distributed across three worker hosts (`worker1` heavy, `worker2` light, `worker3` light) (5–21 Sep 2026); sized to each host's actual spare capacity — confirmed all four nodes coexist in one `horizon:supervisors` listing over the same Redis, each running its own `APP_ENV` |
+| Per-container resource limits (crawler/FlareSolverr) | `cpus`/`mem_limit` added to every `suaranetijen-*`/`flaresolverr` container on staging + all three worker hosts, sized per host's spare capacity; shared Postgres on staging given a `cpus: '8'` cap and `1g` memory limit; `DOCKER-USER` iptables rules now persisted across reboot via a systemd unit |
 | `pg_trgm` search | implemented and verified against real PostgreSQL |
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
@@ -1603,6 +1603,21 @@ every decision below; this is the build/deploy narrative.
   the guest-checkout case) send a real email through the shared Brevo account. First real
   end-to-end payment is still unverified.
 
+## Distributed crawl workers: Worker 3 deployed as light worker (21 September 2026)
+
+Added third distributed worker node to scale analysis and ingestion throughput across the cluster.
+
+- **Host & Environment**: `103.194.173.186` (user `hulwadev`, hostname `myneterp`), running `suaranetijen-horizon-worker` with `APP_ENV=worker-light` in `/home/hulwadev/compose/suaranetijen-worker`.
+- **Resource Constraints**: `cpus: 1.5`, `mem_limit: 768m`, `memswap_limit: 768m` to safely coexist with local ERP workloads on that server. Companion `suaranetijen-flaresolverr` capped at `cpus: 1`, `mem_limit: 1g`.
+- **Database Access**: Main staging PostgreSQL `pg_hba.conf` allows `103.194.173.186/32` with `scram-sha-256` authentication. Verified live via `php artisan db:show`.
+- **Redis Access**: Connects to `103.194.172.114:6379` with `REDIS_PASSWORD`. Verified live via `Redis::ping()`.
+- **Horizon Topology**:
+  - Main Staging Host (`103.194.172.114`): web, db, redis, scheduler only (`suaranetijen-app`, `suaranetijen-scheduler`, postgres, redis); local Horizon worker removed and offloaded to worker nodes
+  - Worker 1 (`103.123.66.99`, `suryaenergi`): `worker-heavy` (crawl 6, crawl-youtube 3, analysis 3)
+  - Worker 2 (`103.217.144.115`, `mynet`): `worker-light` (analysis 2, pinned floor 1 for crawl/crawl-youtube/critical/maintenance)
+  - Worker 3 (`103.194.173.186`, `hulwadev`): `worker-light` (analysis 2, pinned floor 1 for crawl/crawl-youtube/critical/maintenance)
+- **Verified live**: Workers distributed across Worker 1, Worker 2, and Worker 3 connecting to central Redis and PostgreSQL on staging host.
+
 ## Document map
 
 | File | Purpose |
@@ -1635,3 +1650,14 @@ every decision below; this is the build/deploy narrative.
 
 Config examples: `examples/score-config.yaml`, `examples/source-registry.yaml`,
 `examples/queue-topology.yaml`, `examples/.env.example`.
+
+<!-- antislop:start -->
+## antislop
+For UI, copy, people, mobile layout, or code comments work, read `antislop.md` (core) and then the skill for the task:
+- UI / visual: `skills/antislop-ui/SKILL.md`
+- Copy & text: `skills/antislop-copywriting/SKILL.md`
+- People: `skills/antislop-human/SKILL.md`
+- Mobile / responsive: `skills/antislop-layoutmobile/SKILL.md`
+- Code comments: `skills/antislop-code/SKILL.md`
+Before starting, ask the user when antislop applies: during the work, or after it is done.
+<!-- antislop:end -->

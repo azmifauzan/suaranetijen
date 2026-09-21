@@ -9,6 +9,7 @@ use App\Domains\Sponsorships\Models\SponsoredEntry;
 use App\Domains\Sponsorships\Models\SponsorshipOrder;
 use App\Domains\Sponsorships\Services\SponsorLeaderboardService;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -88,12 +89,37 @@ class SponsorBoardPageController extends Controller
             ->increment('clicks_count');
 
         $targetUrl = $entity->website_url;
+        if ($targetUrl && ! str_starts_with($targetUrl, 'http://') && ! str_starts_with($targetUrl, 'https://')) {
+            $targetUrl = 'https://'.$targetUrl;
+        }
+
         if (! $targetUrl || ! filter_var($targetUrl, FILTER_VALIDATE_URL)) {
             return redirect()->route('entities.show', ['slug' => $entity->slug]);
         }
 
         return redirect()->away($targetUrl, 302, [
             'Referrer-Policy' => 'no-referrer-when-downgrade',
+        ]);
+    }
+
+    /**
+     * Record a direct live link click on a sponsored entity (RankUp-style beacon/ping tracking).
+     */
+    public function trackClick(string $slug): JsonResponse
+    {
+        /** @var Entity|null $entity */
+        $entity = Entity::query()->where('slug', $slug)->first();
+
+        if ($entity) {
+            SponsoredEntry::query()
+                ->where('entity_id', $entity->id)
+                ->where('status', SponsoredEntryStatus::Active)
+                ->increment('clicks_count');
+        }
+
+        return response()->json([
+            'ok' => true,
+            'slug' => $slug,
         ]);
     }
 }

@@ -83,6 +83,12 @@ class SponsorLeaderboardService
         $this->ensureCurrentWeeklyPeriod();
 
         $weeklyPeriods = SponsorPeriod::query()
+            ->where(function ($q) {
+                $q->where('status', SponsorPeriodStatus::Active)
+                    ->orWhereHas('entries', function ($eq) {
+                        $eq->where('settled_total_amount', '>', 0);
+                    });
+            })
             ->orderByDesc('starts_at')
             ->get()
             ->map(fn (SponsorPeriod $period) => [
@@ -337,7 +343,7 @@ class SponsorLeaderboardService
         $entries = $this->getLeaderboard($period, $targetRank);
         $targetEntry = $entries->firstWhere('rank', $targetRank);
 
-        $increment = (int) config('sponsorship.increment_amount', 1000);
+        $increment = (int) config('sponsorship.increment_amount', 1);
         $minAmount = (int) config('sponsorship.min_amount', 1000);
 
         if (! $targetEntry) {

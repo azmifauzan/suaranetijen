@@ -19,6 +19,7 @@ import {
 import { computed, onMounted, ref, watch } from 'vue';
 import PublicSeo from '@/components/PublicSeo.vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import { getDirectWebsiteUrl, getFaviconUrl, trackSponsorClick } from '@/lib/sponsor';
 import { show as showEntity } from '@/routes/entities';
 import { index as leaderboardPage } from '@/routes/leaderboard';
 
@@ -150,12 +151,13 @@ const rebutTarget = ref<RebutTarget | null>(null);
 
 function startRebut(entry: { rank: number; name: string; settled_total_amount: number; entity_id?: number }) {
     const targetAmount = entry.settled_total_amount;
-    let needed = targetAmount + props.incrementAmount;
+    const increment = props.incrementAmount || 1;
+    let needed = Math.max(props.minAmount, targetAmount + increment);
 
     if (selectedEntity.value) {
         const existingEntry = props.leaderboard.find((e) => e.entity_id === selectedEntity.value?.id);
         if (existingEntry) {
-            needed = Math.max(props.minAmount, (targetAmount + props.incrementAmount) - existingEntry.settled_total_amount);
+            needed = Math.max(props.minAmount, (targetAmount + increment) - existingEntry.settled_total_amount);
         }
     }
 
@@ -180,7 +182,7 @@ function cancelRebut() {
     customAmount.value = '10000';
 }
 
-const presetAmounts = [10000, 25000, 50000, 100000, 250000];
+const presetAmounts = [1000, 10000, 25000, 50000, 100000];
 
 function selectPreset(amount: number) {
     contributionAmount.value = amount;
@@ -294,11 +296,12 @@ watch(urlInput, (value) => {
 watch(selectedEntity, (newEntity) => {
     if (rebutTarget.value) {
         const targetAmount = rebutTarget.value.targetAmount;
-        let needed = targetAmount + props.incrementAmount;
+        const increment = props.incrementAmount || 1;
+        let needed = Math.max(props.minAmount, targetAmount + increment);
         if (newEntity) {
             const existingEntry = props.leaderboard.find((e) => e.entity_id === newEntity.id);
             if (existingEntry) {
-                needed = Math.max(props.minAmount, (targetAmount + props.incrementAmount) - existingEntry.settled_total_amount);
+                needed = Math.max(props.minAmount, (targetAmount + increment) - existingEntry.settled_total_amount);
             }
         }
         rebutTarget.value.neededAmount = needed;
@@ -322,10 +325,11 @@ onMounted(() => {
             startRebut(matched);
         } else if (targetName && neededAmountStr) {
             const needed = parseInt(neededAmountStr, 10) || props.minAmount;
+            const increment = props.incrementAmount || 1;
             rebutTarget.value = {
                 rank: rankNum,
                 name: targetName,
-                targetAmount: Math.max(0, needed - props.incrementAmount),
+                targetAmount: Math.max(0, needed - increment),
                 neededAmount: needed,
             };
             contributionAmount.value = needed;
@@ -370,11 +374,6 @@ function openConfirmModal() {
         return;
     }
 
-    if (contributionAmount.value % props.incrementAmount !== 0) {
-        errorMessage.value = `Nominal harus kelipatan Rp${props.incrementAmount.toLocaleString('id-ID')}.`;
-        return;
-    }
-
     if (!currentUser.value && !isValidGuestEmail.value) {
         errorMessage.value = 'Masukkan email yang valid untuk melanjutkan.';
         return;
@@ -409,7 +408,10 @@ async function submitOrder() {
                 // (with the real order id, known only after creation) as its own default.
                 ...(currentUser.value ? {} : { email: guestEmail.value.trim() }),
                 ...(selectedEntity.value
-                    ? { entity_id: selectedEntity.value.id }
+                    ? {
+                          entity_id: selectedEntity.value.id,
+                          website_url: urlPreview.value?.url || undefined,
+                      }
                     : {
                           new_entity_name: newEntityName.value.trim(),
                           new_entity_category_id: newEntityCategoryId.value,
@@ -769,8 +771,9 @@ function formatRupiah(amount: number): string {
                         v-if="selectedEntity"
                         class="mt-2 flex items-center justify-between rounded-xl border border-[#bfe2ca] bg-[#f0faf2] p-3 text-xs"
                     >
-                        <span class="font-bold text-[#1b6b44]">
-                            ✓ Terpilih: {{ selectedEntity.name }}
+                        <span class="inline-flex items-center gap-1.5 font-bold text-[#1b6b44]">
+                            <CheckCircle2 class="size-4 text-[#16a34a]" />
+                            Terpilih: {{ selectedEntity.name }}
                         </span>
                         <button
                             type="button"
@@ -803,7 +806,7 @@ function formatRupiah(amount: number): string {
                     <!-- Contribution Amount -->
                     <div class="mt-6">
                         <label class="block text-xs font-bold text-[#31483b]">
-                            Nominal Sponsor (Kelipatan Rp{{ incrementAmount.toLocaleString('id-ID') }})
+                            Nominal Sponsor (Minimal Rp{{ minAmount.toLocaleString('id-ID') }})
                         </label>
 
                         <!-- Presets -->
@@ -831,11 +834,14 @@ function formatRupiah(amount: number): string {
                                 v-model="customAmount"
                                 type="number"
                                 :min="minAmount"
-                                :step="incrementAmount"
+                                step="1"
                                 class="w-full rounded-xl border border-[#cfd9ce] py-2.5 pr-4 pl-10 text-sm font-bold text-[#18392d] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
                                 @input="handleCustomAmountChange"
                             />
                         </div>
+                        <p class="mt-1 text-[11px] text-[#788a7e]">
+                            Bebas tentukan nominal (minimal Rp1.000). Untuk merebut posisi, cukup tambah Rp1 di atas total sponsor target.
+                        </p>
 
                         <!-- Quick Rebut Target Amount Button -->
                         <div v-if="rebutTarget" class="mt-2.5">
@@ -922,7 +928,7 @@ function formatRupiah(amount: number): string {
 
             <!-- Leaderboard search (rankup.uno-style): filters the board below, never affects
                  the sponsor entry form above or organic search. -->
-            <div v-if="leaderboard.length > 0" class="relative mt-5 max-w-md">
+            <div v-if="leaderboard.length > 0" class="relative mt-5 w-full">
                 <Search class="absolute top-3 left-3 size-4 text-[#8e9f93]" />
                 <input
                     v-model="leaderboardQuery"
@@ -992,22 +998,40 @@ function formatRupiah(amount: number): string {
                                 </span>
                             </div>
 
-                            <!-- Entity Title -->
-                            <div class="mt-4">
-                                <Link
-                                    :href="showEntity(entry.slug)"
-                                    class="group inline-flex items-center gap-1.5 text-xl font-bold tracking-tight text-[#18392d] hover:text-[#087f5b]"
-                                >
-                                    <span>{{ entry.name }}</span>
-                                    <ArrowUpRight class="size-4 text-[#8b998f] transition group-hover:text-[#087f5b]" />
-                                </Link>
-                                <p class="text-xs text-[#738478]">
-                                    {{ entry.category_name }}
-                                </p>
+                            <!-- Entity Title & Favicon -->
+                            <div class="mt-4 flex items-start gap-3">
+                                <img
+                                    v-if="getFaviconUrl(entry.website_url)"
+                                    :src="getFaviconUrl(entry.website_url)!"
+                                    :alt="entry.name"
+                                    class="size-9 shrink-0 rounded-xl border border-black/10 bg-white object-contain p-1 shadow-xs"
+                                    loading="lazy"
+                                    @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
+                                />
+                                <div class="min-w-0 flex-1">
+                                    <Link
+                                        :href="showEntity(entry.slug)"
+                                        class="group inline-flex items-center gap-1.5 text-lg font-bold tracking-tight text-[#18392d] hover:text-[#087f5b]"
+                                    >
+                                        <span class="line-clamp-1">{{ entry.name }}</span>
+                                        <ArrowUpRight class="size-4 shrink-0 text-[#8b998f] transition group-hover:text-[#087f5b]" />
+                                    </Link>
+                                    <p class="text-xs text-[#738478]">
+                                        {{ entry.category_name }}
+                                    </p>
+                                </div>
                             </div>
 
+                            <!-- Description (Web Ref Style) -->
+                            <p
+                                v-if="entry.description"
+                                class="mt-2.5 line-clamp-2 text-xs leading-relaxed text-[#5b6e61]"
+                            >
+                                {{ entry.description }}
+                            </p>
+
                             <!-- Sponsor Amount Badge (Amber/Gold) -->
-                            <div class="mt-5 rounded-2xl border border-[#fed7aa] bg-[#fffaf0] p-3.5">
+                            <div class="mt-4 rounded-2xl border border-[#fed7aa] bg-[#fffaf0] p-3.5">
                                 <span class="text-[11px] font-semibold uppercase tracking-wider text-[#9a6a24]">
                                     Total Sponsor
                                 </span>
@@ -1047,10 +1071,12 @@ function formatRupiah(amount: number): string {
                         <div class="mt-6 space-y-2 border-t border-[#f0f3ee] pt-4">
                             <div class="grid grid-cols-2 gap-2">
                                 <a
-                                    :href="`/go/${entry.slug}`"
+                                    :href="getDirectWebsiteUrl(entry.website_url, entry.slug)"
+                                    :ping="`/api/sponsor/click/${entry.slug}`"
                                     target="_blank"
-                                    rel="noopener noreferrer"
+                                    rel="noopener"
                                     class="flex items-center justify-center gap-1.5 rounded-xl bg-[#d5f5df] py-2.5 text-xs font-bold text-[#145736] transition hover:bg-[#bceccb]"
+                                    @click="trackSponsorClick(entry.slug)"
                                 >
                                     Buka Situs <ArrowUpRight class="size-3.5" />
                                 </a>
@@ -1068,7 +1094,7 @@ function formatRupiah(amount: number): string {
                                 @click="startRebut(entry)"
                             >
                                 <Zap class="size-3.5 text-[#d97706]" />
-                                Rebut Posisi #{{ entry.rank }} (Min. {{ formatRupiah(entry.settled_total_amount + incrementAmount) }})
+                                Rebut Posisi #{{ entry.rank }} (Min. {{ formatRupiah(entry.settled_total_amount + (incrementAmount || 1)) }})
                             </button>
                         </div>
                     </div>
@@ -1087,22 +1113,36 @@ function formatRupiah(amount: number): string {
                             :key="entry.id"
                             class="flex flex-col items-start justify-between gap-4 p-5 transition sm:flex-row sm:items-center hover:bg-[#fafcfa]"
                         >
-                            <div class="flex items-center gap-4">
-                                <span class="flex size-9 items-center justify-center rounded-xl bg-[#f0f4ef] text-sm font-extrabold text-[#45574a]">
+                            <div class="flex items-start gap-3.5 min-w-0 flex-1">
+                                <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#f0f4ef] text-sm font-extrabold text-[#45574a]">
                                     #{{ entry.rank }}
                                 </span>
-                                <div>
-                                    <Link
-                                        :href="showEntity(entry.slug)"
-                                        class="font-bold text-[#18392d] hover:text-[#087f5b]"
-                                    >
-                                        {{ entry.name }}
-                                    </Link>
-                                    <div class="flex items-center gap-2 text-xs text-[#758479]">
-                                        <span>{{ entry.type_label }}</span>
-                                        <span>·</span>
-                                        <span>{{ entry.category_name }}</span>
+                                <img
+                                    v-if="getFaviconUrl(entry.website_url)"
+                                    :src="getFaviconUrl(entry.website_url)!"
+                                    :alt="entry.name"
+                                    class="size-9 shrink-0 rounded-xl border border-black/10 bg-white object-contain p-1 shadow-xs"
+                                    loading="lazy"
+                                    @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
+                                />
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <Link
+                                            :href="showEntity(entry.slug)"
+                                            class="font-bold text-[#18392d] hover:text-[#087f5b]"
+                                        >
+                                            {{ entry.name }}
+                                        </Link>
+                                        <span class="rounded-md bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-600">
+                                            {{ entry.category_name }}
+                                        </span>
                                     </div>
+                                    <p
+                                        v-if="entry.description"
+                                        class="mt-1 line-clamp-2 text-xs leading-relaxed text-[#5b6e61]"
+                                    >
+                                        {{ entry.description }}
+                                    </p>
                                 </div>
                             </div>
 
@@ -1133,10 +1173,12 @@ function formatRupiah(amount: number): string {
 
                                 <div class="flex items-center gap-2">
                                     <a
-                                        :href="`/go/${entry.slug}`"
+                                        :href="getDirectWebsiteUrl(entry.website_url, entry.slug)"
+                                        :ping="`/api/sponsor/click/${entry.slug}`"
                                         target="_blank"
-                                        rel="noopener noreferrer"
+                                        rel="noopener"
                                         class="inline-flex items-center gap-1 rounded-xl bg-[#d5f5df] px-3 py-2 text-xs font-bold text-[#145736] transition hover:bg-[#bceccb]"
+                                        @click="trackSponsorClick(entry.slug)"
                                     >
                                         Buka Situs <ArrowUpRight class="size-3.5" />
                                     </a>
@@ -1163,49 +1205,7 @@ function formatRupiah(amount: number): string {
                 </div>
             </div>
 
-            <!-- Educational / FAQ Section -->
-            <div class="mt-14 rounded-3xl border border-[#e2e8df] bg-[#f9fbf8] p-6 sm:p-10">
-                <h3 class="text-lg font-bold text-[#18392d]">
-                    Tentang Leaderboard SuaraNetijen
-                </h3>
-                <div class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
-                    <div class="rounded-2xl border border-[#e5ebe2] bg-white p-5">
-                        <div class="flex size-10 items-center justify-center rounded-xl bg-[#fff6e6] text-[#d97706]">
-                            <Award class="size-5" />
-                        </div>
-                        <h4 class="mt-3 font-bold text-sm text-[#18392d]">
-                            Model Komunitas
-                        </h4>
-                        <p class="mt-1 text-xs leading-relaxed text-[#68796d]">
-                            Siapa pun dapat mensponsori atau menambah nominal (top up) pada entitas apa pun. Total yang tertera adalah akumulasi dukungan dari pengguna.
-                        </p>
-                    </div>
 
-                    <div class="rounded-2xl border border-[#e5ebe2] bg-white p-5">
-                        <div class="flex size-10 items-center justify-center rounded-xl bg-[#f0faf3] text-[#16a34a]">
-                            <Shield class="size-5" />
-                        </div>
-                        <h4 class="mt-3 font-bold text-sm text-[#18392d]">
-                            Skor Bersih & Terpisah
-                        </h4>
-                        <p class="mt-1 text-xs leading-relaxed text-[#68796d]">
-                            Penempatan sponsor tidak akan pernah mengubah indeks sentimen, rating bintang, tema suara, ataupun urutan pada hasil pencarian organik.
-                        </p>
-                    </div>
-
-                    <div class="rounded-2xl border border-[#e5ebe2] bg-white p-5">
-                        <div class="flex size-10 items-center justify-center rounded-xl bg-[#eff6ff] text-[#2563eb]">
-                            <Clock class="size-5" />
-                        </div>
-                        <h4 class="mt-3 font-bold text-sm text-[#18392d]">
-                            Musim Mingguan
-                        </h4>
-                        <p class="mt-1 text-xs leading-relaxed text-[#68796d]">
-                            Leaderboard berjalan dalam siklus mingguan baru setiap pekan, memberikan kesempatan yang adil bagi entitas baru untuk tampil teratas.
-                        </p>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Payment confirmation modal — the ONLY modal in this flow; everything gathering

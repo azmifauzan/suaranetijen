@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->validateCsrfTokens(except: [
             'api/sponsor/webhooks/sumopod-relay',
+            'api/sponsor/click/*',
         ]);
 
         $middleware->web(append: [

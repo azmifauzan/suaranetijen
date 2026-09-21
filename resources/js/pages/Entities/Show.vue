@@ -4,10 +4,11 @@ import { home, methodology, sources } from '@/routes';
 import { show as showEntity } from '@/routes/entities';
 import { show as showRanking } from '@/routes/rankings';
 import { Link, router, useHttp } from '@inertiajs/vue3';
-import { ArrowUpRight, Trophy } from '@lucide/vue';
+import { ArrowUpRight, Star, Trophy } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { login } from '@/routes';
 import PublicSeo from '@/components/PublicSeo.vue';
+import { getDirectWebsiteUrl, trackSponsorClick } from '@/lib/sponsor';
 import {
     destroy as deleteRating,
     update as updateRating,
@@ -382,10 +383,12 @@ async function removeRating(): Promise<void> {
                         <!-- Direct Website Link -->
                         <div v-if="entity.website_url" class="mt-3">
                             <a
-                                :href="`/go/${entity.slug}`"
+                                :href="getDirectWebsiteUrl(entity.website_url, entity.slug)"
+                                :ping="`/api/sponsor/click/${entity.slug}`"
                                 target="_blank"
-                                rel="noopener noreferrer"
+                                rel="noopener"
                                 class="inline-flex items-center gap-1.5 rounded-lg border border-[#c2d6c6] bg-[#f0f7f2] px-3.5 py-1.5 text-xs font-semibold text-[#185b3b] transition hover:bg-[#e2f2e5]"
+                                @click="trackSponsorClick(entity.slug)"
                             >
                                 <span>Kunjungi Website Resmi</span>
                                 <ArrowUpRight class="size-3.5" />
@@ -403,10 +406,12 @@ async function removeRating(): Promise<void> {
                                 <span class="font-medium text-[#b45309]">· {{ leaderboard.views_count }} Pengunjung · {{ leaderboard.clicks_count }} Klik URL</span>
                             </div>
                             <a
-                                :href="leaderboard.direct_url"
+                                :href="getDirectWebsiteUrl(leaderboard.website_url || entity.website_url, entity.slug)"
+                                :ping="`/api/sponsor/click/${entity.slug}`"
                                 target="_blank"
-                                rel="noopener noreferrer"
+                                rel="noopener"
                                 class="inline-flex items-center gap-1 font-bold text-[#b45309] hover:underline"
+                                @click="trackSponsorClick(entity.slug)"
                             >
                                 Buka Situs Resmi <ArrowUpRight class="size-3.5" />
                             </a>
@@ -640,14 +645,14 @@ async function removeRating(): Promise<void> {
                             :href="methodology()"
                             class="text-emerald-600 hover:underline"
                         >
-                            Metodologi Skor →
+                            Metodologi Skor
                         </Link>
                         <span>•</span>
                         <Link
                             :href="sources()"
                             class="text-emerald-600 hover:underline"
                         >
-                            Sumber Data →
+                            Sumber Data
                         </Link>
                     </div>
                 </div>
@@ -787,17 +792,19 @@ async function removeRating(): Promise<void> {
                                     v-for="star in 5"
                                     :key="star"
                                     type="button"
-                                    class="flex h-10 w-10 items-center justify-center rounded-lg text-2xl transition-colors focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                                    :class="
-                                        star <= ratingForm.rating
-                                            ? 'text-amber-500'
-                                            : 'text-neutral-300'
-                                    "
+                                    class="flex h-10 w-10 items-center justify-center rounded-lg transition-colors focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                                     :aria-label="`Beri rating ${star} dari 5`"
                                     :aria-pressed="star === ratingForm.rating"
                                     @click="ratingForm.rating = star"
                                 >
-                                    ★
+                                    <Star
+                                        class="size-6 transition-colors"
+                                        :class="
+                                            star <= ratingForm.rating
+                                                ? 'fill-amber-400 text-amber-400'
+                                                : 'text-neutral-300'
+                                        "
+                                    />
                                 </button>
                             </div>
                         </div>
@@ -879,8 +886,8 @@ async function removeRating(): Promise<void> {
                                     <span class="text-xs font-bold text-neutral-900">
                                         {{ rev.user_name }}
                                     </span>
-                                    <div class="flex text-xs text-amber-500">
-                                        <span v-for="s in rev.rating" :key="s">★</span>
+                                    <div class="flex items-center gap-0.5 text-xs text-amber-500">
+                                        <Star v-for="s in rev.rating" :key="s" class="size-3.5 fill-amber-400 text-amber-400" />
                                     </div>
                                 </div>
                                 <span class="text-[11px] text-neutral-400">

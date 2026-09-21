@@ -32,7 +32,13 @@ class SponsorshipOrderController extends Controller
             /** @var Entity $entity */
             $entity = Entity::query()->findOrFail((int) $entityId);
 
-            $order = $orderService->createOrder($user, $entity, $amount, $redirectUrl);
+            $order = $orderService->createOrder(
+                $user,
+                $entity,
+                $amount,
+                $redirectUrl,
+                $request->validated('website_url')
+            );
         } else {
             $order = $orderService->createOrderForNewEntity(
                 $user,

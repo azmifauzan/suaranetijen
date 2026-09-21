@@ -252,15 +252,48 @@ test('it rejects amounts below minimum configured threshold', function () {
         ->assertJsonValidationErrors(['amount']);
 });
 
-test('it rejects amounts that are not multiples of increment', function () {
+test('it accepts amounts above minimum threshold without needing multiples of 1000', function () {
     $user = User::factory()->create();
     $entity = Entity::factory()->create(['status' => EntityStatus::Active, 'searchable' => true]);
 
+    Http::fake([
+        'https://api-pay.sumopod.com/api/v1/payments' => Http::response([
+            'payment_id' => 'pay_custom_1550',
+            'payment_link_url' => 'https://checkout.sumopod.com/pay/order-custom-1550',
+            'status' => 'pending',
+        ], 200),
+    ]);
+
     $this->actingAs($user)->postJson(route('api.sponsor.orders.store'), [
         'entity_id' => $entity->id,
-        'amount' => 1550, // not multiple of 1000
-    ])->assertUnprocessable()
-        ->assertJsonValidationErrors(['amount']);
+        'amount' => 1550, // not multiple of 1000, but > 1000
+    ])->assertCreated()
+        ->assertJsonPath('data.amount', 1550);
+});
+
+test('it updates entity website_url if missing when sponsoring existing entity', function () {
+    $user = User::factory()->create();
+    $entity = Entity::factory()->create([
+        'status' => EntityStatus::Active,
+        'searchable' => true,
+        'website_url' => null,
+    ]);
+
+    Http::fake([
+        'https://api-pay.sumopod.com/api/v1/payments' => Http::response([
+            'payment_id' => 'pay_web_1',
+            'payment_link_url' => 'https://checkout.sumopod.com/pay/order-web-1',
+            'status' => 'pending',
+        ], 200),
+    ]);
+
+    $this->actingAs($user)->postJson(route('api.sponsor.orders.store'), [
+        'entity_id' => $entity->id,
+        'amount' => 1000,
+        'website_url' => 'https://brand-example.id',
+    ])->assertCreated();
+
+    expect($entity->fresh()->website_url)->toBe('https://brand-example.id');
 });
 
 test('it rejects inactive or non-searchable entities', function () {

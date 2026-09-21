@@ -348,3 +348,69 @@ test('sponsorship contributions never alter sentiment snapshots or rating snapsh
     expect((float) $snapshot->score)->toBe(65.0);
     expect($snapshot->opinion_count)->toBe(20);
 });
+
+test('calculateAmountToOvertake requires only +1 rupiah to overtake target rank', function () {
+    $service = app(SponsorLeaderboardService::class);
+    $period = $service->getActivePeriod();
+
+    $entity1 = Entity::factory()->create(['status' => EntityStatus::Active, 'searchable' => true]);
+    $entity2 = Entity::factory()->create(['status' => EntityStatus::Active, 'searchable' => true]);
+
+    SponsoredEntry::factory()->create([
+        'period_id' => $period->id,
+        'entity_id' => $entity1->id,
+        'settled_total_amount' => 50000,
+        'status' => SponsoredEntryStatus::Active,
+    ]);
+
+    SponsoredEntry::factory()->create([
+        'period_id' => $period->id,
+        'entity_id' => $entity2->id,
+        'settled_total_amount' => 20000,
+        'status' => SponsoredEntryStatus::Active,
+    ]);
+
+    // For brand new sponsor overtaking rank 1 (which has 50000)
+    $neededForNew = $service->calculateAmountToOvertake($period, 1);
+    expect($neededForNew)->toBe(50001);
+
+    // For entity 2 (which already has 20000) overtaking rank 1
+    $neededForEntity2 = $service->calculateAmountToOvertake($period, 1, $entity2->id);
+    expect($neededForEntity2)->toBe(30001);
+
+    // Non-existent rank falls back to min_amount (1000)
+    $neededForEmpty = $service->calculateAmountToOvertake($period, 99);
+    expect($neededForEmpty)->toBe(1000);
+});
+
+test('api /api/sponsor/click/{slug} tracks direct click count on active sponsored entry via POST and GET', function () {
+    $service = app(SponsorLeaderboardService::class);
+    $period = $service->getActivePeriod();
+    $entity = Entity::factory()->create([
+        'status' => EntityStatus::Active,
+        'searchable' => true,
+        'website_url' => 'https://fabriku.id',
+    ]);
+
+    $entry = SponsoredEntry::factory()->create([
+        'period_id' => $period->id,
+        'entity_id' => $entity->id,
+        'settled_total_amount' => 50000,
+        'clicks_count' => 0,
+        'status' => SponsoredEntryStatus::Active,
+    ]);
+
+    // POST request (e.g. navigator.sendBeacon or fetch)
+    $this->postJson(route('api.sponsor.click', ['slug' => $entity->slug]))
+        ->assertOk()
+        ->assertJson(['ok' => true]);
+
+    expect($entry->fresh()->clicks_count)->toBe(1);
+
+    // GET request (e.g. ping attribute)
+    $this->getJson(route('api.sponsor.click', ['slug' => $entity->slug]))
+        ->assertOk()
+        ->assertJson(['ok' => true]);
+
+    expect($entry->fresh()->clicks_count)->toBe(2);
+});

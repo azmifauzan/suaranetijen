@@ -14,7 +14,7 @@ return [
 
     'min_amount' => (int) env('SPONSORSHIP_MIN_AMOUNT', 1000),
 
-    'increment_amount' => (int) env('SPONSORSHIP_INCREMENT_AMOUNT', 1000),
+    'increment_amount' => (int) env('SPONSORSHIP_INCREMENT_AMOUNT', 1),
 
     'currency' => 'IDR',
 

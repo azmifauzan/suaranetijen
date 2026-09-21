@@ -89,6 +89,9 @@ Route::get('/', function (SearchSuggestionService $searchSuggestionService, Spon
 Route::get('/leaderboard', [SponsorBoardPageController::class, 'index'])->name('leaderboard.index');
 Route::get('/sponsor', fn () => redirect()->route('leaderboard.index', [], 301))->name('sponsor.index');
 Route::get('/go/{slug}', [SponsorBoardPageController::class, 'redirect'])->name('leaderboard.redirect');
+Route::match(['get', 'post'], '/api/sponsor/click/{slug}', [SponsorBoardPageController::class, 'trackClick'])
+    ->middleware('throttle:60,1')
+    ->name('api.sponsor.click');
 Route::get('/api/sponsor/leaderboard', [SponsorLeaderboardController::class, 'index'])->name('api.sponsor.leaderboard');
 Route::post('/api/sponsor/preview', SponsorUrlPreviewController::class)
     ->middleware('throttle:20,1')

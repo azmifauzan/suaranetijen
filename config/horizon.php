@@ -346,13 +346,12 @@ return [
             ],
         ],
 
-        // worker2 (least headroom of the two workers, the host that fell
-        // over from FlareSolverr+crawl load on 8 Sep 2026, cpus:1.5
-        // container cap): analysis only —
-        // no FlareSolverr, no YouTube fan-out. supervisor-crawl and
+        // worker2 and worker3 (cpus:1.5 container cap): analysis-focused —
+        // no heavy FlareSolverr or YouTube fan-out. supervisor-crawl and
         // supervisor-crawl-youtube stay pinned at 1 process (Horizon's
         // floor) purely so the environment definition is valid; they should
-        // sit idle almost all the time.
+        // sit idle almost all the time while supervisor-analysis processes up
+        // to 2 parallel analysis jobs per light worker node.
         'worker-light' => [
             'supervisor-critical' => [
                 'minProcesses' => 1,

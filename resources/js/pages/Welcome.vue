@@ -9,10 +9,12 @@ import {
     CircleHelp,
     Coffee,
     Compass,
+    Eye,
     Globe,
     Heart,
     Laptop,
     MessageCircle,
+    MousePointerClick,
     ShieldCheck,
     ShoppingBag,
     Smartphone,
@@ -27,6 +29,7 @@ import EntitySearch from '@/components/EntitySearch.vue';
 import PublicEntityCard from '@/components/PublicEntityCard.vue';
 import PublicSeo from '@/components/PublicSeo.vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import { getDirectWebsiteUrl, getFaviconUrl, trackSponsorClick } from '@/lib/sponsor';
 import { methodology, sources } from '@/routes';
 import { show as showCategory } from '@/routes/categories';
 import { show as showEntity } from '@/routes/entities';
@@ -228,20 +231,30 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                                 "
                             >
                                 <div>
-                                    <!-- Top: Rank badge & Category -->
-                                    <div class="flex items-center justify-between">
-                                        <span
-                                            class="inline-flex size-7 items-center justify-center rounded-lg text-xs font-black shadow-xs"
-                                            :class="
-                                                entry.rank === 1
-                                                    ? 'bg-[#fef3c7] text-[#92400e] border border-[#fde68a]'
-                                                    : entry.rank === 2
-                                                      ? 'bg-[#e2e8f0] text-[#334155] border border-[#cbd5e1]'
-                                                      : 'bg-[#ffedd5] text-[#9a3412] border border-[#fed7aa]'
-                                            "
-                                        >
-                                            #{{ entry.rank }}
-                                        </span>
+                                    <!-- Top: Rank badge, Favicon & Category -->
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <span
+                                                class="inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-black shadow-xs"
+                                                :class="
+                                                    entry.rank === 1
+                                                        ? 'bg-[#fef3c7] text-[#92400e] border border-[#fde68a]'
+                                                        : entry.rank === 2
+                                                          ? 'bg-[#e2e8f0] text-[#334155] border border-[#cbd5e1]'
+                                                          : 'bg-[#ffedd5] text-[#9a3412] border border-[#fed7aa]'
+                                                "
+                                            >
+                                                #{{ entry.rank }}
+                                            </span>
+                                            <img
+                                                v-if="getFaviconUrl(entry.website_url)"
+                                                :src="getFaviconUrl(entry.website_url)!"
+                                                :alt="entry.name"
+                                                class="size-6 shrink-0 rounded-md border border-black/10 bg-white object-contain p-0.5"
+                                                loading="lazy"
+                                                @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
+                                            />
+                                        </div>
                                         <span class="truncate rounded-md bg-black/5 px-2 py-0.5 text-[10px] font-medium text-[#5a6b60]">
                                             {{ entry.category_name }}
                                         </span>
@@ -257,8 +270,16 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                                         </Link>
                                     </div>
 
+                                    <!-- Description (Web Ref Style) -->
+                                    <p
+                                        v-if="entry.description"
+                                        class="mt-1.5 line-clamp-2 text-xs leading-relaxed text-[#55695a]"
+                                    >
+                                        {{ entry.description }}
+                                    </p>
+
                                     <!-- Sponsor Amount -->
-                                    <div class="mt-2 flex items-baseline justify-between">
+                                    <div class="mt-2.5 flex items-baseline justify-between">
                                         <span class="text-[10px] font-semibold text-[#8a7251] uppercase">Sponsor:</span>
                                         <span class="text-xs font-extrabold text-[#92400e] sm:text-sm">
                                             Rp{{ entry.settled_total_amount.toLocaleString('id-ID') }}
@@ -267,24 +288,32 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
 
                                     <!-- Views & Clicks Stats -->
                                     <div class="mt-2 flex items-center justify-between rounded-lg bg-neutral-50 px-2 py-1 text-[11px] text-[#637568]">
-                                        <span title="Kunjungan detail">👁️ {{ entry.views_count || 0 }}</span>
+                                        <span class="inline-flex items-center gap-1" title="Kunjungan detail">
+                                            <Eye class="size-3 text-[#2563eb]" />
+                                            <span>{{ entry.views_count || 0 }}</span>
+                                        </span>
                                         <span>•</span>
-                                        <span title="Klik website">🔗 {{ entry.clicks_count || 0 }} klik</span>
+                                        <span class="inline-flex items-center gap-1" title="Klik website">
+                                            <MousePointerClick class="size-3 text-[#087f5b]" />
+                                            <span>{{ entry.clicks_count || 0 }} klik</span>
+                                        </span>
                                     </div>
                                 </div>
 
                                 <!-- Action buttons: Buka Situs & Rebut Posisi -->
                                 <div class="mt-3 flex flex-col gap-1.5 border-t border-neutral-100 pt-2.5">
                                     <a
-                                        :href="`/go/${entry.slug}`"
+                                        :href="getDirectWebsiteUrl(entry.website_url, entry.slug)"
+                                        :ping="`/api/sponsor/click/${entry.slug}`"
                                         target="_blank"
-                                        rel="noopener noreferrer"
+                                        rel="noopener"
                                         class="flex w-full items-center justify-center gap-1 rounded-lg bg-[#d5f5df] py-1.5 text-[11px] font-bold text-[#145736] transition hover:bg-[#bceccb]"
+                                        @click="trackSponsorClick(entry.slug)"
                                     >
                                         Buka Situs <ArrowUpRight class="size-3" />
                                     </a>
                                     <Link
-                                        :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1000}#formSection`"
+                                        :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1}#formSection`"
                                         class="flex w-full items-center justify-center gap-1 rounded-lg border border-[#f59e0b] bg-[#fffbeb] py-1.5 text-[11px] font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
                                     >
                                         <Zap class="size-3 text-[#d97706]" />
@@ -388,12 +417,20 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                         class="group relative flex flex-col justify-between rounded-2xl border border-[#e2e7df] bg-white p-4 transition-all duration-200 hover:border-[#b8cfbe] hover:shadow-md sm:p-5"
                     >
                         <div class="flex items-start justify-between gap-3">
-                            <div class="flex items-start gap-3">
+                            <div class="flex items-start gap-3 min-w-0">
                                 <span
                                     class="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#f1f5f0] text-xs font-black text-[#4d5e52] shadow-xs sm:size-9 sm:text-sm"
                                 >
                                     #{{ entry.rank }}
                                 </span>
+                                <img
+                                    v-if="getFaviconUrl(entry.website_url)"
+                                    :src="getFaviconUrl(entry.website_url)!"
+                                    :alt="entry.name"
+                                    class="size-8 shrink-0 rounded-lg border border-black/10 bg-white object-contain p-1"
+                                    loading="lazy"
+                                    @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
+                                />
                                 <div class="min-w-0 flex-1">
                                     <div class="flex flex-wrap items-center gap-1.5">
                                         <Link
@@ -406,7 +443,7 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                                             {{ entry.category_name }}
                                         </span>
                                     </div>
-                                    <p v-if="entry.description" class="mt-1 line-clamp-1 text-xs text-[#6e7f73]">
+                                    <p v-if="entry.description" class="mt-1 line-clamp-2 text-xs leading-relaxed text-[#55695a]">
                                         {{ entry.description }}
                                     </p>
                                 </div>
@@ -425,12 +462,14 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                         <!-- Stats & Action buttons -->
                         <div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 pt-3 text-xs">
                             <div class="flex items-center gap-3 text-[11px] text-[#637568]">
-                                <span title="Jumlah kunjungan halaman detail">
-                                    👁️ <strong class="text-[#203a29]">{{ entry.views_count || 0 }}</strong> kunjungan
+                                <span class="inline-flex items-center gap-1" title="Jumlah kunjungan halaman detail">
+                                    <Eye class="size-3.5 text-[#2563eb]" />
+                                    <span><strong class="text-[#203a29]">{{ entry.views_count || 0 }}</strong> kunjungan</span>
                                 </span>
                                 <span>•</span>
-                                <span title="Jumlah klik langsung ke situs">
-                                    🔗 <strong class="text-[#203a29]">{{ entry.clicks_count || 0 }}</strong> klik
+                                <span class="inline-flex items-center gap-1" title="Jumlah klik langsung ke situs">
+                                    <MousePointerClick class="size-3.5 text-[#087f5b]" />
+                                    <span><strong class="text-[#203a29]">{{ entry.clicks_count || 0 }}</strong> klik</span>
                                 </span>
                             </div>
                             <div class="flex items-center gap-2">
@@ -441,15 +480,17 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                                     Detail
                                 </Link>
                                 <a
-                                    :href="`/go/${entry.slug}`"
+                                    :href="getDirectWebsiteUrl(entry.website_url, entry.slug)"
+                                    :ping="`/api/sponsor/click/${entry.slug}`"
                                     target="_blank"
-                                    rel="noopener noreferrer"
+                                    rel="noopener"
                                     class="inline-flex items-center gap-1 rounded-lg bg-[#d5f5df] px-2.5 py-1 text-[11px] font-bold text-[#145736] transition hover:bg-[#bceccb]"
+                                    @click="trackSponsorClick(entry.slug)"
                                 >
                                     Buka Situs <ArrowUpRight class="size-3" />
                                 </a>
                                 <Link
-                                    :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1000}#formSection`"
+                                    :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1}#formSection`"
                                     class="inline-flex items-center gap-1 rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-1 text-[11px] font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
                                 >
                                     <Zap class="size-3 text-[#d97706]" />
