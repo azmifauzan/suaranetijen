@@ -24,7 +24,10 @@ class RatingController extends Controller
         $userId = (int) $request->user()->getAuthIdentifier();
         $rating = UserRating::updateOrCreate(
             ['user_id' => $userId, 'entity_id' => $entity->id],
-            ['rating' => $request->integer('rating')]
+            [
+                'rating' => $request->integer('rating'),
+                'review' => $request->filled('review') ? trim((string) $request->input('review')) : null,
+            ]
         );
         $snapshot = $aggregator->refresh($entity->id);
 
@@ -32,6 +35,7 @@ class RatingController extends Controller
             'user_id' => $userId,
             'entity_id' => $entity->id,
             'rating' => $rating->rating,
+            'has_review' => ! empty($rating->review),
         ]);
 
         return response()->json(['data' => $this->payload($rating, $snapshot)]);
@@ -61,12 +65,13 @@ class RatingController extends Controller
     }
 
     /**
-     * @return array{rating: int|null, rating_count: int, rating_average: float|null}
+     * @return array{rating: int|null, review: string|null, rating_count: int, rating_average: float|null}
      */
     private function payload(?UserRating $rating, RatingSnapshot $snapshot): array
     {
         return [
             'rating' => $rating?->rating,
+            'review' => $rating?->review,
             'rating_count' => (int) $snapshot->rating_count,
             'rating_average' => $snapshot->rating_average === null
                 ? null

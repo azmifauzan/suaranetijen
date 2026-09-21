@@ -183,6 +183,7 @@ class SponsorLeaderboardService
             (int) $entry->settled_total_amount,
             $entry->first_settled_at,
             (int) $entry->clicks_count,
+            (int) $entry->views_count,
             $index + 1,
         ));
     }
@@ -208,6 +209,7 @@ class SponsorLeaderboardService
             ->selectRaw('SUM(sponsored_entries.settled_total_amount) as total_amount')
             ->selectRaw('MIN(sponsored_entries.first_settled_at) as first_settled_at')
             ->selectRaw('SUM(sponsored_entries.clicks_count) as clicks_count')
+            ->selectRaw('SUM(sponsored_entries.views_count) as views_count')
             ->orderByDesc('total_amount')
             ->orderBy('first_settled_at')
             ->orderBy('sponsored_entries.entity_id')
@@ -228,9 +230,40 @@ class SponsorLeaderboardService
                 (int) $row->total_amount,
                 $row->first_settled_at ? CarbonImmutable::parse($row->first_settled_at) : null,
                 (int) $row->clicks_count,
+                (int) $row->views_count,
                 $index + 1,
             ))
             ->values();
+    }
+
+    /**
+     * Get aggregate statistics for the leaderboard (total listings, total amount, clicks, views).
+     *
+     * @return array{total_listings: int, total_amount: int, total_clicks: int, total_views: int, highest_bid: int}
+     */
+    public function getBoardStats(?SponsorPeriod $period = null): array
+    {
+        $query = SponsoredEntry::query()
+            ->where('status', SponsoredEntryStatus::Active)
+            ->where('settled_total_amount', '>', 0);
+
+        if ($period !== null) {
+            $query->where('period_id', $period->id);
+        }
+
+        $totalListings = (int) (clone $query)->count();
+        $totalAmount = (int) (clone $query)->sum('settled_total_amount');
+        $totalClicks = (int) (clone $query)->sum('clicks_count');
+        $totalViews = (int) (clone $query)->sum('views_count');
+        $highestBid = (int) ((clone $query)->max('settled_total_amount') ?? 0);
+
+        return [
+            'total_listings' => $totalListings,
+            'total_amount' => $totalAmount,
+            'total_clicks' => $totalClicks,
+            'total_views' => $totalViews,
+            'highest_bid' => $highestBid,
+        ];
     }
 
     /**
@@ -242,6 +275,7 @@ class SponsorLeaderboardService
         int $settledTotalAmount,
         ?CarbonImmutable $firstSettledAt,
         int $clicksCount,
+        int $viewsCount,
         int $rank,
     ): array {
         $snapshot = $entity->sentimentSnapshots->first();
@@ -256,9 +290,12 @@ class SponsorLeaderboardService
             'slug' => $entity->slug,
             'type_label' => $entity->type->label(),
             'category_name' => $entity->category->name,
+            'website_url' => $entity->website_url,
+            'description' => $entity->description,
             'settled_total_amount' => $settledTotalAmount,
             'first_settled_at' => $firstSettledAt?->toIso8601String(),
             'clicks_count' => $clicksCount,
+            'views_count' => $viewsCount,
             'sentiment_score' => $isPublicScore ? (float) $snapshot->score : null,
             'opinion_count' => $snapshot ? (int) $snapshot->opinion_count : 0,
             'rating_average' => $ratingSnap?->rating_average ? (float) $ratingSnap->rating_average : null,
@@ -267,17 +304,12 @@ class SponsorLeaderboardService
     }
 
     /**
-     * Get compact homepage preview teaser for the active board (docs/26).
-     *
-     * @return array<string, mixed>|null
-     */
-    /**
      * Always returns a payload, even with an empty board — an empty board still needs to
      * invite the *first* sponsor (docs/26), not disappear until one already exists.
      *
      * @return array<string, mixed>
      */
-    public function getHomepageTeaser(int $limit = 3): array
+    public function getHomepageTeaser(int $limit = 13): array
     {
         $period = $this->getActivePeriod();
         $leaderboard = $this->getLeaderboard($period, $limit);
@@ -295,6 +327,39 @@ class SponsorLeaderboardService
             'top_entry' => $leaderboard->first(),
             'top_entries' => $leaderboard->all(),
         ];
+    }
+
+    /**
+     * Calculate the minimum contribution amount needed to overtake a target position or entry.
+     */
+    public function calculateAmountToOvertake(SponsorPeriod $period, int $targetRank, ?int $currentEntityId = null): int
+    {
+        $entries = $this->getLeaderboard($period, $targetRank);
+        $targetEntry = $entries->firstWhere('rank', $targetRank);
+
+        $increment = (int) config('sponsorship.increment_amount', 1000);
+        $minAmount = (int) config('sponsorship.min_amount', 1000);
+
+        if (! $targetEntry) {
+            return $minAmount;
+        }
+
+        $targetTotal = (int) $targetEntry['settled_total_amount'];
+        $currentTotal = 0;
+
+        if ($currentEntityId) {
+            $existing = SponsoredEntry::query()
+                ->where('period_id', $period->id)
+                ->where('entity_id', $currentEntityId)
+                ->first();
+            if ($existing) {
+                $currentTotal = (int) $existing->settled_total_amount;
+            }
+        }
+
+        $needed = ($targetTotal + $increment) - $currentTotal;
+
+        return max($minAmount, $needed);
     }
 
     /**

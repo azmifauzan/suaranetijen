@@ -178,3 +178,24 @@ test('saving a rating does not alter sentiment snapshots', function () {
         'score' => 70,
     ]);
 });
+
+test('authenticated user can submit a rating with an optional review text', function () {
+    $user = User::factory()->create();
+    $entity = Entity::factory()->create();
+
+    $this->actingAs($user)
+        ->putJson(route('api.entities.rating.update', $entity), [
+            'rating' => 5,
+            'review' => 'Produk ini sangat bagus dan recommended!',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.rating', 5)
+        ->assertJsonPath('data.review', 'Produk ini sangat bagus dan recommended!');
+
+    $this->assertDatabaseHas('user_ratings', [
+        'user_id' => $user->id,
+        'entity_id' => $entity->id,
+        'rating' => 5,
+        'review' => 'Produk ini sangat bagus dan recommended!',
+    ]);
+});

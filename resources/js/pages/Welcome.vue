@@ -20,6 +20,7 @@ import {
     Star,
     Trophy,
     Wifi,
+    Zap,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import EntitySearch from '@/components/EntitySearch.vue';
@@ -29,8 +30,8 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 import { methodology, sources } from '@/routes';
 import { show as showCategory } from '@/routes/categories';
 import { show as showEntity } from '@/routes/entities';
+import { index as leaderboardPage } from '@/routes/leaderboard';
 import { index as searchPage } from '@/routes/search';
-import { index as sponsorPage } from '@/routes/sponsor';
 
 interface CategoryItem {
     id: number;
@@ -61,7 +62,11 @@ interface SponsorTeaserItem {
     name: string;
     slug: string;
     category_name: string;
+    website_url?: string | null;
+    description?: string | null;
     settled_total_amount: number;
+    clicks_count?: number;
+    views_count?: number;
 }
 
 interface SponsorTeaser {
@@ -184,67 +189,123 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                         Mau pilih brand, produk, tokoh atau layanan?<br />
                         Cari dulu, lihat apa kata netijen.
                     </p>
-                    <div class="mx-auto mt-8 max-w-2xl"><EntitySearch /></div>
+                    <div class="mx-auto mt-8 max-w-4xl"><EntitySearch /></div>
 
-                    <!-- Papan Sponsor Homepage Teaser (docs/26) -->
+                    <!-- Top 3 Leaderboard Podium below search box -->
                     <div
-                        v-if="sponsorTeaser && !sponsorTeaser.is_empty"
-                        class="mx-auto mt-6 max-w-2xl rounded-2xl border border-[#ecdabf] bg-gradient-to-r from-[#fffaf0] via-[#fffdf9] to-[#fff8eb] p-4 text-left shadow-sm"
+                        v-if="sponsorTeaser && !sponsorTeaser.is_empty && sponsorTeaser.top_entries && sponsorTeaser.top_entries.length > 0"
+                        class="mx-auto mt-6 max-w-4xl text-left"
                     >
-                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#f1dfc5] pb-2.5 text-xs">
-                            <div class="flex items-center gap-2 font-bold text-[#92400e]">
-                                <Trophy class="size-4 text-[#d97706]" />
-                                <span>Papan Sponsor · {{ sponsorTeaser.period_name }}</span>
-                                <span v-if="sponsorTeaser.top_entry" class="hidden sm:inline font-semibold text-[#b45309]">
-                                    ( #1 {{ sponsorTeaser.top_entry.name }} · Rp{{ sponsorTeaser.top_entry.settled_total_amount.toLocaleString('id-ID') }} )
+                        <div class="mb-3 flex items-center justify-between px-1">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 rounded-full border border-[#f3d39e] bg-[#fffaf0] px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-[#92400e] uppercase">
+                                    <Trophy class="size-3 text-[#d97706]" />
+                                    Top 3 Teratas Leaderboard
+                                </span>
+                                <span class="text-xs text-[#6e8072]">
+                                    Periode {{ sponsorTeaser.period_name || 'Minggu Ini' }}
                                 </span>
                             </div>
                             <Link
-                                :href="sponsorPage()"
-                                class="flex items-center gap-1 font-bold text-[#b45309] hover:underline"
+                                :href="leaderboardPage()"
+                                class="inline-flex items-center gap-1 text-xs font-bold text-[#92400e] hover:text-[#d97706]"
                             >
-                                Lihat papan <ArrowRight class="size-3.5" />
+                                Buka Leaderboard <ArrowRight class="size-3" />
                             </Link>
                         </div>
-                        <p class="mt-2 text-[11px] leading-relaxed text-[#856b47]">
-                            Urutan berdasarkan nominal sponsor terkonfirmasi; tidak memengaruhi skor ataupun hasil pencarian.
-                        </p>
-                        <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                            <Link
+
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div
                                 v-for="entry in sponsorTeaser.top_entries.slice(0, 3)"
                                 :key="entry.id"
-                                :href="showEntity(entry.slug)"
-                                class="flex items-center justify-between rounded-xl border border-[#f0dfc8] bg-white/80 px-3 py-2 text-xs transition hover:border-[#d97706] hover:bg-white"
+                                class="relative flex flex-col justify-between rounded-2xl border p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                                :class="
+                                    entry.rank === 1
+                                        ? 'border-[#ecd5aa] bg-gradient-to-b from-[#fffbf0] via-white to-white shadow-xs ring-1 ring-[#f4d9a6]'
+                                        : entry.rank === 2
+                                          ? 'border-[#d6e0d8] bg-gradient-to-b from-[#f9faf9] via-white to-white shadow-xs'
+                                          : 'border-[#e6dccf] bg-gradient-to-b from-[#fdfbf9] via-white to-white shadow-xs'
+                                "
                             >
-                                <div class="truncate mr-2">
-                                    <span class="font-bold text-[#92400e]">#{{ entry.rank }}</span>
-                                    <span class="ml-1.5 font-semibold text-[#292218]">{{ entry.name }}</span>
+                                <div>
+                                    <!-- Top: Rank badge & Category -->
+                                    <div class="flex items-center justify-between">
+                                        <span
+                                            class="inline-flex size-7 items-center justify-center rounded-lg text-xs font-black shadow-xs"
+                                            :class="
+                                                entry.rank === 1
+                                                    ? 'bg-[#fef3c7] text-[#92400e] border border-[#fde68a]'
+                                                    : entry.rank === 2
+                                                      ? 'bg-[#e2e8f0] text-[#334155] border border-[#cbd5e1]'
+                                                      : 'bg-[#ffedd5] text-[#9a3412] border border-[#fed7aa]'
+                                            "
+                                        >
+                                            #{{ entry.rank }}
+                                        </span>
+                                        <span class="truncate rounded-md bg-black/5 px-2 py-0.5 text-[10px] font-medium text-[#5a6b60]">
+                                            {{ entry.category_name }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Entity Name -->
+                                    <div class="mt-2.5">
+                                        <Link
+                                            :href="showEntity(entry.slug)"
+                                            class="line-clamp-1 font-bold text-sm text-[#18392d] hover:text-[#087f5b] sm:text-base"
+                                        >
+                                            {{ entry.name }}
+                                        </Link>
+                                    </div>
+
+                                    <!-- Sponsor Amount -->
+                                    <div class="mt-2 flex items-baseline justify-between">
+                                        <span class="text-[10px] font-semibold text-[#8a7251] uppercase">Sponsor:</span>
+                                        <span class="text-xs font-extrabold text-[#92400e] sm:text-sm">
+                                            Rp{{ entry.settled_total_amount.toLocaleString('id-ID') }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Views & Clicks Stats -->
+                                    <div class="mt-2 flex items-center justify-between rounded-lg bg-neutral-50 px-2 py-1 text-[11px] text-[#637568]">
+                                        <span title="Kunjungan detail">👁️ {{ entry.views_count || 0 }}</span>
+                                        <span>•</span>
+                                        <span title="Klik website">🔗 {{ entry.clicks_count || 0 }} klik</span>
+                                    </div>
                                 </div>
-                                <span class="text-[11px] font-bold text-[#b45309] shrink-0">
-                                    Rp{{ entry.settled_total_amount.toLocaleString('id-ID') }}
-                                </span>
-                            </Link>
+
+                                <!-- Action buttons: Buka Situs & Rebut Posisi -->
+                                <div class="mt-3 flex flex-col gap-1.5 border-t border-neutral-100 pt-2.5">
+                                    <a
+                                        :href="`/go/${entry.slug}`"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="flex w-full items-center justify-center gap-1 rounded-lg bg-[#d5f5df] py-1.5 text-[11px] font-bold text-[#145736] transition hover:bg-[#bceccb]"
+                                    >
+                                        Buka Situs <ArrowUpRight class="size-3" />
+                                    </a>
+                                    <Link
+                                        :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1000}#formSection`"
+                                        class="flex w-full items-center justify-center gap-1 rounded-lg border border-[#f59e0b] bg-[#fffbeb] py-1.5 text-[11px] font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
+                                    >
+                                        <Zap class="size-3 text-[#d97706]" />
+                                        Rebut Posisi #{{ entry.rank }}
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Empty-board invite: the board must not simply disappear before anyone
-                         has ever sponsored — that's how nobody discovers the feature exists. -->
-                    <Link
-                        v-else-if="sponsorTeaser && sponsorTeaser.is_empty"
-                        :href="sponsorPage()"
-                        class="mx-auto mt-6 flex max-w-2xl items-center justify-between gap-3 rounded-2xl border border-dashed border-[#ecdabf] bg-[#fffaf0] p-4 text-left shadow-sm transition hover:border-[#d97706] hover:bg-[#fff6e6]"
-                    >
-                        <div class="flex items-center gap-2 text-xs">
-                            <Trophy class="size-4 shrink-0 text-[#d97706]" />
-                            <span class="text-[#856b47]">
-                                <span class="font-bold text-[#92400e]">Papan Sponsor masih kosong.</span>
-                                Jadi brand, produk, atau layanan pertama yang tampil di sini.
-                            </span>
-                        </div>
-                        <span class="flex shrink-0 items-center gap-1 text-xs font-bold text-[#b45309]">
-                            Sponsori sekarang <ArrowRight class="size-3.5" />
-                        </span>
-                    </Link>
+                    <div v-else class="mt-4">
+                        <Link
+                            :href="leaderboardPage()"
+                            class="inline-flex items-center gap-2 rounded-full border border-[#edd5b1] bg-white/80 px-3.5 py-1.5 text-xs text-[#8a5d1a] shadow-xs transition hover:border-[#d97706] hover:bg-white"
+                        >
+                            <Trophy class="size-3.5 text-[#d97706]" />
+                            <span class="font-bold">Leaderboard: Belum ada sponsor periode ini</span>
+                            <span class="text-[#b45309] font-medium">— Jadilah #1 sekarang!</span>
+                            <ArrowRight class="size-3 text-[#b45309]" />
+                        </Link>
+                    </div>
 
                     <div
                         class="mt-5 flex flex-wrap items-center justify-center gap-2 text-xs text-[#667861]"
@@ -284,6 +345,169 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                     >
                 </div>
             </div>
+
+            <!-- Dedicated Top 10 Leaderboard Section (#4 - #13) (above categories) -->
+            <section
+                class="mx-auto max-w-6xl px-5 pt-10 pb-4 sm:px-8 sm:pt-14 sm:pb-6"
+                aria-labelledby="top-leaderboard-heading"
+            >
+                <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <div
+                            class="mb-2 inline-flex items-center gap-1.5 rounded-full border border-[#edd7b6] bg-[#fffaf0] px-3 py-1 text-[11px] font-bold tracking-wider text-[#92400e] uppercase"
+                        >
+                            <Trophy class="size-3.5 text-[#d97706]" />
+                            Leaderboard SuaraNetijen
+                        </div>
+                        <h2
+                            id="top-leaderboard-heading"
+                            class="text-2xl font-bold tracking-tight text-[#18392d] sm:text-3xl"
+                        >
+                            Leaderboard (#4 – #13)
+                        </h2>
+                        <p class="mt-1 text-xs text-[#61725f] sm:text-sm">
+                            Brand, produk, dan layanan di peringkat #4 sampai #13 periode {{ sponsorTeaser?.period_name || 'Minggu Ini' }}.
+                        </p>
+                    </div>
+                    <Link
+                        :href="leaderboardPage()"
+                        class="inline-flex items-center gap-1.5 rounded-full border border-[#dfcca9] bg-white px-4 py-2 text-xs font-bold text-[#92400e] shadow-xs transition hover:border-[#d97706] hover:bg-[#fffbf2]"
+                    >
+                        Lihat Semua Peringkat & Ikut Sponsor <ArrowRight class="size-3.5" />
+                    </Link>
+                </div>
+
+                <!-- Active Listings (#4 - #13) -->
+                <div
+                    v-if="sponsorTeaser && !sponsorTeaser.is_empty && sponsorTeaser.top_entries.slice(3, 13).length > 0"
+                    class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2"
+                >
+                    <div
+                        v-for="entry in sponsorTeaser.top_entries.slice(3, 13)"
+                        :key="entry.id"
+                        class="group relative flex flex-col justify-between rounded-2xl border border-[#e2e7df] bg-white p-4 transition-all duration-200 hover:border-[#b8cfbe] hover:shadow-md sm:p-5"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-start gap-3">
+                                <span
+                                    class="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#f1f5f0] text-xs font-black text-[#4d5e52] shadow-xs sm:size-9 sm:text-sm"
+                                >
+                                    #{{ entry.rank }}
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <Link
+                                            :href="showEntity(entry.slug)"
+                                            class="truncate font-bold text-sm text-[#18392d] hover:text-[#087f5b] sm:text-base"
+                                        >
+                                            {{ entry.name }}
+                                        </Link>
+                                        <span class="rounded-md bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-600">
+                                            {{ entry.category_name }}
+                                        </span>
+                                    </div>
+                                    <p v-if="entry.description" class="mt-1 line-clamp-1 text-xs text-[#6e7f73]">
+                                        {{ entry.description }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="text-right shrink-0">
+                                <div class="text-xs font-extrabold text-[#92400e] sm:text-sm">
+                                    Rp{{ entry.settled_total_amount.toLocaleString('id-ID') }}
+                                </div>
+                                <span class="text-[10px] font-medium tracking-wide text-[#9a6a24] uppercase">
+                                    Total Sponsor
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Stats & Action buttons -->
+                        <div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 pt-3 text-xs">
+                            <div class="flex items-center gap-3 text-[11px] text-[#637568]">
+                                <span title="Jumlah kunjungan halaman detail">
+                                    👁️ <strong class="text-[#203a29]">{{ entry.views_count || 0 }}</strong> kunjungan
+                                </span>
+                                <span>•</span>
+                                <span title="Jumlah klik langsung ke situs">
+                                    🔗 <strong class="text-[#203a29]">{{ entry.clicks_count || 0 }}</strong> klik
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <Link
+                                    :href="showEntity(entry.slug)"
+                                    class="rounded-lg border border-[#cfd9ce] px-2.5 py-1 text-[11px] font-semibold text-[#324b3c] hover:bg-[#f0f6f1]"
+                                >
+                                    Detail
+                                </Link>
+                                <a
+                                    :href="`/go/${entry.slug}`"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-flex items-center gap-1 rounded-lg bg-[#d5f5df] px-2.5 py-1 text-[11px] font-bold text-[#145736] transition hover:bg-[#bceccb]"
+                                >
+                                    Buka Situs <ArrowUpRight class="size-3" />
+                                </a>
+                                <Link
+                                    :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1000}#formSection`"
+                                    class="inline-flex items-center gap-1 rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-1 text-[11px] font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
+                                >
+                                    <Zap class="size-3 text-[#d97706]" />
+                                    Rebut Posisi
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spot #4 - #13 Open State (when <= 3 entries exist on the board) -->
+                <div
+                    v-else-if="sponsorTeaser && !sponsorTeaser.is_empty"
+                    class="rounded-3xl border border-dashed border-[#e6cb9d] bg-gradient-to-r from-[#fffaf2] to-[#fffdfa] p-8 text-center sm:p-10"
+                >
+                    <div class="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#fef3c7] text-[#b45309]">
+                        <Sparkles class="size-7" />
+                    </div>
+                    <h3 class="mt-4 text-lg font-bold text-[#3d2c14]">
+                        Posisi #4 – #13 Masih Terbuka
+                    </h3>
+                    <p class="mx-auto mt-1 max-w-md text-xs leading-relaxed text-[#7c694e] sm:text-sm">
+                        Baru ada {{ sponsorTeaser.top_entries.length }} sponsor di papan peringkat. Daftarkan brand, produk, atau websitemu sekarang untuk langsung mengamankan posisi di leaderboard!
+                    </p>
+                    <div class="mt-5">
+                        <Link
+                            :href="leaderboardPage()"
+                            class="inline-flex items-center gap-2 rounded-full bg-[#d97706] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#b45309]"
+                        >
+                            Amankan Posisi Sekarang <ArrowRight class="size-4" />
+                        </Link>
+                    </div>
+                </div>
+
+                <!-- Empty State Invite -->
+                <div
+                    v-else
+                    class="rounded-3xl border border-dashed border-[#e6cb9d] bg-gradient-to-r from-[#fffaf2] to-[#fffdfa] p-8 text-center sm:p-10"
+                >
+                    <div class="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#fef3c7] text-[#b45309]">
+                        <Trophy class="size-7" />
+                    </div>
+                    <h3 class="mt-4 text-lg font-bold text-[#3d2c14]">
+                        Leaderboard periode ini masih kosong
+                    </h3>
+                    <p class="mx-auto mt-1 max-w-md text-xs leading-relaxed text-[#7c694e] sm:text-sm">
+                        Jadilah brand, produk, atau layanan pertama yang tampil di peringkat teratas SuaraNetijen dan dapatkan exposure langsung ke ribuan pengunjung.
+                    </p>
+                    <div class="mt-5">
+                        <Link
+                            :href="leaderboardPage()"
+                            class="inline-flex items-center gap-2 rounded-full bg-[#d97706] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#b45309]"
+                        >
+                            Sponsori Sekarang <ArrowRight class="size-4" />
+                        </Link>
+                    </div>
+                </div>
+            </section>
 
             <section
                 class="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16"

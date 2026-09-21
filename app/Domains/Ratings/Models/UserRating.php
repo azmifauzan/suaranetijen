@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $user_id
  * @property int $entity_id
  * @property int $rating
+ * @property string|null $review
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read User $user
@@ -25,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'entity_id',
     'rating',
+    'review',
 ])]
 class UserRating extends Model
 {

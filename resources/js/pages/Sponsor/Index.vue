@@ -6,17 +6,21 @@ import {
     Award,
     CheckCircle2,
     Clock,
+    Eye,
+    Globe,
+    MousePointerClick,
     Search,
     Shield,
     Sparkles,
     Trophy,
     X,
+    Zap,
 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import PublicSeo from '@/components/PublicSeo.vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { show as showEntity } from '@/routes/entities';
-import { index as sponsorPage } from '@/routes/sponsor';
+import { index as leaderboardPage } from '@/routes/leaderboard';
 
 interface PeriodItem {
     id: number;
@@ -34,13 +38,24 @@ interface LeaderboardEntry {
     slug: string;
     type_label: string;
     category_name: string;
+    website_url?: string | null;
+    description?: string | null;
     settled_total_amount: number;
     first_settled_at: string | null;
     clicks_count: number;
+    views_count: number;
     sentiment_score: number | null;
     opinion_count: number;
     rating_average: number | null;
     rating_count: number;
+}
+
+interface BoardStats {
+    total_listings: number;
+    total_amount: number;
+    total_clicks: number;
+    total_views: number;
+    highest_bid: number;
 }
 
 interface UserOrderInfo {
@@ -70,6 +85,7 @@ const props = defineProps<{
         is_active: boolean;
     };
     leaderboard: LeaderboardEntry[];
+    stats?: BoardStats;
     minAmount: number;
     incrementAmount: number;
     userOrder?: UserOrderInfo | null;
@@ -121,6 +137,48 @@ const guestEmail = ref<string>('');
 const isConfirmModalOpen = ref(false);
 
 const isValidGuestEmail = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.value.trim()));
+
+interface RebutTarget {
+    rank: number;
+    name: string;
+    entityId?: number;
+    targetAmount: number;
+    neededAmount: number;
+}
+
+const rebutTarget = ref<RebutTarget | null>(null);
+
+function startRebut(entry: { rank: number; name: string; settled_total_amount: number; entity_id?: number }) {
+    const targetAmount = entry.settled_total_amount;
+    let needed = targetAmount + props.incrementAmount;
+
+    if (selectedEntity.value) {
+        const existingEntry = props.leaderboard.find((e) => e.entity_id === selectedEntity.value?.id);
+        if (existingEntry) {
+            needed = Math.max(props.minAmount, (targetAmount + props.incrementAmount) - existingEntry.settled_total_amount);
+        }
+    }
+
+    rebutTarget.value = {
+        rank: entry.rank,
+        name: entry.name,
+        entityId: 'entity_id' in entry ? entry.entity_id : undefined,
+        targetAmount: targetAmount,
+        neededAmount: needed,
+    };
+
+    contributionAmount.value = needed;
+    customAmount.value = needed.toString();
+
+    errorMessage.value = null;
+    formSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelRebut() {
+    rebutTarget.value = null;
+    contributionAmount.value = 10000;
+    customAmount.value = '10000';
+}
 
 const presetAmounts = [10000, 25000, 50000, 100000, 250000];
 
@@ -233,6 +291,52 @@ watch(urlInput, (value) => {
     }, 400);
 });
 
+watch(selectedEntity, (newEntity) => {
+    if (rebutTarget.value) {
+        const targetAmount = rebutTarget.value.targetAmount;
+        let needed = targetAmount + props.incrementAmount;
+        if (newEntity) {
+            const existingEntry = props.leaderboard.find((e) => e.entity_id === newEntity.id);
+            if (existingEntry) {
+                needed = Math.max(props.minAmount, (targetAmount + props.incrementAmount) - existingEntry.settled_total_amount);
+            }
+        }
+        rebutTarget.value.neededAmount = needed;
+        contributionAmount.value = needed;
+        customAmount.value = needed.toString();
+    }
+});
+
+onMounted(() => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    const rebutRank = params.get('rebut_rank');
+    const targetName = params.get('target_name');
+    const neededAmountStr = params.get('needed_amount');
+
+    if (rebutRank) {
+        const rankNum = parseInt(rebutRank, 10);
+        const matched = props.leaderboard.find((e) => e.rank === rankNum);
+        if (matched) {
+            startRebut(matched);
+        } else if (targetName && neededAmountStr) {
+            const needed = parseInt(neededAmountStr, 10) || props.minAmount;
+            rebutTarget.value = {
+                rank: rankNum,
+                name: targetName,
+                targetAmount: Math.max(0, needed - props.incrementAmount),
+                neededAmount: needed,
+            };
+            contributionAmount.value = needed;
+            customAmount.value = needed.toString();
+            setTimeout(() => {
+                formSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 150);
+        }
+    }
+});
+
 // Used by "+ Sponsori" buttons on already-listed entities: skip the URL step entirely and jump
 // straight to step 2, scrolling the (always-on-page) form into view.
 function selectEntityAndScrollToForm(entity: { id: number; name: string; slug: string }) {
@@ -326,7 +430,7 @@ async function submitOrder() {
         if (data.data?.payment_link_url) {
             window.location.href = data.data.payment_link_url;
         } else {
-            router.visit(sponsorPage({ query: { order_id: data.data?.id } }));
+            router.visit(leaderboardPage({ query: { order_id: data.data?.id } }));
         }
     } catch (e: any) {
         errorMessage.value = e.message || 'Terjadi kesalahan saat memproses pesanan.';
@@ -344,9 +448,9 @@ function formatRupiah(amount: number): string {
 <template>
     <PublicLayout>
         <PublicSeo
-            title="Papan Peringkat Sponsor Brand, Produk, dan Layanan Indonesia"
-            description="Papan peringkat sponsor (leaderboard) SuaraNetijen: peringkat exposure publik untuk brand, produk, dan layanan Indonesia berdasarkan nominal sponsor terkonfirmasi."
-            canonical-path="/sponsor"
+            title="Leaderboard Sponsor Brand, Produk, dan Layanan Indonesia"
+            description="Leaderboard sponsor SuaraNetijen: peringkat exposure publik untuk brand, produk, dan layanan Indonesia berdasarkan nominal sponsor terkonfirmasi."
+            canonical-path="/leaderboard"
         />
 
         <div class="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-12">
@@ -424,12 +528,12 @@ function formatRupiah(amount: number): string {
                 <div class="relative z-10">
                     <div class="inline-flex items-center gap-2 rounded-full border border-[#e4ccab] bg-[#fff6e6] px-3.5 py-1.5 text-xs font-bold tracking-wide text-[#8a5d1a]">
                         <Trophy class="size-4 text-[#d97706]" />
-                        PAPAN SPONSOR SUARANETIJEN
+                        LEADERBOARD SUARANETIJEN
                     </div>
 
                     <div class="mt-4 max-w-2xl">
                         <h1 class="text-3xl font-extrabold tracking-tight text-[#2b2419] sm:text-4xl">
-                            Papan Peringkat Sponsor
+                            Leaderboard Sponsor
                         </h1>
                         <p class="mt-2 text-sm leading-relaxed text-[#6b5d49] sm:text-base">
                             Tampilkan dan dukung brand, produk, atau layanan favoritmu. Peringkat exposure disusun berdasarkan nominal kontribusi sponsor terkonfirmasi.
@@ -441,9 +545,62 @@ function formatRupiah(amount: number): string {
                         <AlertCircle class="size-4 shrink-0 text-[#b45309]" />
                         <div>
                             <strong class="font-semibold text-[#54432c]">Keterbukaan & Independensi:</strong>
-                            Urutan papan ini ditentukan murni berdasarkan nominal pembayaran sponsor terkonfirmasi. Penempatan sponsor sama sekali <em>tidak memengaruhi</em> Sentimen Netijen, Rating Netijen, tema suara netijen, ataupun hasil algoritma pencarian.
+                            Urutan leaderboard ini ditentukan murni berdasarkan nominal pembayaran sponsor terkonfirmasi. Penempatan sponsor sama sekali <em>tidak memengaruhi</em> Sentimen Netijen, Rating Netijen, tema suara netijen, ataupun hasil algoritma pencarian.
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Bilah Statistik Ringkas (Pamerin / RankUp Style) -->
+            <div v-if="stats" class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                <div class="rounded-2xl border border-[#e5e9e2] bg-white p-4 shadow-2xs">
+                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
+                        <Trophy class="size-3.5 text-[#d97706]" /> Total Listing
+                    </div>
+                    <div class="mt-1 text-xl font-black text-[#18392d]">
+                        {{ stats.total_listings }}
+                    </div>
+                    <div class="mt-0.5 text-[10px] text-[#8e9f93]">entitas aktif</div>
+                </div>
+
+                <div class="rounded-2xl border border-[#fed7aa] bg-[#fffaf0] p-4 shadow-2xs">
+                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#9a6a24]">
+                        <Sparkles class="size-3.5 text-[#d97706]" /> Total Sponsor
+                    </div>
+                    <div class="mt-1 text-xl font-black text-[#92400e]">
+                        {{ formatRupiah(stats.total_amount) }}
+                    </div>
+                    <div class="mt-0.5 text-[10px] text-[#b45309]">terkonfirmasi</div>
+                </div>
+
+                <div class="rounded-2xl border border-[#e5e9e2] bg-white p-4 shadow-2xs">
+                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
+                        <MousePointerClick class="size-3.5 text-[#087f5b]" /> Total Klik URL
+                    </div>
+                    <div class="mt-1 text-xl font-black text-[#18392d]">
+                        {{ stats.total_clicks.toLocaleString('id-ID') }}
+                    </div>
+                    <div class="mt-0.5 text-[10px] text-[#8e9f93]">kunjungan direct link</div>
+                </div>
+
+                <div class="rounded-2xl border border-[#e5e9e2] bg-white p-4 shadow-2xs">
+                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
+                        <Eye class="size-3.5 text-[#2563eb]" /> Total Pengunjung
+                    </div>
+                    <div class="mt-1 text-xl font-black text-[#18392d]">
+                        {{ stats.total_views.toLocaleString('id-ID') }}
+                    </div>
+                    <div class="mt-0.5 text-[10px] text-[#8e9f93]">tampilan halaman detail</div>
+                </div>
+
+                <div class="col-span-2 sm:col-span-1 rounded-2xl border border-[#e5e9e2] bg-white p-4 shadow-2xs">
+                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
+                        <Award class="size-3.5 text-[#d97706]" /> Peringkat #1 Saat Ini
+                    </div>
+                    <div class="mt-1 text-xl font-black text-[#18392d]">
+                        {{ formatRupiah(stats.highest_bid) }}
+                    </div>
+                    <div class="mt-0.5 text-[10px] text-[#8e9f93]">sponsor tertinggi</div>
                 </div>
             </div>
 
@@ -455,11 +612,45 @@ function formatRupiah(amount: number): string {
                     SPONSORI ENTITAS
                 </div>
                 <h3 class="mt-1 text-xl font-extrabold text-[#18392d]">
-                    Tingkatkan Posisi Papan
+                    Tingkatkan Posisi di Leaderboard
                 </h3>
                 <p class="mt-1 text-xs text-[#637568]">
                     Dukungan Anda terakumulasi pada entitas pilihan untuk periode {{ activePeriod.name }}.
                 </p>
+
+                <!-- Mode Rebut Posisi Banner -->
+                <div
+                    v-if="rebutTarget"
+                    class="mt-6 flex flex-col gap-3 rounded-2xl border border-[#f59e0b] bg-gradient-to-r from-[#fffbeb] to-[#fef3c7] p-4 text-[#92400e] shadow-xs sm:flex-row sm:items-center sm:justify-between"
+                >
+                    <div class="flex items-start gap-3">
+                        <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#d97706] text-white shadow-xs">
+                            <Zap class="size-5" />
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="rounded-full bg-[#f59e0b] px-2.5 py-0.5 text-[10px] font-black tracking-wide text-white uppercase">
+                                    Mode Rebut Posisi
+                                </span>
+                                <span class="font-bold text-sm text-[#78350f]">
+                                    Target: Posisi #{{ rebutTarget.rank }} ({{ rebutTarget.name }})
+                                </span>
+                            </div>
+                            <p class="mt-1 text-xs text-[#92400e]">
+                                Sponsori minimal <strong class="font-extrabold text-[#78350f]">{{ formatRupiah(rebutTarget.neededAmount) }}</strong> untuk langsung menggeser posisi <strong>{{ rebutTarget.name }}</strong> di leaderboard periode ini!
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-2">
+                        <button
+                            type="button"
+                            class="rounded-xl border border-[#d97706]/30 bg-white/90 px-3 py-1.5 text-xs font-bold text-[#92400e] transition hover:bg-white"
+                            @click="cancelRebut()"
+                        >
+                            Batal Rebut
+                        </button>
+                    </div>
+                </div>
 
                 <!-- Step 1: URL first — fetch the site, then match against existing entities. -->
                 <div class="mt-6">
@@ -535,7 +726,7 @@ function formatRupiah(amount: number): string {
                         class="mt-3 rounded-xl border border-[#e5d4b8] bg-[#fffaf0] p-3"
                     >
                         <p class="text-xs text-[#7c694e]">
-                            Belum terdaftar di SuaraNetijen. Daftarkan sebagai entitas baru — akan tampil di papan
+                            Belum terdaftar di SuaraNetijen. Daftarkan sebagai entitas baru — akan tampil di leaderboard
                             begitu pembayaran terkonfirmasi.
                         </p>
                         <label class="mt-3 block text-xs font-bold text-[#31483b]">
@@ -645,6 +836,18 @@ function formatRupiah(amount: number): string {
                                 @input="handleCustomAmountChange"
                             />
                         </div>
+
+                        <!-- Quick Rebut Target Amount Button -->
+                        <div v-if="rebutTarget" class="mt-2.5">
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-1.5 rounded-xl border border-[#f59e0b] bg-[#fffbeb] px-3 py-1.5 text-xs font-bold text-[#92400e] shadow-xs transition hover:bg-[#fef3c7]"
+                                @click="selectPreset(rebutTarget.neededAmount)"
+                            >
+                                <Zap class="size-3.5 text-[#d97706]" />
+                                Pasang Nominal Rebut Posisi #{{ rebutTarget.rank }}: {{ formatRupiah(rebutTarget.neededAmount) }}
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Rank Prediction Callout -->
@@ -654,7 +857,7 @@ function formatRupiah(amount: number): string {
                     >
                         <span class="font-bold">Estimasi Posisi:</span>
                         Dengan tambahan {{ formatRupiah(contributionAmount) }}, entitas ini diperkirakan menempati posisi
-                        <strong class="font-extrabold text-[#92400e]">#{{ predictedRank }}</strong> di Papan Sponsor!
+                        <strong class="font-extrabold text-[#92400e]">#{{ predictedRank }}</strong> di Leaderboard!
                     </div>
 
                     <!-- Error message -->
@@ -691,7 +894,7 @@ function formatRupiah(amount: number): string {
                     <Link
                         v-for="p in periods"
                         :key="p.id"
-                        :href="sponsorPage({ query: { period: p.key } })"
+                        :href="leaderboardPage({ query: { period: p.key } })"
                         class="rounded-full px-3.5 py-1.5 text-xs font-semibold transition"
                         :class="
                             selectedPeriod.key === p.key
@@ -724,7 +927,7 @@ function formatRupiah(amount: number): string {
                 <input
                     v-model="leaderboardQuery"
                     type="search"
-                    placeholder="Cari di papan sponsor..."
+                    placeholder="Cari di leaderboard..."
                     class="w-full rounded-xl border border-[#d7e0d5] bg-white py-2.5 pr-4 pl-9 text-sm text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
                 />
             </div>
@@ -738,10 +941,10 @@ function formatRupiah(amount: number): string {
                     <Trophy class="size-8" />
                 </div>
                 <h3 class="mt-4 text-lg font-bold text-[#1f3729]">
-                    Belum ada entitas yang disponsori di periode ini
+                    Belum ada entitas di leaderboard periode ini
                 </h3>
                 <p class="mx-auto mt-2 max-w-md text-sm text-[#6c7d70]">
-                    Jadilah yang pertama mengangkat brand, produk, atau layanan pilihanmu ke posisi teratas Papan Sponsor minggu ini!
+                    Jadilah yang pertama mengangkat brand, produk, atau layanan pilihanmu ke posisi teratas Leaderboard periode ini!
                 </p>
             </div>
 
@@ -749,7 +952,7 @@ function formatRupiah(amount: number): string {
                 v-else-if="filteredLeaderboard.length === 0"
                 class="mt-6 rounded-2xl border border-dashed border-[#dce3db] bg-white p-8 text-center text-sm text-[#6c7d70]"
             >
-                Tidak ada entitas di papan sponsor yang cocok dengan "{{ leaderboardQuery }}".
+                Tidak ada entitas di leaderboard yang cocok dengan "{{ leaderboardQuery }}".
             </div>
 
             <!-- Leaderboard Content -->
@@ -813,8 +1016,20 @@ function formatRupiah(amount: number): string {
                                 </div>
                             </div>
 
+                            <!-- Views & Clicks Stats -->
+                            <div class="mt-3 flex items-center justify-between rounded-xl bg-neutral-50 px-3 py-2 text-xs text-[#607164]">
+                                <span class="inline-flex items-center gap-1.5" title="Jumlah kunjungan halaman detail">
+                                    <Eye class="size-3.5 text-[#2563eb]" />
+                                    <strong>{{ entry.views_count || 0 }}</strong> kunjungan
+                                </span>
+                                <span class="inline-flex items-center gap-1.5" title="Jumlah klik langsung ke situs resmi">
+                                    <MousePointerClick class="size-3.5 text-[#087f5b]" />
+                                    <strong>{{ entry.clicks_count || 0 }}</strong> klik
+                                </span>
+                            </div>
+
                             <!-- Organic Sentiment Pill (Green, separate) -->
-                            <div class="mt-3 flex items-center justify-between rounded-xl bg-[#f3f7f2] px-3 py-2 text-xs">
+                            <div class="mt-2 flex items-center justify-between rounded-xl bg-[#f3f7f2] px-3 py-2 text-xs">
                                 <span class="font-medium text-[#5c6e62]">Sentimen Netijen:</span>
                                 <span
                                     v-if="entry.sentiment_score !== null"
@@ -828,14 +1043,32 @@ function formatRupiah(amount: number): string {
                             </div>
                         </div>
 
-                        <!-- Top-up Button -->
-                        <div class="mt-6 pt-4 border-t border-[#f0f3ee]">
+                        <!-- Action Buttons: Direct Link + Top-up + Rebut Posisi -->
+                        <div class="mt-6 space-y-2 border-t border-[#f0f3ee] pt-4">
+                            <div class="grid grid-cols-2 gap-2">
+                                <a
+                                    :href="`/go/${entry.slug}`"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="flex items-center justify-center gap-1.5 rounded-xl bg-[#d5f5df] py-2.5 text-xs font-bold text-[#145736] transition hover:bg-[#bceccb]"
+                                >
+                                    Buka Situs <ArrowUpRight class="size-3.5" />
+                                </a>
+                                <button
+                                    type="button"
+                                    class="rounded-xl border border-[#d8e3d6] bg-white py-2.5 text-xs font-bold text-[#1f4a38] transition hover:border-[#8cb896] hover:bg-[#edf6ee]"
+                                    @click="selectEntityAndScrollToForm({ id: entry.entity_id, name: entry.name, slug: entry.slug })"
+                                >
+                                    + Sponsor
+                                </button>
+                            </div>
                             <button
                                 type="button"
-                                class="w-full rounded-xl border border-[#d8e3d6] bg-white py-2.5 text-xs font-bold text-[#1f4a38] transition hover:border-[#8cb896] hover:bg-[#edf6ee]"
-                                @click="selectEntityAndScrollToForm({ id: entry.entity_id, name: entry.name, slug: entry.slug })"
+                                class="flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#f59e0b] bg-[#fffbeb] py-2 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
+                                @click="startRebut(entry)"
                             >
-                                + Tambah Sponsor Entitas Ini
+                                <Zap class="size-3.5 text-[#d97706]" />
+                                Rebut Posisi #{{ entry.rank }} (Min. {{ formatRupiah(entry.settled_total_amount + incrementAmount) }})
                             </button>
                         </div>
                     </div>
@@ -874,6 +1107,17 @@ function formatRupiah(amount: number): string {
                             </div>
 
                             <div class="flex w-full flex-wrap items-center justify-between gap-4 sm:w-auto sm:justify-end">
+                                <!-- Stats: Views and Clicks -->
+                                <div class="flex items-center gap-3 text-xs text-[#637568]">
+                                    <span class="inline-flex items-center gap-1" title="Kunjungan detail">
+                                        <Eye class="size-3.5 text-[#2563eb]" /> <strong>{{ entry.views_count || 0 }}</strong>
+                                    </span>
+                                    <span>•</span>
+                                    <span class="inline-flex items-center gap-1" title="Klik direct URL">
+                                        <MousePointerClick class="size-3.5 text-[#087f5b]" /> <strong>{{ entry.clicks_count || 0 }}</strong> klik
+                                    </span>
+                                </div>
+
                                 <div class="text-right">
                                     <div class="text-base font-extrabold text-[#92400e]">
                                         {{ formatRupiah(entry.settled_total_amount) }}
@@ -887,13 +1131,32 @@ function formatRupiah(amount: number): string {
                                     </div>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    class="rounded-xl border border-[#d8e3d6] px-4 py-2 text-xs font-bold text-[#18392d] transition hover:border-[#8cb896] hover:bg-[#f0f7f0]"
-                                    @click="selectEntityAndScrollToForm({ id: entry.entity_id, name: entry.name, slug: entry.slug })"
-                                >
-                                    + Sponsori
-                                </button>
+                                <div class="flex items-center gap-2">
+                                    <a
+                                        :href="`/go/${entry.slug}`"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="inline-flex items-center gap-1 rounded-xl bg-[#d5f5df] px-3 py-2 text-xs font-bold text-[#145736] transition hover:bg-[#bceccb]"
+                                    >
+                                        Buka Situs <ArrowUpRight class="size-3.5" />
+                                    </a>
+                                    <button
+                                        type="button"
+                                        class="rounded-xl border border-[#d8e3d6] px-3.5 py-2 text-xs font-bold text-[#18392d] transition hover:border-[#8cb896] hover:bg-[#f0f7f0]"
+                                        @click="selectEntityAndScrollToForm({ id: entry.entity_id, name: entry.name, slug: entry.slug })"
+                                    >
+                                        + Sponsori
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center gap-1 rounded-xl border border-[#f59e0b] bg-[#fffbeb] px-3 py-2 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
+                                        title="Rebut posisi ini"
+                                        @click="startRebut(entry)"
+                                    >
+                                        <Zap class="size-3.5 text-[#d97706]" />
+                                        Rebut
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -903,7 +1166,7 @@ function formatRupiah(amount: number): string {
             <!-- Educational / FAQ Section -->
             <div class="mt-14 rounded-3xl border border-[#e2e8df] bg-[#f9fbf8] p-6 sm:p-10">
                 <h3 class="text-lg font-bold text-[#18392d]">
-                    Tentang Papan Sponsor SuaraNetijen
+                    Tentang Leaderboard SuaraNetijen
                 </h3>
                 <div class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
                     <div class="rounded-2xl border border-[#e5ebe2] bg-white p-5">
@@ -938,7 +1201,7 @@ function formatRupiah(amount: number): string {
                             Musim Mingguan
                         </h4>
                         <p class="mt-1 text-xs leading-relaxed text-[#68796d]">
-                            Papan berjalan dalam siklus mingguan baru setiap pekan, memberikan kesempatan yang adil bagi entitas baru untuk tampil teratas.
+                            Leaderboard berjalan dalam siklus mingguan baru setiap pekan, memberikan kesempatan yang adil bagi entitas baru untuk tampil teratas.
                         </p>
                     </div>
                 </div>

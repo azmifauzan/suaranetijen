@@ -4,6 +4,7 @@ import { home, methodology, sources } from '@/routes';
 import { show as showEntity } from '@/routes/entities';
 import { show as showRanking } from '@/routes/rankings';
 import { Link, router, useHttp } from '@inertiajs/vue3';
+import { ArrowUpRight, Trophy } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { login } from '@/routes';
 import PublicSeo from '@/components/PublicSeo.vue';
@@ -37,6 +38,7 @@ interface EntityData {
     type: string;
     type_label: string;
     description: string | null;
+    website_url?: string | null;
     searchable: boolean;
     rankable: boolean;
     category: CategoryData;
@@ -86,11 +88,29 @@ interface RatingData {
     rating_count: number;
     rating_average: number | null;
     user_rating: number | null;
+    user_review?: string | null;
+}
+
+interface UserReviewItem {
+    id: number;
+    rating: number;
+    review: string;
+    user_name: string;
+    created_at: string;
+}
+
+interface LeaderboardInfo {
+    is_active: boolean;
+    clicks_count: number;
+    views_count: number;
+    direct_url: string;
+    website_url?: string | null;
 }
 
 interface RatingMutationResponse {
     data: {
         rating: number | null;
+        review: string | null;
         rating_count: number;
         rating_average: number | null;
     };
@@ -130,6 +150,8 @@ const props = defineProps<{
     availablePeriods: string[];
     sentiment: SentimentData;
     rating: RatingData;
+    userReviews?: UserReviewItem[];
+    leaderboard?: LeaderboardInfo | null;
     themes: ThemesData;
     relatedEntities: RelatedEntity[];
     trend?: TrendPoint[];
@@ -137,8 +159,9 @@ const props = defineProps<{
 }>();
 
 const ratingData = ref<RatingData>({ ...props.rating });
-const ratingForm = useHttp<{ rating: number }, RatingMutationResponse>({
+const ratingForm = useHttp<{ rating: number; review: string }, RatingMutationResponse>({
     rating: props.rating.user_rating ?? 0,
+    review: props.rating.user_review ?? '',
 });
 
 const pageTitle = computed(
@@ -202,8 +225,11 @@ function updateRatingData(response: RatingMutationResponse): void {
         rating_count: response.data.rating_count,
         rating_average: response.data.rating_average,
         user_rating: response.data.rating,
+        user_review: response.data.review,
     };
     ratingForm.rating = response.data.rating ?? 0;
+    ratingForm.review = response.data.review ?? '';
+    router.reload({ only: ['userReviews', 'rating'] });
 }
 
 async function submitRating(): Promise<void> {
@@ -352,6 +378,39 @@ async function removeRating(): Promise<void> {
                         >
                             {{ entity.description }}
                         </p>
+
+                        <!-- Direct Website Link -->
+                        <div v-if="entity.website_url" class="mt-3">
+                            <a
+                                :href="`/go/${entity.slug}`"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-[#c2d6c6] bg-[#f0f7f2] px-3.5 py-1.5 text-xs font-semibold text-[#185b3b] transition hover:bg-[#e2f2e5]"
+                            >
+                                <span>Kunjungi Website Resmi</span>
+                                <ArrowUpRight class="size-3.5" />
+                            </a>
+                        </div>
+
+                        <!-- Leaderboard Badge -->
+                        <div
+                            v-if="leaderboard && leaderboard.is_active"
+                            class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#fed7aa] bg-[#fffaf0] p-3 text-xs"
+                        >
+                            <div class="flex items-center gap-2">
+                                <Trophy class="size-4 text-[#d97706]" />
+                                <span class="font-bold text-[#92400e]">Aktif di Leaderboard Sponsor</span>
+                                <span class="font-medium text-[#b45309]">· {{ leaderboard.views_count }} Pengunjung · {{ leaderboard.clicks_count }} Klik URL</span>
+                            </div>
+                            <a
+                                :href="leaderboard.direct_url"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex items-center gap-1 font-bold text-[#b45309] hover:underline"
+                            >
+                                Buka Situs Resmi <ArrowUpRight class="size-3.5" />
+                            </a>
+                        </div>
                     </div>
 
                     <!-- Period Selector -->
@@ -755,7 +814,7 @@ async function removeRating(): Promise<void> {
                                 {{
                                     ratingForm.processing
                                         ? 'Menyimpan...'
-                                        : 'Simpan rating'
+                                        : 'Simpan rating & ulasan'
                                 }}
                             </button>
                             <button
@@ -769,6 +828,22 @@ async function removeRating(): Promise<void> {
                             </button>
                         </div>
                     </div>
+
+                    <!-- Optional written review textarea -->
+                    <div class="mt-4">
+                        <label for="review-input" class="block text-xs font-semibold text-neutral-700">
+                            Tulis Ulasan (opsional)
+                        </label>
+                        <textarea
+                            id="review-input"
+                            v-model="ratingForm.review"
+                            rows="3"
+                            maxlength="1000"
+                            placeholder="Bagikan pengalaman atau ulasan Anda tentang entitas ini..."
+                            class="mt-1.5 w-full rounded-xl border border-neutral-300 p-3 text-xs text-neutral-800 placeholder-neutral-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                        ></textarea>
+                    </div>
+
                     <p
                         v-if="ratingForm.errors.rating"
                         class="mt-2 text-xs text-rose-600"
@@ -784,8 +859,39 @@ async function removeRating(): Promise<void> {
                         :href="login()"
                         class="font-semibold text-emerald-600 hover:underline"
                     >
-                        Masuk untuk memberi rating
+                        Masuk untuk memberi rating & ulasan
                     </Link>
+                </div>
+
+                <!-- Public User Reviews Section -->
+                <div v-if="userReviews && userReviews.length > 0" class="mt-8 border-t border-neutral-100 pt-6">
+                    <h3 class="text-sm font-bold text-neutral-900">
+                        Ulasan Terbaru Netijen ({{ userReviews.length }})
+                    </h3>
+                    <div class="mt-4 space-y-3">
+                        <div
+                            v-for="rev in userReviews"
+                            :key="rev.id"
+                            class="rounded-xl border border-neutral-100 bg-neutral-50 p-4"
+                        >
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-neutral-900">
+                                        {{ rev.user_name }}
+                                    </span>
+                                    <div class="flex text-xs text-amber-500">
+                                        <span v-for="s in rev.rating" :key="s">★</span>
+                                    </div>
+                                </div>
+                                <span class="text-[11px] text-neutral-400">
+                                    {{ rev.created_at }}
+                                </span>
+                            </div>
+                            <p class="mt-2 text-xs leading-relaxed text-neutral-700">
+                                {{ rev.review }}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 

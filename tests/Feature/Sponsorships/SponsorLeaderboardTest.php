@@ -124,10 +124,16 @@ test('public page /sponsor returns 200 with inertia props', function () {
     ]);
 
     $this->get(route('sponsor.index'))
+        ->assertRedirect(route('leaderboard.index'), 301);
+
+    $this->get(route('leaderboard.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Sponsor/Index')
             ->has('leaderboard', 1)
+            ->has('stats')
+            ->where('stats.total_listings', 1)
+            ->where('stats.total_amount', 75000)
             ->has('periods')
             ->has('activePeriod')
             ->where('minAmount', 1000)
@@ -257,7 +263,7 @@ test('api /api/sponsor/leaderboard?period=all returns the all-time archive board
 });
 
 test('sponsor board page period selector includes the all-time entry', function () {
-    $this->get(route('sponsor.index'))
+    $this->get(route('leaderboard.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Sponsor/Index')
@@ -278,13 +284,36 @@ test('sponsor board page ?period=all renders the archive board without crashing'
         'status' => SponsoredEntryStatus::Active,
     ]);
 
-    $this->get(route('sponsor.index', ['period' => 'all']))
+    $this->get(route('leaderboard.index', ['period' => 'all']))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Sponsor/Index')
             ->where('selectedPeriod.key', 'all')
             ->has('leaderboard', 1)
         );
+});
+
+test('direct link /go/{slug} tracks click and redirects 302 to website_url', function () {
+    $service = app(SponsorLeaderboardService::class);
+    $period = $service->getActivePeriod();
+    $entity = Entity::factory()->create([
+        'status' => EntityStatus::Active,
+        'searchable' => true,
+        'website_url' => 'https://example.com/biznet',
+    ]);
+
+    $entry = SponsoredEntry::factory()->create([
+        'period_id' => $period->id,
+        'entity_id' => $entity->id,
+        'settled_total_amount' => 100000,
+        'status' => SponsoredEntryStatus::Active,
+        'clicks_count' => 5,
+    ]);
+
+    $response = $this->get(route('leaderboard.redirect', ['slug' => $entity->slug]));
+    $response->assertRedirect('https://example.com/biznet');
+
+    expect($entry->fresh()->clicks_count)->toBe(6);
 });
 
 test('sponsorship contributions never alter sentiment snapshots or rating snapshots', function () {

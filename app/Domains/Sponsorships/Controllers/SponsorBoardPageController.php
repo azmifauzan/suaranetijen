@@ -3,9 +3,13 @@
 namespace App\Domains\Sponsorships\Controllers;
 
 use App\Domains\Entities\Models\Category;
+use App\Domains\Entities\Models\Entity;
+use App\Domains\Sponsorships\Enums\SponsoredEntryStatus;
+use App\Domains\Sponsorships\Models\SponsoredEntry;
 use App\Domains\Sponsorships\Models\SponsorshipOrder;
 use App\Domains\Sponsorships\Services\SponsorLeaderboardService;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -43,6 +47,10 @@ class SponsorBoardPageController extends Controller
             }
         }
 
+        $stats = $leaderboardService->getBoardStats(
+            $selectedPeriod['key'] === SponsorLeaderboardService::ALL_TIME_KEY ? null : $activePeriod
+        );
+
         return Inertia::render('Sponsor/Index', [
             'periods' => $periods,
             'activePeriod' => [
@@ -57,10 +65,35 @@ class SponsorBoardPageController extends Controller
                 'is_active' => $selectedPeriod['is_active'],
             ],
             'leaderboard' => $leaderboard,
+            'stats' => $stats,
             'minAmount' => (int) config('sponsorship.min_amount', 1000),
             'incrementAmount' => (int) config('sponsorship.increment_amount', 1000),
             'userOrder' => $userOrder,
             'categories' => Category::active()->orderBy('name')->get(['id', 'name', 'slug']),
+        ]);
+    }
+
+    /**
+     * Redirect outbound link with click tracking.
+     */
+    public function redirect(string $slug): RedirectResponse
+    {
+        /** @var Entity $entity */
+        $entity = Entity::query()->where('slug', $slug)->firstOrFail();
+
+        // Increment clicks on active sponsored entry if exists
+        SponsoredEntry::query()
+            ->where('entity_id', $entity->id)
+            ->where('status', SponsoredEntryStatus::Active)
+            ->increment('clicks_count');
+
+        $targetUrl = $entity->website_url;
+        if (! $targetUrl || ! filter_var($targetUrl, FILTER_VALIDATE_URL)) {
+            return redirect()->route('entities.show', ['slug' => $entity->slug]);
+        }
+
+        return redirect()->away($targetUrl, 302, [
+            'Referrer-Policy' => 'no-referrer-when-downgrade',
         ]);
     }
 }

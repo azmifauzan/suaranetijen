@@ -81,11 +81,14 @@ Route::get('/', function (SearchSuggestionService $searchSuggestionService, Spon
         'searchSuggestions' => $searchSuggestionService->getSuggestions(),
         'topEntities' => $topEntities,
         'recentEntities' => $recentEntities,
-        'sponsorTeaser' => $sponsorLeaderboardService->getHomepageTeaser(3),
+        'topLeaderboard' => $sponsorLeaderboardService->getHomepageTeaser(13),
+        'sponsorTeaser' => $sponsorLeaderboardService->getHomepageTeaser(13),
     ]);
 })->name('home');
 
-Route::get('/sponsor', [SponsorBoardPageController::class, 'index'])->name('sponsor.index');
+Route::get('/leaderboard', [SponsorBoardPageController::class, 'index'])->name('leaderboard.index');
+Route::get('/sponsor', fn () => redirect()->route('leaderboard.index', [], 301))->name('sponsor.index');
+Route::get('/go/{slug}', [SponsorBoardPageController::class, 'redirect'])->name('leaderboard.redirect');
 Route::get('/api/sponsor/leaderboard', [SponsorLeaderboardController::class, 'index'])->name('api.sponsor.leaderboard');
 Route::post('/api/sponsor/preview', SponsorUrlPreviewController::class)
     ->middleware('throttle:20,1')

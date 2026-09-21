@@ -26,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string $slug
  * @property string|null $description
+ * @property string|null $website_url
  * @property EntityStatus $status
  * @property bool $searchable
  * @property bool $rankable
@@ -49,6 +50,7 @@ use Illuminate\Support\Carbon;
     'name',
     'slug',
     'description',
+    'website_url',
     'status',
     'searchable',
     'rankable',

@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $first_settled_at
  * @property SponsoredEntryStatus $status
  * @property int $clicks_count
+ * @property int $views_count
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read SponsorPeriod $period
@@ -35,6 +36,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'first_settled_at',
     'status',
     'clicks_count',
+    'views_count',
 ])]
 class SponsoredEntry extends Model
 {
@@ -51,6 +53,7 @@ class SponsoredEntry extends Model
             'first_settled_at' => 'immutable_datetime',
             'status' => SponsoredEntryStatus::class,
             'clicks_count' => 'integer',
+            'views_count' => 'integer',
         ];
     }
 

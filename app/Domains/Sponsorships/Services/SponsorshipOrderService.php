@@ -108,6 +108,7 @@ class SponsorshipOrderService
                 // The sponsor's own description when they supplied one (pre-filled from the site's
                 // meta description, then edited), otherwise the submitted URL as before.
                 'description' => $description ?: $sourceUrl,
+                'website_url' => $sourceUrl,
                 'status' => EntityStatus::Disabled,
                 'searchable' => false,
                 'rankable' => false,

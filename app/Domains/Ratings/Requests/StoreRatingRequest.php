@@ -23,6 +23,7 @@ class StoreRatingRequest extends FormRequest
     {
         return [
             'rating' => ['required', 'integer', 'between:1,5'],
+            'review' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

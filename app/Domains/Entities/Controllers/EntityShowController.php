@@ -8,6 +8,7 @@ use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentDaily;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Domains\Sentiment\Services\ScoreCalculator;
+use App\Domains\Sponsorships\Models\SponsoredEntry;
 use App\Domains\Themes\Services\TopThemesService;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Collection;
@@ -92,12 +93,39 @@ class EntityShowController extends Controller
 
         $relatedEntities = $this->buildRelatedEntities($entity);
 
-        $userRating = $request->user()
+        // Leaderboard active status & views tracking
+        $activeSponsoredEntry = SponsoredEntry::query()
+            ->active()
+            ->where('entity_id', $entity->id)
+            ->whereHas('period', fn ($q) => $q->where('starts_at', '<=', now())->where('ends_at', '>=', now()))
+            ->first();
+
+        if ($activeSponsoredEntry) {
+            $activeSponsoredEntry->increment('views_count');
+        }
+
+        $currentUserRating = $request->user()
             ? UserRating::query()
                 ->whereBelongsTo($entity)
                 ->where('user_id', $request->user()->getAuthIdentifier())
-                ->value('rating')
+                ->first()
             : null;
+
+        $userReviews = UserRating::query()
+            ->whereBelongsTo($entity)
+            ->whereNotNull('review')
+            ->where('review', '!=', '')
+            ->with('user:id,name')
+            ->latest()
+            ->limit(20)
+            ->get()
+            ->map(fn (UserRating $r) => [
+                'id' => $r->id,
+                'rating' => (int) $r->rating,
+                'review' => $r->review,
+                'user_name' => $r->user?->name ?? 'Pengguna',
+                'created_at' => $r->created_at?->diffForHumans() ?? '',
+            ]);
 
         // Daily sentiment trend (up to 30 days)
         $trend = SentimentDaily::query()
@@ -126,6 +154,7 @@ class EntityShowController extends Controller
                 'type' => $entity->type->value,
                 'type_label' => $entity->type->label(),
                 'description' => $entity->description,
+                'website_url' => $entity->website_url,
                 'searchable' => $entity->searchable,
                 'rankable' => $entity->rankable,
                 'category' => [
@@ -154,8 +183,17 @@ class EntityShowController extends Controller
                 'rating_average' => $entity->ratingSnapshot?->rating_average === null
                     ? null
                     : (float) $entity->ratingSnapshot->rating_average,
-                'user_rating' => $userRating === null ? null : (int) $userRating,
+                'user_rating' => $currentUserRating ? (int) $currentUserRating->rating : null,
+                'user_review' => $currentUserRating?->review,
             ],
+            'userReviews' => $userReviews,
+            'leaderboard' => $activeSponsoredEntry ? [
+                'is_active' => true,
+                'clicks_count' => (int) $activeSponsoredEntry->clicks_count,
+                'views_count' => (int) $activeSponsoredEntry->views_count,
+                'direct_url' => route('leaderboard.redirect', ['slug' => $entity->slug]),
+                'website_url' => $entity->website_url,
+            ] : null,
             'themes' => $themesData,
             'relatedEntities' => $relatedEntities->map(fn (Entity $e) => [
                 'id' => $e->id,
