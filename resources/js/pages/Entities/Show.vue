@@ -383,12 +383,12 @@ async function removeRating(): Promise<void> {
                         <!-- Direct Website Link -->
                         <div v-if="entity.website_url" class="mt-3">
                             <a
-                                :href="getDirectWebsiteUrl(entity.website_url, entity.slug)"
+                                :href="getDirectWebsiteUrl(entity.website_url, entity.slug, { placement: 'entity_profile' })"
                                 :ping="`/api/sponsor/click/${entity.slug}`"
                                 target="_blank"
                                 rel="noopener"
                                 class="inline-flex items-center gap-1.5 rounded-lg border border-[#c2d6c6] bg-[#f0f7f2] px-3.5 py-1.5 text-xs font-semibold text-[#185b3b] transition hover:bg-[#e2f2e5]"
-                                @click="trackSponsorClick(entity.slug)"
+                                @click="trackSponsorClick(entity.slug, { placement: 'entity_profile', url: entity.website_url || undefined })"
                             >
                                 <span>Kunjungi Website Resmi</span>
                                 <ArrowUpRight class="size-3.5" />
@@ -406,12 +406,12 @@ async function removeRating(): Promise<void> {
                                 <span class="font-medium text-[#b45309]">· {{ leaderboard.views_count }} Pengunjung · {{ leaderboard.clicks_count }} Klik URL</span>
                             </div>
                             <a
-                                :href="getDirectWebsiteUrl(leaderboard.website_url || entity.website_url, entity.slug)"
+                                :href="getDirectWebsiteUrl(leaderboard.website_url || entity.website_url, entity.slug, { placement: 'entity_sponsor_badge' })"
                                 :ping="`/api/sponsor/click/${entity.slug}`"
                                 target="_blank"
                                 rel="noopener"
                                 class="inline-flex items-center gap-1 font-bold text-[#b45309] hover:underline"
-                                @click="trackSponsorClick(entity.slug)"
+                                @click="trackSponsorClick(entity.slug, { placement: 'entity_sponsor_badge', url: leaderboard.website_url || entity.website_url || undefined })"
                             >
                                 Buka Situs Resmi <ArrowUpRight class="size-3.5" />
                             </a>

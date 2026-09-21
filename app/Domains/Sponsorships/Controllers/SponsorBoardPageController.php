@@ -97,9 +97,59 @@ class SponsorBoardPageController extends Controller
             return redirect()->route('entities.show', ['slug' => $entity->slug]);
         }
 
+        $targetUrl = self::buildOutboundUrlWithUtm($targetUrl, $entity->slug, [
+            'content' => 'redirect_go',
+        ]);
+
         return redirect()->away($targetUrl, 302, [
             'Referrer-Policy' => 'no-referrer-when-downgrade',
         ]);
+    }
+
+    /**
+     * Helper to append full GA (Google Analytics) campaign parameters to an outbound URL.
+     *
+     * @param  array{source?: string, medium?: string, campaign?: string, term?: string, content?: string, id?: string}  $options
+     */
+    public static function buildOutboundUrlWithUtm(string $url, ?string $slug = null, array $options = []): string
+    {
+        $parts = parse_url($url);
+        if ($parts === false) {
+            return $url;
+        }
+
+        parse_str($parts['query'] ?? '', $queryParams);
+
+        $defaultParams = [
+            'ref' => 'suaranetijen.id',
+            'utm_source' => $options['source'] ?? 'suaranetijen.id',
+            'utm_medium' => $options['medium'] ?? 'sponsor',
+            'utm_campaign' => $options['campaign'] ?? 'sponsor_leaderboard',
+            'utm_term' => $options['term'] ?? $slug ?? 'suaranetijen',
+            'utm_content' => $options['content'] ?? ($slug ? "entry_{$slug}" : 'redirect'),
+        ];
+
+        if (! empty($options['id'])) {
+            $defaultParams['utm_id'] = $options['id'];
+        }
+
+        foreach ($defaultParams as $key => $value) {
+            if (! isset($queryParams[$key]) && $value !== null && $value !== '') {
+                $queryParams[$key] = $value;
+            }
+        }
+
+        $scheme = isset($parts['scheme']) ? $parts['scheme'].'://' : '';
+        $host = $parts['host'] ?? '';
+        $port = isset($parts['port']) ? ':'.$parts['port'] : '';
+        $user = $parts['user'] ?? '';
+        $pass = isset($parts['pass']) ? ':'.$parts['pass'] : '';
+        $pass = ($user || $pass) ? "$pass@" : '';
+        $path = $parts['path'] ?? '';
+        $query = ! empty($queryParams) ? '?'.http_build_query($queryParams) : '';
+        $fragment = isset($parts['fragment']) ? '#'.$parts['fragment'] : '';
+
+        return "{$scheme}{$user}{$pass}{$host}{$port}{$path}{$query}{$fragment}";
     }
 
     /**

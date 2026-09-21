@@ -303,12 +303,12 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                                 <!-- Action buttons: Buka Situs & Rebut Posisi -->
                                 <div class="mt-3 flex flex-col gap-1.5 border-t border-neutral-100 pt-2.5">
                                     <a
-                                        :href="getDirectWebsiteUrl(entry.website_url, entry.slug)"
+                                        :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'homepage_spotlight' })"
                                         :ping="`/api/sponsor/click/${entry.slug}`"
                                         target="_blank"
                                         rel="noopener"
                                         class="flex w-full items-center justify-center gap-1 rounded-lg bg-[#d5f5df] py-1.5 text-[11px] font-bold text-[#145736] transition hover:bg-[#bceccb]"
-                                        @click="trackSponsorClick(entry.slug)"
+                                        @click="trackSponsorClick(entry.slug, { placement: 'homepage_spotlight', url: entry.website_url || undefined })"
                                     >
                                         Buka Situs <ArrowUpRight class="size-3" />
                                     </a>
@@ -480,12 +480,12 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                                     Detail
                                 </Link>
                                 <a
-                                    :href="getDirectWebsiteUrl(entry.website_url, entry.slug)"
+                                    :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'homepage_table' })"
                                     :ping="`/api/sponsor/click/${entry.slug}`"
                                     target="_blank"
                                     rel="noopener"
                                     class="inline-flex items-center gap-1 rounded-lg bg-[#d5f5df] px-2.5 py-1 text-[11px] font-bold text-[#145736] transition hover:bg-[#bceccb]"
-                                    @click="trackSponsorClick(entry.slug)"
+                                    @click="trackSponsorClick(entry.slug, { placement: 'homepage_table', url: entry.website_url || undefined })"
                                 >
                                     Buka Situs <ArrowUpRight class="size-3" />
                                 </a>

@@ -311,7 +311,16 @@ test('direct link /go/{slug} tracks click and redirects 302 to website_url', fun
     ]);
 
     $response = $this->get(route('leaderboard.redirect', ['slug' => $entity->slug]));
-    $response->assertRedirect('https://example.com/biznet');
+    $response->assertRedirect();
+
+    $targetUrl = $response->headers->get('Location');
+    expect($targetUrl)->toStartWith('https://example.com/biznet?')
+        ->toContain('ref=suaranetijen.id')
+        ->toContain('utm_source=suaranetijen.id')
+        ->toContain('utm_medium=sponsor')
+        ->toContain('utm_campaign=sponsor_leaderboard')
+        ->toContain("utm_term={$entity->slug}")
+        ->toContain('utm_content=redirect_go');
 
     expect($entry->fresh()->clicks_count)->toBe(6);
 });

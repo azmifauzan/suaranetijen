@@ -1040,12 +1040,12 @@ function formatRupiah(amount: number): string {
                         <div class="mt-6 space-y-2 border-t border-[#f0f3ee] pt-4">
                             <div class="grid grid-cols-2 gap-2">
                                 <a
-                                    :href="getDirectWebsiteUrl(entry.website_url, entry.slug)"
+                                    :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'leaderboard_top3' })"
                                     :ping="`/api/sponsor/click/${entry.slug}`"
                                     target="_blank"
                                     rel="noopener"
                                     class="flex items-center justify-center gap-1.5 rounded-xl bg-[#d5f5df] py-2.5 text-xs font-bold text-[#145736] transition hover:bg-[#bceccb]"
-                                    @click="trackSponsorClick(entry.slug)"
+                                    @click="trackSponsorClick(entry.slug, { placement: 'leaderboard_top3', url: entry.website_url || undefined })"
                                 >
                                     Buka Situs <ArrowUpRight class="size-3.5" />
                                 </a>
@@ -1142,12 +1142,12 @@ function formatRupiah(amount: number): string {
 
                                 <div class="flex items-center gap-2">
                                     <a
-                                        :href="getDirectWebsiteUrl(entry.website_url, entry.slug)"
+                                        :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'leaderboard_row' })"
                                         :ping="`/api/sponsor/click/${entry.slug}`"
                                         target="_blank"
                                         rel="noopener"
                                         class="inline-flex items-center gap-1 rounded-xl bg-[#d5f5df] px-3 py-2 text-xs font-bold text-[#145736] transition hover:bg-[#bceccb]"
-                                        @click="trackSponsorClick(entry.slug)"
+                                        @click="trackSponsorClick(entry.slug, { placement: 'leaderboard_row', url: entry.website_url || undefined })"
                                     >
                                         Buka Situs <ArrowUpRight class="size-3.5" />
                                     </a>
