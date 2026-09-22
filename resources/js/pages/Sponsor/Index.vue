@@ -570,12 +570,39 @@ function formatRupiah(amount: number): string {
             </div>
 
             <!-- Top 3 sits first so the competitive target is visible before the sponsor form. -->
-            <div
-                v-if="leaderboard.length > 0 && filteredLeaderboard.length > 0"
-                class="space-y-2"
-            >
-                <h2 class="text-sm font-bold text-[#18392d]">Top 3 Leaderboard</h2>
-                <div class="flex flex-col gap-2">
+            <div class="space-y-2">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <h2 class="text-sm font-bold text-[#18392d]">Top 3 Leaderboard</h2>
+
+                    <!-- Period Switcher -->
+                    <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-[#738378] mr-1">
+                            Periode:
+                        </span>
+                        <Link
+                            v-for="p in periods"
+                            :key="p.id"
+                            :href="leaderboardPage({ query: { period: p.key } })"
+                            class="rounded-full px-3.5 py-1.5 text-xs font-semibold transition"
+                            :class="
+                                selectedPeriod.key === p.key
+                                    ? 'bg-[#18392d] text-white shadow-sm'
+                                    : 'border border-[#d7e0d5] bg-white text-[#4c5f53] hover:border-[#9ab59f]'
+                            "
+                        >
+                            {{ p.name }}
+                            <span
+                                v-if="p.is_active"
+                                class="ml-1 inline-block size-1.5 rounded-full bg-[#22c55e]"
+                            ></span>
+                        </Link>
+                    </div>
+                </div>
+
+                <div
+                    v-if="leaderboard.length > 0 && filteredLeaderboard.length > 0"
+                    class="flex flex-col gap-2"
+                >
                     <div
                         v-for="entry in filteredLeaderboard.slice(0, 3)"
                         :key="entry.id"
@@ -683,6 +710,13 @@ function formatRupiah(amount: number): string {
                             </button>
                         </div>
                     </div>
+                </div>
+
+                <div
+                    v-else-if="leaderboard.length === 0"
+                    class="rounded-xl border border-dashed border-[#dce3db] bg-[#fafcfa] p-4 text-center text-xs text-[#637568]"
+                >
+                    Belum ada entitas di Top 3 untuk periode ini.
                 </div>
             </div>
 
@@ -914,13 +948,13 @@ function formatRupiah(amount: number): string {
                                 v-model="customAmount"
                                 type="number"
                                 :min="minAmount"
-                                step="1"
+                                :step="incrementAmount || 100"
                                 class="w-full rounded-xl border border-[#cfd9ce] py-2.5 pr-4 pl-10 text-sm font-bold text-[#18392d] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
                                 @input="handleCustomAmountChange"
                             />
                         </div>
                         <p class="mt-1 text-[11px] text-[#788a7e]">
-                            Bebas tentukan nominal (minimal Rp1.000). Untuk merebut posisi, cukup tambah Rp1 di atas total sponsor target.
+                            Bebas tentukan nominal (minimal {{ formatRupiah(minAmount) }}, kelipatan {{ formatRupiah(incrementAmount || 100) }}). Untuk merebut posisi, cukup tambah {{ formatRupiah(incrementAmount || 100) }} di atas total sponsor target.
                         </p>
 
                         <!-- Quick Rebut Target Amount Button -->
@@ -971,36 +1005,9 @@ function formatRupiah(amount: number): string {
                 </template>
             </div>
 
-            <!-- Controls & Period Switcher -->
-            <div class="mt-6 flex flex-col justify-between gap-4 border-b border-[#e5e9e2] pb-5 sm:flex-row sm:items-center">
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-[#738378] mr-2">
-                        Periode:
-                    </span>
-                    <Link
-                        v-for="p in periods"
-                        :key="p.id"
-                        :href="leaderboardPage({ query: { period: p.key } })"
-                        class="rounded-full px-3.5 py-1.5 text-xs font-semibold transition"
-                        :class="
-                            selectedPeriod.key === p.key
-                                ? 'bg-[#18392d] text-white shadow-sm'
-                                : 'border border-[#d7e0d5] bg-white text-[#4c5f53] hover:border-[#9ab59f]'
-                        "
-                    >
-                        {{ p.name }}
-                        <span
-                            v-if="p.is_active"
-                            class="ml-1 inline-block size-1.5 rounded-full bg-[#22c55e]"
-                        ></span>
-                    </Link>
-                </div>
-
-            </div>
-
             <!-- Leaderboard search (rankup.uno-style): filters the board below, never affects
                  the sponsor entry form above or organic search. -->
-            <div v-if="leaderboard.length > 0" class="relative mt-5 w-full">
+            <div v-if="leaderboard.length > 0" class="relative mt-8 w-full">
                 <Search class="absolute top-3 left-3 size-4 text-[#8e9f93]" />
                 <input
                     v-model="leaderboardQuery"

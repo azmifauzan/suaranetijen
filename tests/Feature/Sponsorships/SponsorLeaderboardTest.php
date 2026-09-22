@@ -438,7 +438,7 @@ test('sponsorship contributions never alter sentiment snapshots or rating snapsh
     expect($snapshot->opinion_count)->toBe(20);
 });
 
-test('calculateAmountToOvertake requires only +1 rupiah to overtake target rank', function () {
+test('calculateAmountToOvertake requires increment (100 rupiah) to overtake target rank', function () {
     $service = app(SponsorLeaderboardService::class);
     $period = $service->getActivePeriod();
 
