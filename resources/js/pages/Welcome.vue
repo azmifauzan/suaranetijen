@@ -203,7 +203,7 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                             <div class="flex items-center gap-2">
                                 <span class="inline-flex items-center gap-1.5 rounded-full border border-[#f3d39e] bg-[#fffaf0] px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-[#92400e] uppercase">
                                     <Trophy class="size-3 text-[#d97706]" />
-                                    Top 3 Teratas Leaderboard
+                                    Top 3 Leaderboard
                                 </span>
                                 <span class="text-xs text-[#6e8072]">
                                     Periode {{ sponsorTeaser.period_name || 'Minggu Ini' }}
@@ -375,7 +375,7 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                 </div>
             </div>
 
-            <!-- Dedicated Top 10 Leaderboard Section (#4 - #13) (above categories) -->
+            <!-- Dedicated Top 10 Leaderboard Section (#4 - #10) (above categories) -->
             <section
                 class="mx-auto max-w-6xl px-5 pt-10 pb-4 sm:px-8 sm:pt-14 sm:pb-6"
                 aria-labelledby="top-leaderboard-heading"
@@ -392,10 +392,10 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                             id="top-leaderboard-heading"
                             class="text-2xl font-bold tracking-tight text-[#18392d] sm:text-3xl"
                         >
-                            Leaderboard (#4 – #13)
+                            Leaderboard (#4 – #10)
                         </h2>
                         <p class="mt-1 text-xs text-[#61725f] sm:text-sm">
-                            Brand, produk, dan layanan di peringkat #4 sampai #13 periode {{ sponsorTeaser?.period_name || 'Minggu Ini' }}.
+                            Brand, produk, dan layanan di peringkat #4 sampai #10 periode {{ sponsorTeaser?.period_name || 'Minggu Ini' }}.
                         </p>
                     </div>
                     <Link
@@ -406,13 +406,13 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                     </Link>
                 </div>
 
-                <!-- Active Listings (#4 - #13) -->
+                <!-- Active Listings (#4 - #10) -->
                 <div
-                    v-if="sponsorTeaser && !sponsorTeaser.is_empty && sponsorTeaser.top_entries.slice(3, 13).length > 0"
+                    v-if="sponsorTeaser && !sponsorTeaser.is_empty && sponsorTeaser.top_entries.slice(3, 10).length > 0"
                     class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2"
                 >
                     <div
-                        v-for="entry in sponsorTeaser.top_entries.slice(3, 13)"
+                        v-for="entry in sponsorTeaser.top_entries.slice(3, 10)"
                         :key="entry.id"
                         class="group relative flex flex-col justify-between rounded-2xl border border-[#e2e7df] bg-white p-4 transition-all duration-200 hover:border-[#b8cfbe] hover:shadow-md sm:p-5"
                     >
@@ -501,7 +501,7 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                     </div>
                 </div>
 
-                <!-- Spot #4 - #13 Open State (when <= 3 entries exist on the board) -->
+                <!-- Spot #4 - #10 Open State (when <= 3 entries exist on the board) -->
                 <div
                     v-else-if="sponsorTeaser && !sponsorTeaser.is_empty"
                     class="rounded-3xl border border-dashed border-[#e6cb9d] bg-gradient-to-r from-[#fffaf2] to-[#fffdfa] p-8 text-center sm:p-10"
@@ -510,7 +510,7 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                         <Sparkles class="size-7" />
                     </div>
                     <h3 class="mt-4 text-lg font-bold text-[#3d2c14]">
-                        Posisi #4 – #13 Masih Terbuka
+                        Posisi #4 – #10 Masih Terbuka
                     </h3>
                     <p class="mx-auto mt-1 max-w-md text-xs leading-relaxed text-[#7c694e] sm:text-sm">
                         Baru ada {{ sponsorTeaser.top_entries.length }} sponsor di papan peringkat. Daftarkan brand, produk, atau websitemu sekarang untuk langsung mengamankan posisi di leaderboard!

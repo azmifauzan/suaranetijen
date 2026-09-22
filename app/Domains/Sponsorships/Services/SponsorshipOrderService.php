@@ -196,7 +196,7 @@ class SponsorshipOrderService
 
     private function initiatePayment(SponsorshipOrder $order, int $amount, ?string $redirectUrl): SponsorshipOrder
     {
-        $returnUrl = $redirectUrl ?: url("/sponsor?order_id={$order->id}");
+        $returnUrl = $redirectUrl ?: route('sponsor.payment-status', ['order_id' => $order->id]);
 
         try {
             $payment = $this->sumopodService->createPayment([

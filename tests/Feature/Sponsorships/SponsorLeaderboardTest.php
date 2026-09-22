@@ -183,6 +183,33 @@ test('homepage includes sponsor teaser with active board data', function () {
         );
 });
 
+test('homepage sponsor teaser is limited to ranks 1 through 10', function () {
+    $service = app(SponsorLeaderboardService::class);
+    $period = $service->getActivePeriod();
+
+    for ($rank = 1; $rank <= 11; $rank++) {
+        $entity = Entity::factory()->create([
+            'status' => EntityStatus::Active,
+            'searchable' => true,
+        ]);
+
+        SponsoredEntry::factory()->create([
+            'period_id' => $period->id,
+            'entity_id' => $entity->id,
+            'settled_total_amount' => 100000 - $rank,
+            'status' => SponsoredEntryStatus::Active,
+        ]);
+    }
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('sponsorTeaser.top_entries', 10)
+            ->where('sponsorTeaser.top_entries.0.rank', 1)
+            ->where('sponsorTeaser.top_entries.9.rank', 10)
+        );
+});
+
 test('homepage sponsor teaser still renders an invite when the board is empty', function () {
     // No SponsoredEntry rows at all — the board must still surface a payload so the frontend
     // can show an empty-state invite instead of hiding the feature entirely (docs/26): with no

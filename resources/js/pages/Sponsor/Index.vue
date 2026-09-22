@@ -22,6 +22,7 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 import { getDirectWebsiteUrl, getFaviconUrl, trackSponsorClick } from '@/lib/sponsor';
 import { show as showEntity } from '@/routes/entities';
 import { index as leaderboardPage } from '@/routes/leaderboard';
+import { paymentStatus } from '@/routes/sponsor';
 
 interface PeriodItem {
     id: number;
@@ -432,7 +433,7 @@ async function submitOrder() {
         if (data.data?.payment_link_url) {
             window.location.href = data.data.payment_link_url;
         } else {
-            router.visit(leaderboardPage({ query: { order_id: data.data?.id } }));
+            router.visit(paymentStatus({ query: { order_id: data.data?.id } }));
         }
     } catch (e: any) {
         errorMessage.value = e.message || 'Terjadi kesalahan saat memproses pesanan.';
@@ -932,8 +933,8 @@ function formatRupiah(amount: number): string {
 
             <!-- Leaderboard Content -->
             <div v-else class="mt-6 space-y-4">
-                <!-- Top 3 Podium Cards -->
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <!-- Top 3 ranked rows -->
+                <div class="flex flex-col gap-4">
                     <div
                         v-for="entry in filteredLeaderboard.slice(0, 3)"
                         :key="entry.id"

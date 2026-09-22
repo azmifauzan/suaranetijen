@@ -81,13 +81,15 @@ Route::get('/', function (SearchSuggestionService $searchSuggestionService, Spon
         'searchSuggestions' => $searchSuggestionService->getSuggestions(),
         'topEntities' => $topEntities,
         'recentEntities' => $recentEntities,
-        'topLeaderboard' => $sponsorLeaderboardService->getHomepageTeaser(13),
-        'sponsorTeaser' => $sponsorLeaderboardService->getHomepageTeaser(13),
+        'topLeaderboard' => $sponsorLeaderboardService->getHomepageTeaser(10),
+        'sponsorTeaser' => $sponsorLeaderboardService->getHomepageTeaser(10),
     ]);
 })->name('home');
 
 Route::get('/leaderboard', [SponsorBoardPageController::class, 'index'])->name('leaderboard.index');
 Route::get('/sponsor', fn () => redirect()->route('leaderboard.index', [], 301))->name('sponsor.index');
+Route::middleware('auth')->get('/sponsor/payment-status', [SponsorBoardPageController::class, 'paymentStatus'])
+    ->name('sponsor.payment-status');
 Route::get('/go/{slug}', [SponsorBoardPageController::class, 'redirect'])->name('leaderboard.redirect');
 Route::match(['get', 'post'], '/api/sponsor/click/{slug}', [SponsorBoardPageController::class, 'trackClick'])
     ->middleware('throttle:60,1')

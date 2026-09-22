@@ -315,7 +315,7 @@ class SponsorLeaderboardService
      *
      * @return array<string, mixed>
      */
-    public function getHomepageTeaser(int $limit = 13): array
+    public function getHomepageTeaser(int $limit = 10): array
     {
         $period = $this->getActivePeriod();
         $leaderboard = $this->getLeaderboard($period, $limit);

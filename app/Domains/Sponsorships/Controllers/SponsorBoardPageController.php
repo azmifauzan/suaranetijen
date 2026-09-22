@@ -35,16 +35,7 @@ class SponsorBoardPageController extends Controller
                 ->first();
 
             if ($order) {
-                $userOrder = [
-                    'id' => $order->id,
-                    'provider_order_id' => $order->provider_order_id,
-                    'amount' => $order->amount,
-                    'status' => $order->status->value,
-                    'status_label' => $order->status->label(),
-                    'entity_name' => $order->sponsoredEntry->entity->name,
-                    'entity_slug' => $order->sponsoredEntry->entity->slug,
-                    'payment_link_url' => $order->payment_link_url,
-                ];
+                $userOrder = $this->presentOrder($order);
             }
         }
 
@@ -72,6 +63,36 @@ class SponsorBoardPageController extends Controller
             'userOrder' => $userOrder,
             'categories' => Category::active()->orderBy('name')->get(['id', 'name', 'slug']),
         ]);
+    }
+
+    public function paymentStatus(Request $request): Response
+    {
+        $order = SponsorshipOrder::query()
+            ->whereKey($request->integer('order_id'))
+            ->where('user_id', $request->user()->id)
+            ->with('sponsoredEntry.entity')
+            ->firstOrFail();
+
+        return Inertia::render('Sponsor/PaymentStatus', [
+            'order' => $this->presentOrder($order),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function presentOrder(SponsorshipOrder $order): array
+    {
+        return [
+            'id' => $order->id,
+            'provider_order_id' => $order->provider_order_id,
+            'amount' => $order->amount,
+            'status' => $order->status->value,
+            'status_label' => $order->status->label(),
+            'entity_name' => $order->sponsoredEntry->entity->name,
+            'entity_slug' => $order->sponsoredEntry->entity->slug,
+            'payment_link_url' => $order->payment_link_url,
+        ];
     }
 
     /**

@@ -240,6 +240,12 @@ test('authenticated user can create order and receives payment url', function ()
         'provider_payment_id' => 'pay_abc123',
         'status' => SponsorshipOrderStatus::Pending->value,
     ]);
+
+    Http::assertSent(function ($request) use ($orderId): bool {
+        return $request->url() === 'https://api-pay.sumopod.com/api/v1/payments'
+            && $request['success_return_url'] === route('sponsor.payment-status', ['order_id' => $orderId])
+            && $request['cancel_return_url'] === route('sponsor.payment-status', ['order_id' => $orderId]);
+    });
 });
 
 test('it rejects amounts below minimum configured threshold', function () {
@@ -411,4 +417,26 @@ test('order owner can view order status, other users are forbidden', function ()
         ->getJson(route('api.sponsor.orders.show', $order))
         ->assertOk()
         ->assertJsonPath('data.id', $order->id);
+});
+
+test('payment return page shows the order status only to its owner', function () {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $order = SponsorshipOrder::factory()->create(['user_id' => $owner->id]);
+
+    $this->get(route('sponsor.payment-status', ['order_id' => $order->id]))
+        ->assertRedirect(route('login'));
+
+    $this->actingAs($owner)
+        ->get(route('sponsor.payment-status', ['order_id' => $order->id]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Sponsor/PaymentStatus')
+            ->where('order.id', $order->id)
+            ->where('order.status', SponsorshipOrderStatus::Pending->value)
+        );
+
+    $this->actingAs($other)
+        ->get(route('sponsor.payment-status', ['order_id' => $order->id]))
+        ->assertNotFound();
 });
