@@ -7,6 +7,7 @@ use App\Domains\Sponsorships\Enums\SponsoredEntryStatus;
 use App\Domains\Sponsorships\Enums\SponsorshipOrderStatus;
 use App\Domains\Sponsorships\Enums\SponsorshipRelayEventStatus;
 use App\Domains\Sponsorships\Exceptions\SponsorshipRelayWebhookRejected;
+use App\Domains\Sponsorships\Models\SponsoredEntry;
 use App\Domains\Sponsorships\Models\SponsorshipOrder;
 use App\Domains\Sponsorships\Models\SponsorshipRelayEvent;
 use App\Notifications\SponsorPaymentCompletedNotification;
@@ -17,6 +18,8 @@ use Throwable;
 
 class ProcessSponsorshipRelayWebhook
 {
+    public function __construct(private TelegramSponsorNotifier $telegramSponsorNotifier) {}
+
     /**
      * Process relayed Sumopod webhook payload idempotently.
      *
@@ -79,8 +82,11 @@ class ProcessSponsorshipRelayWebhook
             throw new SponsorshipRelayWebhookRejected('Missing order_id in webhook payload');
         }
 
+        $completedOrder = null;
+        $completedEntry = null;
+
         try {
-            DB::transaction(function () use ($event, $orderId, $paymentId, $relayedAmount, $relayedNetAmount, $relayedFee, $eventType, $svixId): void {
+            DB::transaction(function () use ($event, $orderId, $paymentId, $relayedAmount, $relayedNetAmount, $relayedFee, $eventType, $svixId, &$completedOrder, &$completedEntry): void {
                 /** @var SponsorshipOrder|null $order */
                 $order = SponsorshipOrder::query()
                     ->where('provider_order_id', $orderId)
@@ -168,6 +174,7 @@ class ProcessSponsorshipRelayWebhook
                     ]);
 
                     // Update projection in sponsored_entries
+                    /** @var SponsoredEntry|null $entry */
                     $entry = $order->sponsoredEntry()->lockForUpdate()->first();
                     if ($entry) {
                         $entry->settled_total_amount += $order->amount;
@@ -194,6 +201,9 @@ class ProcessSponsorshipRelayWebhook
                         }
                     }
 
+                    $completedOrder = $order;
+                    $completedEntry = $entry;
+
                     // Send payment confirmation notification to user
                     try {
                         $order->user?->notify(new SponsorPaymentCompletedNotification($order, $entry));
@@ -212,6 +222,17 @@ class ProcessSponsorshipRelayWebhook
                     'last_error' => null,
                 ]);
             });
+
+            if ($completedOrder instanceof SponsorshipOrder) {
+                try {
+                    $this->telegramSponsorNotifier->send($completedOrder, $completedEntry);
+                } catch (Throwable $telegramException) {
+                    Log::error('Failed to send Telegram sponsor payment notification', [
+                        'order_id' => $completedOrder->id,
+                        'error' => $telegramException->getMessage(),
+                    ]);
+                }
+            }
 
             return [
                 'status' => 'success',

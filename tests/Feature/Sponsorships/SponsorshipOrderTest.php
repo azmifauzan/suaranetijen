@@ -297,6 +297,31 @@ test('it updates entity website_url if missing when sponsoring existing entity',
     expect($entity->fresh()->website_url)->toBe('https://brand-example.id');
 });
 
+test('it does not overwrite an existing entity website_url when sponsoring', function () {
+    $user = User::factory()->create();
+    $entity = Entity::factory()->create([
+        'status' => EntityStatus::Active,
+        'searchable' => true,
+        'website_url' => 'https://existing.example',
+    ]);
+
+    Http::fake([
+        'https://api-pay.sumopod.com/api/v1/payments' => Http::response([
+            'payment_id' => 'pay_web_2',
+            'payment_link_url' => 'https://checkout.sumopod.com/pay/order-web-2',
+            'status' => 'pending',
+        ], 200),
+    ]);
+
+    $this->actingAs($user)->postJson(route('api.sponsor.orders.store'), [
+        'entity_id' => $entity->id,
+        'amount' => 1000,
+        'website_url' => 'https://new.example',
+    ])->assertCreated();
+
+    expect($entity->fresh()->website_url)->toBe('https://existing.example');
+});
+
 test('it rejects inactive or non-searchable entities', function () {
     $user = User::factory()->create();
     $inactive = Entity::factory()->create(['status' => EntityStatus::Disabled, 'searchable' => true]);

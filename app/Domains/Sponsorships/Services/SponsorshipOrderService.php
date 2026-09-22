@@ -58,7 +58,7 @@ class SponsorshipOrderService
                 ? 'https://'.$websiteUrl
                 : $websiteUrl;
 
-            if (filter_var($normalizedWebsiteUrl, FILTER_VALIDATE_URL) && (! $entity->website_url || ! filter_var($entity->website_url, FILTER_VALIDATE_URL))) {
+            if (filter_var($normalizedWebsiteUrl, FILTER_VALIDATE_URL) && blank($entity->website_url)) {
                 $entity->update(['website_url' => $normalizedWebsiteUrl]);
             }
         }

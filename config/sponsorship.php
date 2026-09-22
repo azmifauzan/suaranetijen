@@ -26,4 +26,9 @@ return [
         'order_prefix' => (string) env('SUMOPOD_ORDER_PREFIX', 'SNT-SPN-'),
     ],
 
+    'telegram' => [
+        'bot_token' => (string) env('SPONSORSHIP_TELEGRAM_BOT_TOKEN', ''),
+        'chat_id' => (string) env('SPONSORSHIP_TELEGRAM_CHAT_ID', ''),
+    ],
+
 ];

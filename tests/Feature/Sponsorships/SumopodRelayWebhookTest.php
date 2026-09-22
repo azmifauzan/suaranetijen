@@ -9,8 +9,11 @@ use App\Domains\Sponsorships\Models\SponsorPeriod;
 use App\Domains\Sponsorships\Models\SponsorshipOrder;
 use App\Domains\Sponsorships\Services\ProcessSponsorshipRelayWebhook;
 use App\Domains\Sponsorships\Services\SvixWebhookVerifier;
+use App\Domains\Sponsorships\Services\TelegramSponsorNotifier;
 use App\Models\User;
 use App\Notifications\SponsorPaymentCompletedNotification;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
@@ -61,6 +64,17 @@ test('it rejects webhook when timestamp exceeds tolerance', function () {
 });
 
 test('it successfully settles order and updates entry total on payment.completed', function () {
+    config()->set('sponsorship.telegram.bot_token', 'test-bot-token');
+    config()->set('sponsorship.telegram.chat_id', '-100123');
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://api.telegram.org/bottest-bot-token/sendMessage' => Http::response([
+            'ok' => false,
+            'description' => 'test Telegram failure',
+        ], 500),
+    ]);
+
     $user = User::factory()->create();
     $period = SponsorPeriod::factory()->create();
     $entity = Entity::factory()->create();
@@ -108,6 +122,8 @@ test('it successfully settles order and updates entry total on payment.completed
     expect($entry->settled_total_amount)->toBe(50000);
     expect($entry->status)->toBe(SponsoredEntryStatus::Active);
     expect($entry->first_settled_at)->not->toBeNull();
+
+    Http::assertSentCount(1);
 
     $this->assertDatabaseHas('sponsorship_relay_events', [
         'svix_id' => 'svix_event_001',
@@ -308,7 +324,7 @@ test('it returns 422 (non-retryable) for a permanent correlation failure but 500
 
     // Transient: processor throws something other than our own rejection exception.
     // satsetui's retry-with-backoff only fires on a 5xx (or 429), so this must not be a 4xx.
-    $this->app->bind(ProcessSponsorshipRelayWebhook::class, fn () => new class extends ProcessSponsorshipRelayWebhook
+    $this->app->bind(ProcessSponsorshipRelayWebhook::class, fn () => new class(app(TelegramSponsorNotifier::class)) extends ProcessSponsorshipRelayWebhook
     {
         public function process(string $svixId, string $eventType, ?string $environment, array $payload, string $rawBody): array
         {
@@ -341,6 +357,15 @@ test('it acknowledges and ignores non-payment events', function () {
 
 test('payment.completed succeeds when amount includes customer-paid fee but net_amount matches order amount and sends notification', function () {
     Notification::fake();
+    config()->set('sponsorship.telegram.bot_token', 'test-bot-token');
+    config()->set('sponsorship.telegram.chat_id', '-100123');
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://api.telegram.org/bottest-bot-token/sendMessage' => Http::response([
+            'ok' => true,
+        ]),
+    ]);
 
     $user = User::factory()->create();
     $period = SponsorPeriod::factory()->create();
@@ -392,4 +417,14 @@ test('payment.completed succeeds when amount includes customer-paid fee but net_
         SponsorPaymentCompletedNotification::class,
         fn ($notification) => $notification->order->id === $order->id
     );
+
+    Http::assertSent(function (Request $request) use ($entity): bool {
+        $data = $request->data();
+
+        return $request->url() === 'https://api.telegram.org/bottest-bot-token/sendMessage'
+            && $data['chat_id'] === '-100123'
+            && str_contains((string) $data['text'], 'SuaraNetijen')
+            && str_contains((string) $data['text'], "Entitas: {$entity->name}")
+            && str_contains((string) $data['text'], 'Nominal: Rp 1.000');
+    });
 });
