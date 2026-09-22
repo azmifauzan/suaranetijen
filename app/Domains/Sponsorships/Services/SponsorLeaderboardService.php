@@ -343,7 +343,7 @@ class SponsorLeaderboardService
         $entries = $this->getLeaderboard($period, $targetRank);
         $targetEntry = $entries->firstWhere('rank', $targetRank);
 
-        $increment = (int) config('sponsorship.increment_amount', 1);
+        $increment = (int) config('sponsorship.increment_amount', 100);
         $minAmount = (int) config('sponsorship.min_amount', 1000);
 
         if (! $targetEntry) {

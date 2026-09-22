@@ -59,7 +59,7 @@ class SponsorBoardPageController extends Controller
             'leaderboard' => $leaderboard,
             'stats' => $stats,
             'minAmount' => (int) config('sponsorship.min_amount', 1000),
-            'incrementAmount' => (int) config('sponsorship.increment_amount', 1000),
+            'incrementAmount' => (int) config('sponsorship.increment_amount', 100),
             'userOrder' => $userOrder,
             'categories' => Category::active()->orderBy('name')->get(['id', 'name', 'slug']),
         ]);

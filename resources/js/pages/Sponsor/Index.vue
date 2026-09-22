@@ -152,7 +152,7 @@ const rebutTarget = ref<RebutTarget | null>(null);
 
 function startRebut(entry: { rank: number; name: string; settled_total_amount: number; entity_id?: number }) {
     const targetAmount = entry.settled_total_amount;
-    const increment = props.incrementAmount || 1;
+    const increment = props.incrementAmount || 100;
     let needed = Math.max(props.minAmount, targetAmount + increment);
 
     if (selectedEntity.value) {
@@ -297,7 +297,7 @@ watch(urlInput, (value) => {
 watch(selectedEntity, (newEntity) => {
     if (rebutTarget.value) {
         const targetAmount = rebutTarget.value.targetAmount;
-        const increment = props.incrementAmount || 1;
+        const increment = props.incrementAmount || 100;
         let needed = Math.max(props.minAmount, targetAmount + increment);
         if (newEntity) {
             const existingEntry = props.leaderboard.find((e) => e.entity_id === newEntity.id);
@@ -326,7 +326,7 @@ onMounted(() => {
             startRebut(matched);
         } else if (targetName && neededAmountStr) {
             const needed = parseInt(neededAmountStr, 10) || props.minAmount;
-            const increment = props.incrementAmount || 1;
+            const increment = props.incrementAmount || 100;
             rebutTarget.value = {
                 rank: rankNum,
                 name: targetName,
@@ -1064,7 +1064,7 @@ function formatRupiah(amount: number): string {
                                 @click="startRebut(entry)"
                             >
                                 <Zap class="size-3.5 text-[#d97706]" />
-                                Rebut Posisi #{{ entry.rank }} (Min. {{ formatRupiah(entry.settled_total_amount + (incrementAmount || 1)) }})
+                                Rebut Posisi #{{ entry.rank }} (Min. {{ formatRupiah(entry.settled_total_amount + (incrementAmount || 100)) }})
                             </button>
                         </div>
                     </div>

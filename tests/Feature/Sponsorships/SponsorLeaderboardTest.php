@@ -408,11 +408,11 @@ test('calculateAmountToOvertake requires only +1 rupiah to overtake target rank'
 
     // For brand new sponsor overtaking rank 1 (which has 50000)
     $neededForNew = $service->calculateAmountToOvertake($period, 1);
-    expect($neededForNew)->toBe(50001);
+    expect($neededForNew)->toBe(50100);
 
     // For entity 2 (which already has 20000) overtaking rank 1
     $neededForEntity2 = $service->calculateAmountToOvertake($period, 1, $entity2->id);
-    expect($neededForEntity2)->toBe(30001);
+    expect($neededForEntity2)->toBe(30100);
 
     // Non-existent rank falls back to min_amount (1000)
     $neededForEmpty = $service->calculateAmountToOvertake($period, 99);
