@@ -120,14 +120,7 @@ class SponsorLeaderboardService
     {
         if ($periodKey === self::ALL_TIME_KEY) {
             return [
-                'period' => [
-                    'id' => 0,
-                    'key' => self::ALL_TIME_KEY,
-                    'name' => 'Semua Waktu',
-                    'starts_at' => null,
-                    'ends_at' => null,
-                    'is_active' => false,
-                ],
+                'period' => $this->allTimePeriodDescriptor(),
                 'leaderboard' => $this->getAllTimeLeaderboard($limit),
             ];
         }
@@ -136,6 +129,14 @@ class SponsorLeaderboardService
         $period = $periodKey
             ? SponsorPeriod::query()->where('key', $periodKey)->first() ?? $activePeriod
             : $activePeriod;
+        $leaderboard = $this->getLeaderboard($period, $limit);
+
+        if ($periodKey === null && $leaderboard->isEmpty()) {
+            return [
+                'period' => $this->allTimePeriodDescriptor(),
+                'leaderboard' => $this->getAllTimeLeaderboard($limit),
+            ];
+        }
 
         return [
             'period' => [
@@ -146,7 +147,22 @@ class SponsorLeaderboardService
                 'ends_at' => $period->ends_at?->toIso8601String(),
                 'is_active' => $period->id === $activePeriod->id,
             ],
-            'leaderboard' => $this->getLeaderboard($period, $limit),
+            'leaderboard' => $leaderboard,
+        ];
+    }
+
+    /**
+     * @return array{id: int, key: string, name: string, starts_at: null, ends_at: null, is_active: bool}
+     */
+    private function allTimePeriodDescriptor(): array
+    {
+        return [
+            'id' => 0,
+            'key' => self::ALL_TIME_KEY,
+            'name' => 'Semua Waktu',
+            'starts_at' => null,
+            'ends_at' => null,
+            'is_active' => false,
         ];
     }
 
@@ -319,15 +335,24 @@ class SponsorLeaderboardService
     {
         $period = $this->getActivePeriod();
         $leaderboard = $this->getLeaderboard($period, $limit);
+        $useAllTime = $leaderboard->isEmpty();
 
-        $totalAmount = (int) SponsoredEntry::query()
-            ->where('period_id', $period->id)
-            ->where('status', SponsoredEntryStatus::Active)
-            ->sum('settled_total_amount');
+        if ($useAllTime) {
+            $leaderboard = $this->getAllTimeLeaderboard($limit);
+        }
+
+        $totalAmountQuery = SponsoredEntry::query()
+            ->where('status', SponsoredEntryStatus::Active);
+
+        if (! $useAllTime) {
+            $totalAmountQuery->where('period_id', $period->id);
+        }
+
+        $totalAmount = (int) $totalAmountQuery->sum('settled_total_amount');
 
         return [
-            'period_key' => $period->key,
-            'period_name' => $period->name,
+            'period_key' => $useAllTime ? self::ALL_TIME_KEY : $period->key,
+            'period_name' => $useAllTime ? 'Semua Waktu' : $period->name,
             'total_settled_amount' => $totalAmount,
             'is_empty' => $leaderboard->isEmpty(),
             'top_entry' => $leaderboard->first(),

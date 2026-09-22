@@ -109,6 +109,44 @@ const filteredLeaderboard = computed(() => {
             entry.name.toLowerCase().includes(q) || entry.category_name.toLowerCase().includes(q),
     );
 });
+const leaderboardPageSize = 25;
+const visibleLeaderboardCount = ref(leaderboardPageSize);
+const visibleLeaderboard = computed(() =>
+    filteredLeaderboard.value.slice(0, visibleLeaderboardCount.value),
+);
+const leaderboardSections = computed(() => {
+    const topTenEntries = visibleLeaderboard.value.slice(3, 10);
+    const remainingEntries = visibleLeaderboard.value.slice(10);
+    const firstRemainingRank = remainingEntries[0]?.rank;
+    const lastRemainingRank = remainingEntries[remainingEntries.length - 1]?.rank;
+
+    return [
+        {
+            key: 'ranks-4-10',
+            title: 'Peringkat #4 sampai #10',
+            entries: topTenEntries,
+        },
+        {
+            key: 'ranks-11-plus',
+            title:
+                firstRemainingRank && lastRemainingRank
+                    ? `Peringkat #${firstRemainingRank} sampai #${lastRemainingRank}`
+                    : 'Peringkat lainnya',
+            entries: remainingEntries,
+        },
+    ].filter((section) => section.entries.length > 0);
+});
+const canLoadMoreLeaderboard = computed(
+    () => visibleLeaderboardCount.value < filteredLeaderboard.value.length,
+);
+
+function loadMoreLeaderboard() {
+    visibleLeaderboardCount.value += leaderboardPageSize;
+}
+
+watch(leaderboardQuery, () => {
+    visibleLeaderboardCount.value = leaderboardPageSize;
+});
 
 // Sponsor entry form state — inline on the page (Pamerin/RankUp both keep this as a plain page
 // section, never a popup), with a confirm-and-pay modal only at the final step.
@@ -456,7 +494,7 @@ function formatRupiah(amount: number): string {
             canonical-path="/leaderboard"
         />
 
-        <div class="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-12">
+        <div class="mx-auto max-w-6xl px-5 pt-5 pb-8 sm:px-8 sm:pt-8 sm:pb-12">
             <!-- Order status banner if coming back from payment -->
             <div
                 v-if="userOrder"
@@ -531,67 +569,131 @@ function formatRupiah(amount: number): string {
                 </h1>
             </div>
 
-            <!-- Bilah Statistik Ringkas (Pamerin / RankUp Style) -->
-            <div v-if="stats" class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
-                <div class="rounded-2xl border border-[#e5e9e2] bg-white p-4 shadow-2xs">
-                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
-                        <Trophy class="size-3.5 text-[#d97706]" /> Total Listing
-                    </div>
-                    <div class="mt-1 text-xl font-black text-[#18392d]">
-                        {{ stats.total_listings }}
-                    </div>
-                    <div class="mt-0.5 text-[10px] text-[#8e9f93]">entitas aktif</div>
-                </div>
+            <!-- Top 3 sits first so the competitive target is visible before the sponsor form. -->
+            <div
+                v-if="leaderboard.length > 0 && filteredLeaderboard.length > 0"
+                class="space-y-2"
+            >
+                <h2 class="text-sm font-bold text-[#18392d]">Top 3 Leaderboard</h2>
+                <div class="flex flex-col gap-2">
+                    <div
+                        v-for="entry in filteredLeaderboard.slice(0, 3)"
+                        :key="entry.id"
+                        class="relative flex flex-wrap items-center gap-2.5 rounded-xl border px-3 py-2 transition duration-200 hover:-translate-y-0.5 hover:shadow-md sm:flex-nowrap sm:gap-3"
+                        :class="
+                            entry.rank === 1
+                                ? 'border-[#e8cb97] bg-gradient-to-b from-[#fffbf0] via-white to-white shadow-sm ring-1 ring-[#f4d9a6]'
+                                : entry.rank === 2
+                                  ? 'border-[#d4dfd6] bg-gradient-to-b from-[#f9faf9] via-white to-white'
+                                  : 'border-[#dfd8cc] bg-gradient-to-b from-[#fdfbf9] via-white to-white'
+                        "
+                    >
+                        <span
+                            class="inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold shadow-sm"
+                            :class="
+                                entry.rank === 1
+                                    ? 'bg-[#fef3c7] text-[#92400e] border border-[#fde68a]'
+                                    : entry.rank === 2
+                                      ? 'bg-[#e2e8f0] text-[#334155] border border-[#cbd5e1]'
+                                      : 'bg-[#ffedd5] text-[#9a3412] border border-[#fed7aa]'
+                            "
+                        >
+                            #{{ entry.rank }}
+                        </span>
+                        <img
+                            v-if="getFaviconUrl(entry.website_url)"
+                            :src="getFaviconUrl(entry.website_url)!"
+                            :alt="entry.name"
+                            class="size-6 shrink-0 rounded-md border border-black/10 bg-white object-contain p-0.5"
+                            loading="lazy"
+                            @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
+                        />
+                        <div class="min-w-0 flex-1">
+                            <div class="flex min-w-0 items-center gap-1.5">
+                                <Link
+                                    :href="showEntity(entry.slug)"
+                                    class="truncate text-sm font-bold text-[#18392d] hover:text-[#087f5b]"
+                                >
+                                    {{ entry.name }}
+                                </Link>
+                                <span class="hidden truncate rounded-md bg-black/5 px-2 py-0.5 text-[10px] font-semibold text-[#5a6b60] sm:inline">
+                                    {{ entry.type_label }}
+                                </span>
+                            </div>
+                            <p class="truncate text-[11px] leading-4 text-[#738478]">
+                                {{ entry.category_name }}
+                                <span v-if="entry.description" class="hidden lg:inline"> · {{ entry.description }}</span>
+                            </p>
+                        </div>
 
-                <div class="rounded-2xl border border-[#fed7aa] bg-[#fffaf0] p-4 shadow-2xs">
-                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#9a6a24]">
-                        <Sparkles class="size-3.5 text-[#d97706]" /> Total Sponsor
-                    </div>
-                    <div class="mt-1 text-xl font-black text-[#92400e]">
-                        {{ formatRupiah(stats.total_amount) }}
-                    </div>
-                    <div class="mt-0.5 text-[10px] text-[#b45309]">terkonfirmasi</div>
-                </div>
+                        <div class="flex shrink-0 items-center gap-2 text-right">
+                            <div>
+                                <div class="text-xs font-extrabold text-[#92400e]">
+                                    {{ formatRupiah(entry.settled_total_amount) }}
+                                </div>
+                                <span class="hidden text-[9px] font-medium tracking-wide text-[#9a6a24] uppercase sm:block">
+                                    Total Sponsor
+                                </span>
+                            </div>
+                            <div class="hidden items-center gap-2 text-[10px] text-[#637568] lg:flex">
+                                <span class="inline-flex items-center gap-1" title="Kunjungan detail">
+                                    <Eye class="size-3 text-[#2563eb]" />
+                                    {{ entry.views_count || 0 }}
+                                </span>
+                                <span>•</span>
+                                <span class="inline-flex items-center gap-1" title="Klik website">
+                                    <MousePointerClick class="size-3 text-[#087f5b]" />
+                                    {{ entry.clicks_count || 0 }} klik
+                                </span>
+                            </div>
+                            <div class="hidden items-center gap-1 text-[10px] text-[#607164] xl:flex">
+                                <span>Sentimen</span>
+                                <strong v-if="entry.sentiment_score !== null" class="text-[#1b6b44]">
+                                    {{ entry.sentiment_score.toLocaleString('id-ID', { maximumFractionDigits: 1 }) }}
+                                </strong>
+                                <span v-else>—</span>
+                            </div>
+                        </div>
 
-                <div class="rounded-2xl border border-[#e5e9e2] bg-white p-4 shadow-2xs">
-                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
-                        <MousePointerClick class="size-3.5 text-[#087f5b]" /> Total Klik URL
+                        <div class="flex w-full shrink-0 items-center gap-1.5 sm:w-auto">
+                            <a
+                                :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'leaderboard_top3' })"
+                                :ping="`/api/sponsor/click/${entry.slug}`"
+                                target="_blank"
+                                rel="noopener"
+                                class="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-[#d5f5df] px-2 py-1 text-[10px] font-bold text-[#145736] transition hover:bg-[#bceccb] sm:flex-none"
+                                @click="trackSponsorClick(entry.slug, { placement: 'leaderboard_top3', url: entry.website_url || undefined })"
+                            >
+                                Buka Situs <ArrowUpRight class="size-3" />
+                            </a>
+                            <button
+                                type="button"
+                                class="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-[#d8e3d6] bg-white px-2 py-1 text-[10px] font-bold text-[#1f4a38] transition hover:border-[#8cb896] hover:bg-[#edf6ee] sm:flex-none"
+                                @click="selectEntityAndScrollToForm({ id: entry.entity_id, name: entry.name, slug: entry.slug })"
+                            >
+                                + Sponsor
+                            </button>
+                            <button
+                                type="button"
+                                class="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2 py-1 text-[10px] font-bold text-[#92400e] transition hover:bg-[#fef3c7] sm:flex-none"
+                                @click="startRebut(entry)"
+                            >
+                                <Zap class="size-3 text-[#d97706]" />
+                                Rebut #{{ entry.rank }}
+                            </button>
+                        </div>
                     </div>
-                    <div class="mt-1 text-xl font-black text-[#18392d]">
-                        {{ stats.total_clicks.toLocaleString('id-ID') }}
-                    </div>
-                    <div class="mt-0.5 text-[10px] text-[#8e9f93]">kunjungan direct link</div>
-                </div>
-
-                <div class="rounded-2xl border border-[#e5e9e2] bg-white p-4 shadow-2xs">
-                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
-                        <Eye class="size-3.5 text-[#2563eb]" /> Total Pengunjung
-                    </div>
-                    <div class="mt-1 text-xl font-black text-[#18392d]">
-                        {{ stats.total_views.toLocaleString('id-ID') }}
-                    </div>
-                    <div class="mt-0.5 text-[10px] text-[#8e9f93]">tampilan halaman detail</div>
-                </div>
-
-                <div class="col-span-2 sm:col-span-1 rounded-2xl border border-[#e5e9e2] bg-white p-4 shadow-2xs">
-                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
-                        <Award class="size-3.5 text-[#d97706]" /> Peringkat #1 Saat Ini
-                    </div>
-                    <div class="mt-1 text-xl font-black text-[#18392d]">
-                        {{ formatRupiah(stats.highest_bid) }}
-                    </div>
-                    <div class="mt-0.5 text-[10px] text-[#8e9f93]">sponsor tertinggi</div>
                 </div>
             </div>
 
             <!-- Sponsor Entry Form — inline on the page, not a popup (Pamerin/RankUp both keep
                  this as a plain section; only the final payment confirmation below is a modal). -->
-            <div ref="formSection" class="mt-8 rounded-3xl border border-[#e5e9e2] bg-white p-6 shadow-sm sm:p-8">
+            <div ref="formSection" class="mt-5 rounded-2xl border border-[#e5e9e2] bg-white p-4 shadow-sm sm:p-5">
                 <div class="flex items-center gap-2 text-xs font-bold text-[#d97706]">
                     <Trophy class="size-4" />
                     SPONSORI ENTITAS
                 </div>
-                <h3 class="mt-1 text-xl font-extrabold text-[#18392d]">
+                <h3 class="mt-1 text-lg font-extrabold text-[#18392d]">
                     Tingkatkan Posisi di Leaderboard
                 </h3>
                 <p class="mt-1 text-xs text-[#637568]">
@@ -601,7 +703,7 @@ function formatRupiah(amount: number): string {
                 <!-- Mode Rebut Posisi Banner -->
                 <div
                     v-if="rebutTarget"
-                    class="mt-6 flex flex-col gap-3 rounded-2xl border border-[#f59e0b] bg-gradient-to-r from-[#fffbeb] to-[#fef3c7] p-4 text-[#92400e] shadow-xs sm:flex-row sm:items-center sm:justify-between"
+                    class="mt-4 flex flex-col gap-3 rounded-2xl border border-[#f59e0b] bg-gradient-to-r from-[#fffbeb] to-[#fef3c7] p-3 text-[#92400e] shadow-xs sm:flex-row sm:items-center sm:justify-between"
                 >
                     <div class="flex items-start gap-3">
                         <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#d97706] text-white shadow-xs">
@@ -633,7 +735,7 @@ function formatRupiah(amount: number): string {
                 </div>
 
                 <!-- Step 1: URL first — fetch the site, then match against existing entities. -->
-                <div class="mt-6">
+                <div class="mt-4">
                     <label class="block text-xs font-bold text-[#31483b]">
                         Link Website Resmi Entitas
                     </label>
@@ -766,7 +868,7 @@ function formatRupiah(amount: number): string {
                 <!-- Step 2: appears once an entity is confirmed or a new one is ready to name. -->
                 <template v-if="hasSponsorTarget">
                     <!-- Guest email (no account required) -->
-                    <div v-if="!currentUser" class="mt-6">
+                    <div v-if="!currentUser" class="mt-4">
                         <label class="block text-xs font-bold text-[#31483b]">
                             Email
                         </label>
@@ -782,7 +884,7 @@ function formatRupiah(amount: number): string {
                     </div>
 
                     <!-- Contribution Amount -->
-                    <div class="mt-6">
+                    <div class="mt-4">
                         <label class="block text-xs font-bold text-[#31483b]">
                             Nominal Sponsor (Minimal Rp{{ minAmount.toLocaleString('id-ID') }})
                         </label>
@@ -853,7 +955,7 @@ function formatRupiah(amount: number): string {
                         <span>{{ errorMessage }}</span>
                     </div>
 
-                    <div class="mt-6 pt-4 border-t border-[#edf1eb]">
+                    <div class="mt-4 border-t border-[#edf1eb] pt-3">
                         <button
                             type="button"
                             class="w-full rounded-full bg-[#d97706] py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#b45309] disabled:opacity-50"
@@ -870,7 +972,7 @@ function formatRupiah(amount: number): string {
             </div>
 
             <!-- Controls & Period Switcher -->
-            <div class="mt-8 flex flex-col justify-between gap-4 border-b border-[#e5e9e2] pb-5 sm:flex-row sm:items-center">
+            <div class="mt-6 flex flex-col justify-between gap-4 border-b border-[#e5e9e2] pb-5 sm:flex-row sm:items-center">
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="text-xs font-semibold uppercase tracking-wider text-[#738378] mr-2">
                         Periode:
@@ -932,166 +1034,35 @@ function formatRupiah(amount: number): string {
             </div>
 
             <!-- Leaderboard Content -->
-            <div v-else class="mt-6 space-y-4">
-                <!-- Top 3 ranked rows -->
-                <div class="flex flex-col gap-4">
+            <div v-else class="mt-5 space-y-2">
+                <template v-for="(section, sectionIndex) in leaderboardSections" :key="section.key">
                     <div
-                        v-for="entry in filteredLeaderboard.slice(0, 3)"
-                        :key="entry.id"
-                        class="relative flex flex-col justify-between rounded-3xl border p-6 transition duration-200 hover:-translate-y-1 hover:shadow-lg"
-                        :class="
-                            entry.rank === 1
-                                ? 'border-[#e8cb97] bg-gradient-to-b from-[#fffbf0] to-white shadow-sm ring-1 ring-[#f4d9a6]'
-                                : entry.rank === 2
-                                  ? 'border-[#d4dfd6] bg-gradient-to-b from-[#f9faf9] to-white'
-                                  : 'border-[#dfd8cc] bg-gradient-to-b from-[#fdfbf9] to-white'
-                        "
+                        class="overflow-hidden rounded-2xl border shadow-sm"
+                        :class="sectionIndex === 0 ? 'border-[#cfe3d2] bg-[#f7fbf7]' : 'border-[#dfe5dc] bg-white'"
                     >
-                        <div>
-                            <!-- Header rank & category -->
-                            <div class="flex items-center justify-between">
-                                <span
-                                    class="inline-flex size-9 items-center justify-center rounded-xl font-extrabold text-sm shadow-sm"
-                                    :class="
-                                        entry.rank === 1
-                                            ? 'bg-[#fef3c7] text-[#92400e] border border-[#fde68a]'
-                                            : entry.rank === 2
-                                              ? 'bg-[#e2e8f0] text-[#334155] border border-[#cbd5e1]'
-                                              : 'bg-[#ffedd5] text-[#9a3412] border border-[#fed7aa]'
-                                    "
-                                >
-                                    #{{ entry.rank }}
-                                </span>
-
-                                <span class="rounded-full bg-black/5 px-2.5 py-1 text-[11px] font-semibold text-[#5a6b60]">
-                                    {{ entry.type_label }}
-                                </span>
-                            </div>
-
-                            <!-- Entity Title & Favicon -->
-                            <div class="mt-4 flex items-start gap-3">
-                                <img
-                                    v-if="getFaviconUrl(entry.website_url)"
-                                    :src="getFaviconUrl(entry.website_url)!"
-                                    :alt="entry.name"
-                                    class="size-9 shrink-0 rounded-xl border border-black/10 bg-white object-contain p-1 shadow-xs"
-                                    loading="lazy"
-                                    @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
-                                />
-                                <div class="min-w-0 flex-1">
-                                    <Link
-                                        :href="showEntity(entry.slug)"
-                                        class="group inline-flex items-center gap-1.5 text-lg font-bold tracking-tight text-[#18392d] hover:text-[#087f5b]"
-                                    >
-                                        <span class="line-clamp-1">{{ entry.name }}</span>
-                                        <ArrowUpRight class="size-4 shrink-0 text-[#8b998f] transition group-hover:text-[#087f5b]" />
-                                    </Link>
-                                    <p class="text-xs text-[#738478]">
-                                        {{ entry.category_name }}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Description (Web Ref Style) -->
-                            <p
-                                v-if="entry.description"
-                                class="mt-2.5 line-clamp-2 text-xs leading-relaxed text-[#5b6e61]"
-                            >
-                                {{ entry.description }}
-                            </p>
-
-                            <!-- Sponsor Amount Badge (Amber/Gold) -->
-                            <div class="mt-4 rounded-2xl border border-[#fed7aa] bg-[#fffaf0] p-3.5">
-                                <span class="text-[11px] font-semibold uppercase tracking-wider text-[#9a6a24]">
-                                    Total Sponsor
-                                </span>
-                                <div class="mt-0.5 text-2xl font-extrabold text-[#92400e]">
-                                    {{ formatRupiah(entry.settled_total_amount) }}
-                                </div>
-                            </div>
-
-                            <!-- Views & Clicks Stats -->
-                            <div class="mt-3 flex items-center justify-between rounded-xl bg-neutral-50 px-3 py-2 text-xs text-[#607164]">
-                                <span class="inline-flex items-center gap-1.5" title="Jumlah kunjungan halaman detail">
-                                    <Eye class="size-3.5 text-[#2563eb]" />
-                                    <strong>{{ entry.views_count || 0 }}</strong> kunjungan
-                                </span>
-                                <span class="inline-flex items-center gap-1.5" title="Jumlah klik langsung ke situs resmi">
-                                    <MousePointerClick class="size-3.5 text-[#087f5b]" />
-                                    <strong>{{ entry.clicks_count || 0 }}</strong> klik
-                                </span>
-                            </div>
-
-                            <!-- Organic Sentiment Pill (Green, separate) -->
-                            <div class="mt-2 flex items-center justify-between rounded-xl bg-[#f3f7f2] px-3 py-2 text-xs">
-                                <span class="font-medium text-[#5c6e62]">Sentimen Netijen:</span>
-                                <span
-                                    v-if="entry.sentiment_score !== null"
-                                    class="font-bold text-[#1b6b44]"
-                                >
-                                    {{ entry.sentiment_score.toLocaleString('id-ID', { maximumFractionDigits: 1 }) }} / 100
-                                </span>
-                                <span v-else class="text-[#7c8d82]">
-                                    Belum cukup data
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Action Buttons: Direct Link + Top-up + Rebut Posisi -->
-                        <div class="mt-6 space-y-2 border-t border-[#f0f3ee] pt-4">
-                            <div class="grid grid-cols-2 gap-2">
-                                <a
-                                    :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'leaderboard_top3' })"
-                                    :ping="`/api/sponsor/click/${entry.slug}`"
-                                    target="_blank"
-                                    rel="noopener"
-                                    class="flex items-center justify-center gap-1.5 rounded-xl bg-[#d5f5df] py-2.5 text-xs font-bold text-[#145736] transition hover:bg-[#bceccb]"
-                                    @click="trackSponsorClick(entry.slug, { placement: 'leaderboard_top3', url: entry.website_url || undefined })"
-                                >
-                                    Buka Situs <ArrowUpRight class="size-3.5" />
-                                </a>
-                                <button
-                                    type="button"
-                                    class="rounded-xl border border-[#d8e3d6] bg-white py-2.5 text-xs font-bold text-[#1f4a38] transition hover:border-[#8cb896] hover:bg-[#edf6ee]"
-                                    @click="selectEntityAndScrollToForm({ id: entry.entity_id, name: entry.name, slug: entry.slug })"
-                                >
-                                    + Sponsor
-                                </button>
-                            </div>
-                            <button
-                                type="button"
-                                class="flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#f59e0b] bg-[#fffbeb] py-2 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
-                                @click="startRebut(entry)"
-                            >
-                                <Zap class="size-3.5 text-[#d97706]" />
-                                Rebut Posisi #{{ entry.rank }} (Min. {{ formatRupiah(entry.settled_total_amount + (incrementAmount || 100)) }})
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Ranked 4+ Table List -->
-                <div v-if="filteredLeaderboard.length > 3" class="mt-8 overflow-hidden rounded-2xl border border-[#dfe5dc] bg-white shadow-sm">
-                    <div class="border-b border-[#dfe5dc] bg-[#f8faf7] px-6 py-4">
+                    <div
+                        class="border-b px-4 py-3"
+                        :class="sectionIndex === 0 ? 'border-[#cfe3d2] bg-[#edf6ee]' : 'border-[#dfe5dc] bg-[#f8faf7]'"
+                    >
                         <h3 class="text-sm font-bold text-[#18392d]">
-                            Daftar Entitas Lainnya (#4 ke atas)
+                            {{ section.title }}
                         </h3>
                     </div>
                     <div class="divide-y divide-[#edf1ec]">
                         <div
-                            v-for="entry in filteredLeaderboard.slice(3)"
+                            v-for="entry in section.entries"
                             :key="entry.id"
-                            class="flex flex-col items-start justify-between gap-4 p-5 transition sm:flex-row sm:items-center hover:bg-[#fafcfa]"
+                            class="flex flex-col items-start justify-between gap-2.5 p-3.5 transition sm:flex-row sm:items-center hover:bg-[#fafcfa]"
                         >
-                            <div class="flex items-start gap-3.5 min-w-0 flex-1">
-                                <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#f0f4ef] text-sm font-extrabold text-[#45574a]">
+                            <div class="flex min-w-0 flex-1 items-start gap-2.5">
+                                <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#f0f4ef] text-xs font-extrabold text-[#45574a]">
                                     #{{ entry.rank }}
                                 </span>
                                 <img
                                     v-if="getFaviconUrl(entry.website_url)"
                                     :src="getFaviconUrl(entry.website_url)!"
                                     :alt="entry.name"
-                                    class="size-9 shrink-0 rounded-xl border border-black/10 bg-white object-contain p-1 shadow-xs"
+                                    class="size-8 shrink-0 rounded-lg border border-black/10 bg-white object-contain p-1 shadow-xs"
                                     loading="lazy"
                                     @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
                                 />
@@ -1109,16 +1080,16 @@ function formatRupiah(amount: number): string {
                                     </div>
                                     <p
                                         v-if="entry.description"
-                                        class="mt-1 line-clamp-2 text-xs leading-relaxed text-[#5b6e61]"
+                                        class="mt-0.5 line-clamp-1 text-[11px] leading-4 text-[#5b6e61]"
                                     >
                                         {{ entry.description }}
                                     </p>
                                 </div>
                             </div>
 
-                            <div class="flex w-full flex-wrap items-center justify-between gap-4 sm:w-auto sm:justify-end">
+                            <div class="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end">
                                 <!-- Stats: Views and Clicks -->
-                                <div class="flex items-center gap-3 text-xs text-[#637568]">
+                                <div class="flex items-center gap-3 text-[11px] text-[#637568]">
                                     <span class="inline-flex items-center gap-1" title="Kunjungan detail">
                                         <Eye class="size-3.5 text-[#2563eb]" /> <strong>{{ entry.views_count || 0 }}</strong>
                                     </span>
@@ -1147,21 +1118,21 @@ function formatRupiah(amount: number): string {
                                         :ping="`/api/sponsor/click/${entry.slug}`"
                                         target="_blank"
                                         rel="noopener"
-                                        class="inline-flex items-center gap-1 rounded-xl bg-[#d5f5df] px-3 py-2 text-xs font-bold text-[#145736] transition hover:bg-[#bceccb]"
+                                        class="inline-flex min-h-11 items-center gap-1 rounded-lg bg-[#d5f5df] px-3 py-1.5 text-[11px] font-bold text-[#145736] transition hover:bg-[#bceccb]"
                                         @click="trackSponsorClick(entry.slug, { placement: 'leaderboard_row', url: entry.website_url || undefined })"
                                     >
                                         Buka Situs <ArrowUpRight class="size-3.5" />
                                     </a>
                                     <button
                                         type="button"
-                                        class="rounded-xl border border-[#d8e3d6] px-3.5 py-2 text-xs font-bold text-[#18392d] transition hover:border-[#8cb896] hover:bg-[#f0f7f0]"
+                                        class="min-h-11 rounded-lg border border-[#d8e3d6] px-3 py-1.5 text-[11px] font-bold text-[#18392d] transition hover:border-[#8cb896] hover:bg-[#f0f7f0]"
                                         @click="selectEntityAndScrollToForm({ id: entry.entity_id, name: entry.name, slug: entry.slug })"
                                     >
                                         + Sponsori
                                     </button>
                                     <button
                                         type="button"
-                                        class="inline-flex items-center gap-1 rounded-xl border border-[#f59e0b] bg-[#fffbeb] px-3 py-2 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
+                                        class="inline-flex min-h-11 items-center gap-1 rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-3 py-1.5 text-[11px] font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
                                         title="Rebut posisi ini"
                                         @click="startRebut(entry)"
                                     >
@@ -1172,6 +1143,70 @@ function formatRupiah(amount: number): string {
                             </div>
                         </div>
                     </div>
+                    </div>
+
+                    <!-- Stats separate the core ranking from the rest of the loaded entries. -->
+                    <div v-if="sectionIndex === 0 && stats" class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                        <div class="rounded-2xl border border-[#e5e9e2] bg-white p-3 shadow-2xs">
+                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
+                                <Trophy class="size-3.5 text-[#d97706]" /> Total Listing
+                            </div>
+                            <div class="mt-1 text-lg font-black text-[#18392d]">
+                                {{ stats.total_listings }}
+                            </div>
+                            <div class="mt-0.5 text-[10px] text-[#8e9f93]">entitas aktif</div>
+                        </div>
+
+                        <div class="rounded-2xl border border-[#fed7aa] bg-[#fffaf0] p-3 shadow-2xs">
+                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#9a6a24]">
+                                <Sparkles class="size-3.5 text-[#d97706]" /> Total Sponsor
+                            </div>
+                            <div class="mt-1 text-lg font-black text-[#92400e]">
+                                {{ formatRupiah(stats.total_amount) }}
+                            </div>
+                            <div class="mt-0.5 text-[10px] text-[#b45309]">terkonfirmasi</div>
+                        </div>
+
+                        <div class="rounded-2xl border border-[#e5e9e2] bg-white p-3 shadow-2xs">
+                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
+                                <MousePointerClick class="size-3.5 text-[#087f5b]" /> Total Klik URL
+                            </div>
+                            <div class="mt-1 text-lg font-black text-[#18392d]">
+                                {{ stats.total_clicks.toLocaleString('id-ID') }}
+                            </div>
+                            <div class="mt-0.5 text-[10px] text-[#8e9f93]">kunjungan direct link</div>
+                        </div>
+
+                        <div class="rounded-2xl border border-[#e5e9e2] bg-white p-3 shadow-2xs">
+                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
+                                <Eye class="size-3.5 text-[#2563eb]" /> Total Pengunjung
+                            </div>
+                            <div class="mt-1 text-lg font-black text-[#18392d]">
+                                {{ stats.total_views.toLocaleString('id-ID') }}
+                            </div>
+                            <div class="mt-0.5 text-[10px] text-[#8e9f93]">tampilan halaman detail</div>
+                        </div>
+
+                        <div class="col-span-2 rounded-2xl border border-[#e5e9e2] bg-white p-3 shadow-2xs sm:col-span-1">
+                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
+                                <Award class="size-3.5 text-[#d97706]" /> Peringkat #1 Saat Ini
+                            </div>
+                            <div class="mt-1 text-lg font-black text-[#18392d]">
+                                {{ formatRupiah(stats.highest_bid) }}
+                            </div>
+                            <div class="mt-0.5 text-[10px] text-[#8e9f93]">sponsor tertinggi</div>
+                        </div>
+                    </div>
+                </template>
+
+                <div v-if="canLoadMoreLeaderboard" class="mt-4 flex justify-center">
+                    <button
+                        type="button"
+                        class="inline-flex min-h-11 items-center justify-center rounded-full border border-[#cfdccc] bg-white px-5 py-2 text-xs font-bold text-[#24543a] shadow-xs transition hover:border-[#8cb896] hover:bg-[#f0f7f0]"
+                        @click="loadMoreLeaderboard"
+                    >
+                        Muat 25 peringkat lagi
+                    </button>
                 </div>
             </div>
 

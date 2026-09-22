@@ -183,6 +183,33 @@ test('homepage includes sponsor teaser with active board data', function () {
         );
 });
 
+test('homepage falls back to all-time sponsor teaser when the active week is empty', function () {
+    $service = app(SponsorLeaderboardService::class);
+    $service->getActivePeriod();
+    $pastPeriod = SponsorPeriod::factory()->create([
+        'key' => 'past-period',
+        'status' => SponsorPeriodStatus::Closed,
+    ]);
+    $entity = Entity::factory()->create(['status' => EntityStatus::Active, 'searchable' => true]);
+
+    SponsoredEntry::factory()->create([
+        'period_id' => $pastPeriod->id,
+        'entity_id' => $entity->id,
+        'settled_total_amount' => 80000,
+        'status' => SponsoredEntryStatus::Active,
+    ]);
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Welcome')
+            ->where('sponsorTeaser.period_key', SponsorLeaderboardService::ALL_TIME_KEY)
+            ->where('sponsorTeaser.period_name', 'Semua Waktu')
+            ->where('sponsorTeaser.top_entry.name', $entity->name)
+            ->where('sponsorTeaser.total_settled_amount', 80000)
+        );
+});
+
 test('homepage sponsor teaser is limited to ranks 1 through 10', function () {
     $service = app(SponsorLeaderboardService::class);
     $period = $service->getActivePeriod();
@@ -317,6 +344,32 @@ test('sponsor board page ?period=all renders the archive board without crashing'
             ->component('Sponsor/Index')
             ->where('selectedPeriod.key', 'all')
             ->has('leaderboard', 1)
+        );
+});
+
+test('leaderboard page defaults to all-time when the active week is empty', function () {
+    $service = app(SponsorLeaderboardService::class);
+    $service->getActivePeriod();
+    $pastPeriod = SponsorPeriod::factory()->create([
+        'key' => 'past-period',
+        'status' => SponsorPeriodStatus::Closed,
+    ]);
+    $entity = Entity::factory()->create(['status' => EntityStatus::Active, 'searchable' => true]);
+
+    SponsoredEntry::factory()->create([
+        'period_id' => $pastPeriod->id,
+        'entity_id' => $entity->id,
+        'settled_total_amount' => 60000,
+        'status' => SponsoredEntryStatus::Active,
+    ]);
+
+    $this->get(route('leaderboard.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Sponsor/Index')
+            ->where('selectedPeriod.key', SponsorLeaderboardService::ALL_TIME_KEY)
+            ->where('leaderboard.0.entity_id', $entity->id)
+            ->where('stats.total_amount', 60000)
         );
 });
 

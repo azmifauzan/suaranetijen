@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { AlertCircle, CheckCircle, Pause, Play, Trash2 } from 'lucide-vue-next';
+import { AlertCircle, CheckCircle, Pause, Play, Trash2 } from '@lucide/vue';
 
 interface PeriodItem {
     id: number;
