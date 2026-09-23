@@ -22,7 +22,6 @@ import {
     Star,
     Trophy,
     Wifi,
-    Zap,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import EntitySearch from '@/components/EntitySearch.vue';
@@ -62,14 +61,20 @@ interface SearchSuggestion {
 interface SponsorTeaserItem {
     id: number;
     rank: number;
+    entity_id?: number;
     name: string;
     slug: string;
+    type_label?: string;
     category_name: string;
     website_url?: string | null;
     description?: string | null;
     settled_total_amount: number;
     clicks_count?: number;
     views_count?: number;
+    sentiment_score?: number | null;
+    opinion_count?: number;
+    rating_average?: number | null;
+    rating_count?: number;
 }
 
 interface SponsorTeaser {
@@ -135,6 +140,10 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
 
     return 'Contoh pencarian';
 }
+
+function formatRupiah(amount: number): string {
+    return 'Rp' + amount.toLocaleString('id-ID');
+}
 </script>
 
 <template>
@@ -194,14 +203,35 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                     </p>
                     <div class="mx-auto mt-5 max-w-4xl"><EntitySearch /></div>
 
-                    <!-- Top 3 Leaderboard Podium below search box -->
+                    <!-- Search suggestions directly under search input -->
+                    <div
+                        class="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-[#667861]"
+                    >
+                        <span class="mr-1">Coba cari:</span>
+                        <Link
+                            v-for="suggestion in displayedSuggestions"
+                            :key="suggestion.query"
+                            :href="
+                                searchPage({
+                                    query: { q: suggestion.query },
+                                })
+                            "
+                            :title="suggestionTitle(suggestion.source)"
+                            class="flex items-center gap-1 rounded-full border border-[#d8e4d1] bg-white/65 px-3 py-1.5 transition hover:border-[#81ad83] hover:bg-white"
+                        >
+                            {{ suggestion.query }}
+                            <ArrowUpRight class="size-3" />
+                        </Link>
+                    </div>
+
+                    <!-- Top 3 Leaderboard Podium below search box (Compact & Antislop) -->
                     <div
                         v-if="sponsorTeaser && !sponsorTeaser.is_empty && sponsorTeaser.top_entries && sponsorTeaser.top_entries.length > 0"
-                        class="mx-auto mt-4 max-w-5xl text-left"
+                        class="mx-auto mt-4 max-w-4xl text-left"
                     >
                         <div class="mb-2 flex items-center justify-between gap-2 px-1">
                             <div class="flex items-center gap-2">
-                                <span class="inline-flex items-center gap-1.5 rounded-full border border-[#f3d39e] bg-[#fffaf0] px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-[#92400e] uppercase">
+                                <span class="inline-flex items-center gap-1.5 rounded-full border border-[#dfd3be] bg-[#fffcf5] px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-[#92400e] uppercase">
                                     <Trophy class="size-3 text-[#d97706]" />
                                     Top 3 Leaderboard
                                 </span>
@@ -211,110 +241,138 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                             </div>
                             <Link
                                 :href="leaderboardPage()"
-                                class="inline-flex items-center gap-1 text-[11px] font-bold text-[#92400e] hover:text-[#d97706]"
+                                class="inline-flex items-center text-[11px] font-bold text-[#92400e] hover:text-[#d97706]"
                             >
-                                Buka Leaderboard <ArrowRight class="size-3" />
+                                Buka Leaderboard
                             </Link>
                         </div>
 
-                        <div class="space-y-2">
+                        <div class="space-y-1.5">
                             <div
                                 v-for="entry in sponsorTeaser.top_entries.slice(0, 3)"
                                 :key="entry.id"
-                                class="relative flex flex-wrap items-center gap-2.5 rounded-xl border px-3 py-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:flex-nowrap sm:gap-3"
+                                class="flex flex-col gap-2 rounded-xl border bg-white px-3 py-2 transition hover:border-[#8ab591] sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                                 :class="
                                     entry.rank === 1
-                                        ? 'border-[#ecd5aa] bg-gradient-to-b from-[#fffbf0] via-white to-white shadow-xs ring-1 ring-[#f4d9a6]'
+                                        ? 'border-[#f2ddb3] bg-[#fffefb]'
                                         : entry.rank === 2
-                                          ? 'border-[#d6e0d8] bg-gradient-to-b from-[#f9faf9] via-white to-white shadow-xs'
-                                          : 'border-[#e6dccf] bg-gradient-to-b from-[#fdfbf9] via-white to-white shadow-xs'
+                                          ? 'border-[#dce4dd] bg-white'
+                                          : 'border-[#e8dfd5] bg-white'
                                 "
                             >
-                                <span
-                                    class="inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-black shadow-xs"
-                                    :class="
-                                        entry.rank === 1
-                                            ? 'bg-[#fef3c7] text-[#92400e] border border-[#fde68a]'
-                                            : entry.rank === 2
-                                              ? 'bg-[#e2e8f0] text-[#334155] border border-[#cbd5e1]'
-                                              : 'bg-[#ffedd5] text-[#9a3412] border border-[#fed7aa]'
-                                    "
-                                >
-                                    #{{ entry.rank }}
-                                </span>
-                                <img
-                                    v-if="getFaviconUrl(entry.website_url)"
-                                    :src="getFaviconUrl(entry.website_url)!"
-                                    :alt="entry.name"
-                                    class="size-6 shrink-0 rounded-md border border-black/10 bg-white object-contain p-0.5"
-                                    loading="lazy"
-                                    @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
-                                />
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex min-w-0 items-center gap-1.5">
-                                        <Link
-                                            :href="showEntity(entry.slug)"
-                                            class="truncate text-sm font-bold text-[#18392d] hover:text-[#087f5b]"
-                                        >
-                                            {{ entry.name }}
-                                        </Link>
-                                        <span class="hidden truncate rounded-md bg-black/5 px-2 py-0.5 text-[10px] font-medium text-[#5a6b60] sm:inline">
-                                            {{ entry.category_name }}
-                                        </span>
-                                    </div>
-                                    <p
-                                        v-if="entry.description"
-                                        class="hidden truncate text-[11px] leading-4 text-[#55695a] lg:block"
+                                <!-- Left: Rank, Favicon, Name, Category, Description -->
+                                <div class="flex min-w-0 flex-1 items-start gap-2.5">
+                                    <span
+                                        class="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-black"
+                                        :class="
+                                            entry.rank === 1
+                                                ? 'bg-[#fef3c7] text-[#92400e] border border-[#fde68a]'
+                                                : entry.rank === 2
+                                                  ? 'bg-[#e2e8f0] text-[#334155] border border-[#cbd5e1]'
+                                                  : 'bg-[#ffedd5] text-[#9a3412] border border-[#fed7aa]'
+                                        "
                                     >
-                                        {{ entry.description }}
-                                    </p>
+                                        #{{ entry.rank }}
+                                    </span>
+
+                                    <img
+                                        v-if="getFaviconUrl(entry.website_url)"
+                                        :src="getFaviconUrl(entry.website_url)!"
+                                        :alt="entry.name"
+                                        class="size-6 shrink-0 rounded-md border border-black/10 bg-white object-contain p-0.5"
+                                        loading="lazy"
+                                        @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
+                                    />
+
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex min-w-0 items-center gap-1.5">
+                                            <Link
+                                                :href="showEntity(entry.slug)"
+                                                class="truncate text-sm font-bold text-[#18392d] hover:text-[#087f5b]"
+                                            >
+                                                {{ entry.name }}
+                                            </Link>
+                                            <span class="shrink-0 rounded-md bg-black/5 px-2 py-0.5 text-[10px] font-medium text-[#5a6b60]">
+                                                {{ entry.category_name }}
+                                            </span>
+                                        </div>
+                                        <p
+                                            v-if="entry.description"
+                                            class="mt-0.5 truncate text-[11px] leading-4 text-[#55695a]"
+                                        >
+                                            {{ entry.description }}
+                                        </p>
+                                    </div>
                                 </div>
 
-                                <div class="flex shrink-0 items-center gap-2 text-right">
-                                    <div>
-                                        <div class="text-xs font-extrabold text-[#92400e]">
-                                            Rp{{ entry.settled_total_amount.toLocaleString('id-ID') }}
-                                        </div>
-                                        <span class="hidden text-[9px] font-medium tracking-wide text-[#9a6a24] uppercase sm:block">
-                                            Total Sponsor
+                                <!-- Right: Stats (Mobile & Desktop) + Total Sponsor + Actions -->
+                                <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-t border-[#edf1ec] pt-1.5 sm:border-0 sm:pt-0 sm:justify-end">
+                                    <!-- Key Stats (ALWAYS VISIBLE on Mobile and Desktop) -->
+                                    <div class="flex items-center gap-2 text-[11px] text-[#55695a]">
+                                        <span
+                                            v-if="typeof entry.sentiment_score === 'number'"
+                                            class="inline-flex items-center gap-0.5 font-bold text-[#1e6b42]"
+                                            title="Sentimen Netijen"
+                                        >
+                                            Sentimen {{ entry.sentiment_score.toLocaleString('id-ID', { maximumFractionDigits: 1 }) }}
                                         </span>
-                                    </div>
-                                    <div class="hidden items-center gap-2 text-[10px] text-[#637568] lg:flex">
+                                        <span v-else class="text-[#718274]">Tanpa skor</span>
+
+                                        <span>•</span>
+
                                         <span class="inline-flex items-center gap-1" title="Kunjungan detail">
                                             <Eye class="size-3 text-[#2563eb]" />
-                                            {{ entry.views_count || 0 }}
+                                            {{ (entry.views_count || 0).toLocaleString('id-ID') }}
                                         </span>
+
                                         <span>•</span>
-                                        <span class="inline-flex items-center gap-1" title="Klik website">
+
+                                        <span class="inline-flex items-center gap-1" title="Klik website resmi">
                                             <MousePointerClick class="size-3 text-[#087f5b]" />
-                                            {{ entry.clicks_count || 0 }} klik
+                                            {{ (entry.clicks_count || 0).toLocaleString('id-ID') }} klik
+                                        </span>
+
+                                        <template v-if="entry.rating_average">
+                                            <span>•</span>
+                                            <span class="inline-flex items-center gap-1 text-[#92400e]" title="Rating Netijen">
+                                                <Star class="size-3 fill-[#d97706] text-[#d97706]" />
+                                                <strong class="font-bold">{{ entry.rating_average.toFixed(1) }}</strong>
+                                            </span>
+                                        </template>
+                                    </div>
+
+                                    <!-- Total Sponsor -->
+                                    <div class="text-right">
+                                        <span class="text-xs font-black text-[#92400e] sm:text-sm">
+                                            {{ formatRupiah(entry.settled_total_amount) }}
                                         </span>
                                     </div>
-                                </div>
 
-                                <div class="flex w-full shrink-0 items-center gap-1.5 sm:w-auto">
-                                    <a
-                                        :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'homepage_spotlight' })"
-                                        :ping="`/api/sponsor/click/${entry.slug}`"
-                                        target="_blank"
-                                        rel="noopener"
-                                        class="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-[#d5f5df] px-2 py-1 text-[10px] font-bold text-[#145736] transition hover:bg-[#bceccb] sm:flex-none"
-                                        @click="trackSponsorClick(entry.slug, { placement: 'homepage_spotlight', url: entry.website_url || undefined })"
-                                    >
-                                        Buka Situs <ArrowUpRight class="size-3" />
-                                    </a>
-                                    <Link
-                                        :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1}#formSection`"
-                                        class="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2 py-1 text-[10px] font-bold text-[#92400e] transition hover:bg-[#fef3c7] sm:flex-none"
-                                    >
-                                        <Zap class="size-3 text-[#d97706]" />
-                                        Rebut #{{ entry.rank }}
-                                    </Link>
+                                    <!-- Actions -->
+                                    <div class="flex items-center gap-1.5">
+                                        <a
+                                            :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'homepage_spotlight' })"
+                                            :ping="`/api/sponsor/click/${entry.slug}`"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="inline-flex min-h-8 items-center justify-center rounded-lg bg-[#eaf7ee] px-2.5 py-1 text-xs font-bold text-[#145736] transition hover:bg-[#d6f0dd]"
+                                            @click="trackSponsorClick(entry.slug, { placement: 'homepage_spotlight', url: entry.website_url || undefined })"
+                                        >
+                                            Buka Situs
+                                        </a>
+                                        <Link
+                                            :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1}#formSection`"
+                                            class="inline-flex min-h-8 items-center justify-center rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-1 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
+                                        >
+                                            Rebut #{{ entry.rank }}
+                                        </Link>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Empty state if no sponsor -->
                     <div v-else class="mt-4">
                         <Link
                             :href="leaderboardPage()"
@@ -325,24 +383,6 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                             <span class="text-[#b45309] font-medium">— Jadilah #1 sekarang!</span>
                             <ArrowRight class="size-3 text-[#b45309]" />
                         </Link>
-                    </div>
-
-                    <div
-                        class="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-[#667861]"
-                    >
-                        <span class="mr-1">Coba cari:</span
-                        ><Link
-                            v-for="suggestion in displayedSuggestions"
-                            :key="suggestion.query"
-                            :href="
-                                searchPage({
-                                    query: { q: suggestion.query },
-                                })
-                            "
-                            :title="suggestionTitle(suggestion.source)"
-                            class="flex items-center gap-1 rounded-full border border-[#d8e4d1] bg-white/65 px-3 py-1.5 transition hover:border-[#81ad83] hover:bg-white"
-                            >{{ suggestion.query }}<ArrowUpRight class="size-3"
-                        /></Link>
                     </div>
                 </div>
             </section>
@@ -371,166 +411,183 @@ function suggestionTitle(source: SearchSuggestion['source']): string {
                 class="border-y border-[#d7e6d2] bg-[#f9fcf6]"
                 aria-labelledby="top-leaderboard-heading"
             >
-                <div class="mx-auto max-w-6xl px-5 pt-7 pb-4 sm:px-8 sm:pt-10 sm:pb-5">
+                <div class="mx-auto max-w-6xl px-5 pt-6 pb-6 sm:px-8 sm:pt-8 sm:pb-8">
                     <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                        <div
-                            class="mb-1.5 inline-flex items-center gap-1.5 rounded-full border border-[#edd7b6] bg-[#fffaf0] px-3 py-1 text-[11px] font-bold tracking-wider text-[#92400e] uppercase"
-                        >
-                            <Trophy class="size-3.5 text-[#d97706]" />
-                            Leaderboard SuaraNetijen
+                        <div>
+                            <div class="mb-1 inline-flex items-center gap-1.5 rounded-full border border-[#dfd3be] bg-[#fffcf5] px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-[#92400e] uppercase">
+                                <Trophy class="size-3 text-[#d97706]" />
+                                Leaderboard SuaraNetijen
+                            </div>
+                            <h2
+                                id="top-leaderboard-heading"
+                                class="text-xl font-bold tracking-tight text-[#18392d] sm:text-2xl"
+                            >
+                                Leaderboard (#4 – #10)
+                            </h2>
+                            <p class="mt-0.5 text-xs text-[#61725f] sm:text-sm">
+                                Brand, produk, dan layanan di peringkat #4 sampai #10 periode {{ sponsorTeaser?.period_name || 'Minggu Ini' }}.
+                            </p>
                         </div>
-                        <h2
-                            id="top-leaderboard-heading"
-                            class="text-2xl font-bold tracking-tight text-[#18392d] sm:text-3xl"
+                        <Link
+                            :href="leaderboardPage()"
+                            class="inline-flex items-center rounded-lg border border-[#dfcca9] bg-white px-3.5 py-1.5 text-xs font-bold text-[#92400e] shadow-2xs transition hover:border-[#d97706] hover:bg-[#fffbf2]"
                         >
-                            Leaderboard (#4 – #10)
-                        </h2>
-                        <p class="mt-1 text-xs text-[#61725f] sm:text-sm">
-                            Brand, produk, dan layanan di peringkat #4 sampai #10 periode {{ sponsorTeaser?.period_name || 'Minggu Ini' }}.
-                        </p>
-                    </div>
-                    <Link
-                        :href="leaderboardPage()"
-                        class="inline-flex items-center gap-1.5 rounded-full border border-[#dfcca9] bg-white px-4 py-2 text-xs font-bold text-[#92400e] shadow-xs transition hover:border-[#d97706] hover:bg-[#fffbf2]"
-                    >
-                        Lihat Semua Peringkat & Ikut Sponsor <ArrowRight class="size-3.5" />
-                    </Link>
+                            Lihat Semua Peringkat & Ikut Sponsor
+                        </Link>
                     </div>
 
                     <!-- Active Listings (#4 - #10) -->
                     <div
                         v-if="sponsorTeaser && !sponsorTeaser.is_empty && sponsorTeaser.top_entries.slice(3, 10).length > 0"
-                        class="grid grid-cols-1 gap-2"
+                        class="space-y-1.5"
                     >
-                    <div
-                        v-for="entry in sponsorTeaser.top_entries.slice(3, 10)"
-                        :key="entry.id"
-                        class="group relative flex flex-wrap items-center gap-2.5 rounded-xl border border-[#e2e7df] bg-white px-3 py-2 transition-all duration-200 hover:border-[#b8cfbe] hover:shadow-md sm:flex-nowrap sm:gap-3"
-                    >
-                        <span
-                            class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#f1f5f0] text-xs font-black text-[#4d5e52] shadow-xs"
+                        <div
+                            v-for="entry in sponsorTeaser.top_entries.slice(3, 10)"
+                            :key="entry.id"
+                            class="flex flex-col gap-2 rounded-xl border border-[#e2e7df] bg-white px-3 py-2 transition hover:border-[#b8cfbe] sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                         >
-                            #{{ entry.rank }}
-                        </span>
-                        <img
-                            v-if="getFaviconUrl(entry.website_url)"
-                            :src="getFaviconUrl(entry.website_url)!"
-                            :alt="entry.name"
-                            class="size-6 shrink-0 rounded-md border border-black/10 bg-white object-contain p-0.5"
-                            loading="lazy"
-                            @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
-                        />
-                        <div class="min-w-0 flex-1">
-                            <div class="flex min-w-0 items-center gap-1.5">
-                                <Link
-                                    :href="showEntity(entry.slug)"
-                                    class="truncate text-sm font-bold text-[#18392d] hover:text-[#087f5b]"
+                            <!-- Left: Rank, Favicon, Name, Category, Description -->
+                            <div class="flex min-w-0 flex-1 items-start gap-2.5">
+                                <span
+                                    class="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-[#f1f5f0] text-xs font-black text-[#4d5e52] border border-[#e2e7df]"
                                 >
-                                    {{ entry.name }}
-                                </Link>
-                                <span class="hidden truncate rounded-md bg-black/5 px-2 py-0.5 text-[10px] font-medium text-[#5a6b60] sm:inline">
-                                    {{ entry.category_name }}
+                                    #{{ entry.rank }}
                                 </span>
-                            </div>
-                            <p
-                                v-if="entry.description"
-                                class="hidden truncate text-[11px] leading-4 text-[#55695a] lg:block"
-                            >
-                                {{ entry.description }}
-                            </p>
-                        </div>
-
-                        <div class="flex shrink-0 items-center gap-2 text-right">
-                            <div>
-                                <div class="text-xs font-extrabold text-[#92400e]">
-                                    Rp{{ entry.settled_total_amount.toLocaleString('id-ID') }}
+                                <img
+                                    v-if="getFaviconUrl(entry.website_url)"
+                                    :src="getFaviconUrl(entry.website_url)!"
+                                    :alt="entry.name"
+                                    class="size-6 shrink-0 rounded-md border border-black/10 bg-white object-contain p-0.5"
+                                    loading="lazy"
+                                    @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
+                                />
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex min-w-0 items-center gap-1.5">
+                                        <Link
+                                            :href="showEntity(entry.slug)"
+                                            class="truncate text-sm font-bold text-[#18392d] hover:text-[#087f5b]"
+                                        >
+                                            {{ entry.name }}
+                                        </Link>
+                                        <span class="shrink-0 rounded-md bg-black/5 px-2 py-0.5 text-[10px] font-medium text-[#5a6b60]">
+                                            {{ entry.category_name }}
+                                        </span>
+                                    </div>
+                                    <p
+                                        v-if="entry.description"
+                                        class="mt-0.5 truncate text-[11px] leading-4 text-[#55695a]"
+                                    >
+                                        {{ entry.description }}
+                                    </p>
                                 </div>
-                                <span class="hidden text-[9px] font-medium tracking-wide text-[#9a6a24] uppercase sm:block">
-                                    Total Sponsor
-                                </span>
                             </div>
-                            <div class="hidden items-center gap-2 text-[10px] text-[#637568] lg:flex">
-                                <span class="inline-flex items-center gap-1" title="Kunjungan detail">
-                                    <Eye class="size-3 text-[#2563eb]" />
-                                    {{ entry.views_count || 0 }}
-                                </span>
-                                <span>•</span>
-                                <span class="inline-flex items-center gap-1" title="Klik website">
-                                    <MousePointerClick class="size-3 text-[#087f5b]" />
-                                    {{ entry.clicks_count || 0 }} klik
-                                </span>
+
+                            <!-- Right: Stats (Mobile & Desktop) + Total Sponsor + Actions -->
+                            <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-t border-[#edf1ec] pt-1.5 sm:border-0 sm:pt-0 sm:justify-end">
+                                <!-- Stats -->
+                                <div class="flex items-center gap-2 text-[11px] text-[#55695a]">
+                                    <span
+                                        v-if="typeof entry.sentiment_score === 'number'"
+                                        class="inline-flex items-center gap-0.5 font-bold text-[#1e6b42]"
+                                        title="Sentimen Netijen"
+                                    >
+                                        Sentimen {{ entry.sentiment_score.toLocaleString('id-ID', { maximumFractionDigits: 1 }) }}
+                                    </span>
+                                    <span v-else class="text-[#718274]">Tanpa skor</span>
+
+                                    <span>•</span>
+
+                                    <span class="inline-flex items-center gap-1" title="Kunjungan detail">
+                                        <Eye class="size-3 text-[#2563eb]" />
+                                        {{ (entry.views_count || 0).toLocaleString('id-ID') }}
+                                    </span>
+
+                                    <span>•</span>
+
+                                    <span class="inline-flex items-center gap-1" title="Klik website resmi">
+                                        <MousePointerClick class="size-3 text-[#087f5b]" />
+                                        {{ (entry.clicks_count || 0).toLocaleString('id-ID') }} klik
+                                    </span>
+
+                                    <template v-if="entry.rating_average">
+                                        <span>•</span>
+                                        <span class="inline-flex items-center gap-1 text-[#92400e]" title="Rating Netijen">
+                                            <Star class="size-3 fill-[#d97706] text-[#d97706]" />
+                                            <strong class="font-bold">{{ entry.rating_average.toFixed(1) }}</strong>
+                                        </span>
+                                    </template>
+                                </div>
+
+                                <!-- Total Sponsor -->
+                                <div class="text-right">
+                                    <span class="text-xs font-black text-[#92400e] sm:text-sm">
+                                        {{ formatRupiah(entry.settled_total_amount) }}
+                                    </span>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="flex items-center gap-1.5">
+                                    <a
+                                         :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'homepage_table' })"
+                                         :ping="`/api/sponsor/click/${entry.slug}`"
+                                         target="_blank"
+                                         rel="noopener"
+                                         class="inline-flex min-h-8 items-center justify-center rounded-lg bg-[#eaf7ee] px-2.5 py-1 text-xs font-bold text-[#145736] transition hover:bg-[#d6f0dd]"
+                                         @click="trackSponsorClick(entry.slug, { placement: 'homepage_table', url: entry.website_url || undefined })"
+                                     >
+                                         Buka Situs
+                                     </a>
+                                     <Link
+                                         :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1}#formSection`"
+                                         class="inline-flex min-h-8 items-center justify-center rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-1 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
+                                     >
+                                         Rebut #{{ entry.rank }}
+                                     </Link>
+                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="flex w-full shrink-0 items-center gap-1.5 sm:w-auto">
-                            <a
-                                :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'homepage_table' })"
-                                :ping="`/api/sponsor/click/${entry.slug}`"
-                                target="_blank"
-                                rel="noopener"
-                                class="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-[#d5f5df] px-2 py-1 text-[10px] font-bold text-[#145736] transition hover:bg-[#bceccb] sm:flex-none"
-                                @click="trackSponsorClick(entry.slug, { placement: 'homepage_table', url: entry.website_url || undefined })"
-                            >
-                                Buka Situs <ArrowUpRight class="size-3" />
-                            </a>
+                    <!-- Spot #4 - #10 Open State (when <= 3 entries exist on the board) -->
+                    <div
+                        v-else-if="sponsorTeaser && !sponsorTeaser.is_empty"
+                        class="rounded-xl border border-dashed border-[#dfcca9] bg-white p-5 text-center sm:p-6"
+                    >
+                        <h3 class="text-sm font-bold text-[#2d2212] sm:text-base">
+                            Posisi #4 – #10 Masih Terbuka
+                        </h3>
+                        <p class="mx-auto mt-1 max-w-md text-xs leading-relaxed text-[#7c694e] sm:text-sm">
+                            Baru ada {{ sponsorTeaser.top_entries.length }} sponsor di papan peringkat. Daftarkan brand, produk, atau websitemu sekarang untuk langsung mengamankan posisi di leaderboard!
+                        </p>
+                        <div class="mt-3">
                             <Link
-                                :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1}#formSection`"
-                                class="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2 py-1 text-[10px] font-bold text-[#92400e] transition hover:bg-[#fef3c7] sm:flex-none"
+                                :href="leaderboardPage()"
+                                class="inline-flex items-center justify-center rounded-lg bg-[#d97706] px-4 py-2 text-xs font-bold text-white shadow-2xs transition hover:bg-[#b45309]"
                             >
-                                <Zap class="size-3 text-[#d97706]" />
-                                Rebut #{{ entry.rank }}
+                                Amankan Posisi Sekarang
                             </Link>
                         </div>
                     </div>
-                </div>
 
-                <!-- Spot #4 - #10 Open State (when <= 3 entries exist on the board) -->
-                <div
-                    v-else-if="sponsorTeaser && !sponsorTeaser.is_empty"
-                    class="rounded-3xl border border-dashed border-[#e6cb9d] bg-gradient-to-r from-[#fffaf2] to-[#fffdfa] p-8 text-center sm:p-10"
-                >
-                    <div class="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#fef3c7] text-[#b45309]">
-                        <Sparkles class="size-7" />
-                    </div>
-                    <h3 class="mt-4 text-lg font-bold text-[#3d2c14]">
-                        Posisi #4 – #10 Masih Terbuka
-                    </h3>
-                    <p class="mx-auto mt-1 max-w-md text-xs leading-relaxed text-[#7c694e] sm:text-sm">
-                        Baru ada {{ sponsorTeaser.top_entries.length }} sponsor di papan peringkat. Daftarkan brand, produk, atau websitemu sekarang untuk langsung mengamankan posisi di leaderboard!
-                    </p>
-                    <div class="mt-5">
-                        <Link
-                            :href="leaderboardPage()"
-                            class="inline-flex items-center gap-2 rounded-full bg-[#d97706] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#b45309]"
-                        >
-                            Amankan Posisi Sekarang <ArrowRight class="size-4" />
-                        </Link>
-                    </div>
-                </div>
-
-                <!-- Empty State Invite -->
-                <div
-                    v-else
-                    class="rounded-3xl border border-dashed border-[#e6cb9d] bg-gradient-to-r from-[#fffaf2] to-[#fffdfa] p-8 text-center sm:p-10"
-                >
-                    <div class="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[#fef3c7] text-[#b45309]">
-                        <Trophy class="size-7" />
-                    </div>
-                    <h3 class="mt-4 text-lg font-bold text-[#3d2c14]">
-                        Leaderboard periode ini masih kosong
-                    </h3>
-                    <p class="mx-auto mt-1 max-w-md text-xs leading-relaxed text-[#7c694e] sm:text-sm">
-                        Jadilah brand, produk, atau layanan pertama yang tampil di peringkat teratas SuaraNetijen dan dapatkan exposure langsung ke ribuan pengunjung.
-                    </p>
-                    <div class="mt-5">
-                        <Link
-                            :href="leaderboardPage()"
-                            class="inline-flex items-center gap-2 rounded-full bg-[#d97706] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#b45309]"
-                        >
-                            Sponsori Sekarang <ArrowRight class="size-4" />
-                        </Link>
-                    </div>
+                    <!-- Empty State Invite -->
+                    <div
+                        v-else
+                        class="rounded-xl border border-dashed border-[#dfcca9] bg-white p-5 text-center sm:p-6"
+                    >
+                        <h3 class="text-sm font-bold text-[#2d2212] sm:text-base">
+                            Leaderboard periode ini masih kosong
+                        </h3>
+                        <p class="mx-auto mt-1 max-w-md text-xs leading-relaxed text-[#7c694e] sm:text-sm">
+                            Jadilah brand, produk, atau layanan pertama yang tampil di peringkat teratas SuaraNetijen dan dapatkan exposure langsung ke ribuan pengunjung.
+                        </p>
+                        <div class="mt-3">
+                            <Link
+                                :href="leaderboardPage()"
+                                class="inline-flex items-center justify-center rounded-lg bg-[#d97706] px-4 py-2 text-xs font-bold text-white shadow-2xs transition hover:bg-[#b45309]"
+                            >
+                                Sponsori Sekarang
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </section>
