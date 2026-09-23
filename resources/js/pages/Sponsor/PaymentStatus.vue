@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { AlertCircle, ArrowRight, CheckCircle2, Clock, RefreshCw, Trophy } from '@lucide/vue';
+import {
+    AlertCircle,
+    ArrowRight,
+    CheckCircle2,
+    Clock,
+    RefreshCw,
+    Trophy,
+} from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import PublicSeo from '@/components/PublicSeo.vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
@@ -29,11 +36,13 @@ const isChecking = ref(false);
 const isRedirecting = ref(false);
 const pollError = ref<string | null>(null);
 const lastCheckedAt = ref<Date | null>(null);
-const pollIntervalMs = 30_000;
+const pollIntervalMs = 10_000;
 let pollTimer: number | null = null;
 
 const isPaid = computed(() => status.value === 'paid');
-const isTerminal = computed(() => ['failed', 'expired', 'refunded'].includes(status.value));
+const isTerminal = computed(() =>
+    ['failed', 'expired', 'refunded'].includes(status.value),
+);
 
 function formatRupiah(amount: number): string {
     return 'Rp' + amount.toLocaleString('id-ID');
@@ -80,7 +89,8 @@ async function checkOrderStatus(): Promise<void> {
             redirectToLeaderboard();
         }
     } catch {
-        pollError.value = 'Pengecekan belum berhasil. Kami akan mencoba lagi otomatis.';
+        pollError.value =
+            'Pengecekan belum berhasil. Kami akan mencoba lagi otomatis.';
     } finally {
         isChecking.value = false;
     }
@@ -95,7 +105,10 @@ onMounted(() => {
     if (isTerminal.value) return;
 
     void checkOrderStatus();
-    pollTimer = window.setInterval(() => void checkOrderStatus(), pollIntervalMs);
+    pollTimer = window.setInterval(
+        () => void checkOrderStatus(),
+        pollIntervalMs,
+    );
 });
 
 onBeforeUnmount(stopPolling);
@@ -110,8 +123,12 @@ onBeforeUnmount(stopPolling);
             robots="noindex, nofollow"
         />
 
-        <main class="mx-auto flex max-w-3xl justify-center px-5 py-12 sm:px-8 sm:py-20">
-            <section class="w-full rounded-3xl border border-[#e5e9e2] bg-white p-6 text-center shadow-sm sm:p-10">
+        <main
+            class="mx-auto flex max-w-3xl justify-center px-5 py-12 sm:px-8 sm:py-20"
+        >
+            <section
+                class="w-full rounded-3xl border border-[#e5e9e2] bg-white p-6 text-center shadow-sm sm:p-10"
+            >
                 <div
                     class="mx-auto flex size-16 items-center justify-center rounded-2xl"
                     :class="
@@ -127,10 +144,14 @@ onBeforeUnmount(stopPolling);
                     <RefreshCw v-else class="size-8 animate-spin" />
                 </div>
 
-                <p class="mt-6 text-xs font-bold tracking-[2px] text-[#d97706] uppercase">
+                <p
+                    class="mt-6 text-xs font-bold tracking-[2px] text-[#d97706] uppercase"
+                >
                     Pembayaran Sponsor SuaraNetijen
                 </p>
-                <h1 class="mt-2 text-2xl font-black tracking-tight text-[#18392d] sm:text-3xl">
+                <h1
+                    class="mt-2 text-2xl font-black tracking-tight text-[#18392d] sm:text-3xl"
+                >
                     {{
                         isPaid
                             ? 'Pembayaran diterima'
@@ -139,44 +160,74 @@ onBeforeUnmount(stopPolling);
                               : 'Sedang memeriksa pembayaran'
                     }}
                 </h1>
-                <p class="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#637568]">
+                <p
+                    class="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#637568]"
+                >
                     <template v-if="isPaid">
-                        Pembayaran sudah dikonfirmasi. Anda akan diarahkan ke leaderboard.
+                        Pembayaran sudah dikonfirmasi. Anda akan diarahkan ke
+                        leaderboard.
                     </template>
                     <template v-else-if="isTerminal">
-                        Status pembayaran saat ini: {{ statusLabel }}. Silakan coba kembali atau buka leaderboard.
+                        Status pembayaran saat ini: {{ statusLabel }}. Silakan
+                        coba kembali atau buka leaderboard.
                     </template>
                     <template v-else>
-                        Gateway pembayaran dan webhook sedang menyelesaikan konfirmasi. Halaman ini mengecek otomatis setiap 30 detik.
+                        Gateway pembayaran dan webhook sedang menyelesaikan
+                        konfirmasi. Halaman ini mengecek otomatis setiap 10
+                        detik.
                     </template>
                 </p>
 
-                <div class="mx-auto mt-8 max-w-md rounded-2xl border border-[#e5e9e2] bg-[#f8faf7] p-4 text-left text-sm">
+                <div
+                    class="mx-auto mt-8 max-w-md rounded-2xl border border-[#e5e9e2] bg-[#f8faf7] p-4 text-left text-sm"
+                >
                     <div class="flex items-center justify-between gap-4">
                         <span class="text-[#637568]">Entitas</span>
-                        <strong class="text-right text-[#18392d]">{{ order.entity_name }}</strong>
+                        <strong class="text-right text-[#18392d]">{{
+                            order.entity_name
+                        }}</strong>
                     </div>
                     <div class="mt-3 flex items-center justify-between gap-4">
                         <span class="text-[#637568]">Nominal</span>
-                        <strong class="text-[#92400e]">{{ formatRupiah(order.amount) }}</strong>
+                        <strong class="text-[#92400e]">{{
+                            formatRupiah(order.amount)
+                        }}</strong>
                     </div>
                     <div class="mt-3 flex items-center justify-between gap-4">
                         <span class="text-[#637568]">Status</span>
-                        <strong class="text-right text-[#18392d]">{{ statusLabel }}</strong>
+                        <strong class="text-right text-[#18392d]">{{
+                            statusLabel
+                        }}</strong>
                     </div>
                 </div>
 
-                <p v-if="isChecking" class="mt-5 inline-flex items-center gap-2 text-xs text-[#637568]" role="status" aria-live="polite">
+                <p
+                    v-if="isChecking"
+                    class="mt-5 inline-flex items-center gap-2 text-xs text-[#637568]"
+                    role="status"
+                    aria-live="polite"
+                >
                     <Clock class="size-3.5" /> Mengecek status terbaru...
                 </p>
-                <p v-else-if="lastCheckedAt && !isPaid" class="mt-5 text-xs text-[#7b8b80]" role="status" aria-live="polite">
+                <p
+                    v-else-if="lastCheckedAt && !isPaid"
+                    class="mt-5 text-xs text-[#7b8b80]"
+                    role="status"
+                    aria-live="polite"
+                >
                     Pengecekan terakhir baru saja dilakukan.
                 </p>
-                <p v-if="pollError" class="mt-3 text-xs text-[#b91c1c]" role="alert">
+                <p
+                    v-if="pollError"
+                    class="mt-3 text-xs text-[#b91c1c]"
+                    role="alert"
+                >
                     {{ pollError }}
                 </p>
 
-                <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+                <div
+                    class="mt-8 flex flex-col justify-center gap-3 sm:flex-row"
+                >
                     <a
                         v-if="!isPaid && paymentLinkUrl"
                         :href="paymentLinkUrl"

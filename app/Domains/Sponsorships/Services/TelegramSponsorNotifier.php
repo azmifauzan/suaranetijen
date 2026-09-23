@@ -41,12 +41,14 @@ class TelegramSponsorNotifier
     private function message(SponsorshipOrder $order, ?SponsoredEntry $entry): string
     {
         $entityName = $entry === null ? 'Entitas tidak diketahui' : $entry->entity->name;
+        $websiteUrl = $entry?->entity?->website_url ?: '-';
         $orderCode = $order->provider_order_id ?: "#{$order->id}";
         $paidAt = $order->paid_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i');
 
         return implode("\n", [
             '📣 SuaraNetijen | Paid Sponsor Berhasil',
             "Entitas: {$entityName}",
+            "Website: {$websiteUrl}",
             'Nominal: Rp '.number_format($order->amount, 0, ',', '.'),
             "Order: {$orderCode}",
             "Waktu: {$paidAt}",

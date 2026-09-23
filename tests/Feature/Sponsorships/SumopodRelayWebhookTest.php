@@ -369,7 +369,7 @@ test('payment.completed succeeds when amount includes customer-paid fee but net_
 
     $user = User::factory()->create();
     $period = SponsorPeriod::factory()->create();
-    $entity = Entity::factory()->create();
+    $entity = Entity::factory()->create(['website_url' => 'https://sponsor-web.example']);
 
     $entry = SponsoredEntry::factory()->create([
         'period_id' => $period->id,
@@ -425,6 +425,7 @@ test('payment.completed succeeds when amount includes customer-paid fee but net_
             && $data['chat_id'] === '-100123'
             && str_contains((string) $data['text'], 'SuaraNetijen')
             && str_contains((string) $data['text'], "Entitas: {$entity->name}")
+            && str_contains((string) $data['text'], 'Website: https://sponsor-web.example')
             && str_contains((string) $data['text'], 'Nominal: Rp 1.000');
     });
 });
