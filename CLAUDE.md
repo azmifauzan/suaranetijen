@@ -1618,6 +1618,29 @@ Added third distributed worker node to scale analysis and ingestion throughput a
   - Worker 3 (`103.194.173.186`, `hulwadev`): `worker-light` (analysis 2, pinned floor 1 for crawl/crawl-youtube/critical/maintenance)
 - **Verified live**: Workers distributed across Worker 1, Worker 2, and Worker 3 connecting to central Redis and PostgreSQL on staging host.
 
+## Staging redeployment: Leaderboard UI revamp & payment flow updates (24 September 2026)
+
+Full staging cluster redeployment with latest commits (`4d620fd`):
+
+- **Changes Deployed**:
+  - Leaderboard UI revamp to compact clean layout with preserved descriptions and direct backlinks.
+  - Payment status flow with 10s status polling and Telegram payment notifications.
+  - Google Analytics UTM parameters on outbound sponsor links.
+  - Type-safety and PHPStan fixes across controllers and notifications (`0 errors`).
+  - All 340 Pest feature/unit tests passing locally.
+- **Docker Image**: `azmifauzan/suaranetijen:latest` rebuilt and pushed to Docker Hub (`sha256:e291f815145f5a7d52aec581b3dd45a84a96648736828083d2a6afce82a7312e`).
+- **Cluster Deployment**:
+  - Main Staging Host (`103.194.172.114`): pulled latest image, recreated `suaranetijen-app` and `suaranetijen-scheduler`, reloaded `nginx-proxy`, ran migrations (no new migrations pending), and refreshed Laravel caches (`config:cache`, `route:cache`, `view:cache`).
+  - Worker 1 (`103.123.66.99`): pulled latest image, recreated `suaranetijen-horizon-worker` and `suaranetijen-flaresolverr`.
+  - Worker 2 (`103.217.144.115`): pulled latest image, recreated `suaranetijen-horizon-worker` and `suaranetijen-flaresolverr`.
+  - Worker 3 (`103.194.173.186`): pulled latest image, recreated `suaranetijen-horizon-worker` and `suaranetijen-flaresolverr`.
+- **Live Verification**:
+  - `https://suaranetijen.id/` -> HTTP 200
+  - `https://suaranetijen.id/up` -> HTTP 200
+  - `https://suaranetijen.id/leaderboard` -> HTTP 200
+  - `https://suaranetijen.id/api/search?q=samsung` -> HTTP 200 JSON
+  - Horizon running across all 3 distributed workers with 15 supervisors active and healthy.
+
 ## Document map
 
 | File | Purpose |
