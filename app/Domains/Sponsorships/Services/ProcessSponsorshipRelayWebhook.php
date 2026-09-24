@@ -206,7 +206,7 @@ class ProcessSponsorshipRelayWebhook
 
                     // Send payment confirmation notification to user
                     try {
-                        $order->user?->notify(new SponsorPaymentCompletedNotification($order, $entry));
+                        $order->user->notify(new SponsorPaymentCompletedNotification($order, $entry));
                     } catch (Throwable $mailEx) {
                         Log::error('Failed to send SponsorPaymentCompletedNotification', [
                             'order_id' => $order->id,

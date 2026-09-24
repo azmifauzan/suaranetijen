@@ -155,7 +155,7 @@ class SponsorBoardPageController extends Controller
         }
 
         foreach ($defaultParams as $key => $value) {
-            if (! isset($queryParams[$key]) && $value !== null && $value !== '') {
+            if (! isset($queryParams[$key]) && $value !== '') {
                 $queryParams[$key] = $value;
             }
         }

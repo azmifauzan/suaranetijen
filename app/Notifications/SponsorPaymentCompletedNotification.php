@@ -25,7 +25,7 @@ class SponsorPaymentCompletedNotification extends Notification
 
     public function toMail(User $notifiable): MailMessage
     {
-        $entityName = $this->entry?->entity?->name ?? 'Entitas';
+        $entityName = $this->entry?->entity->name ?? 'Entitas';
         $formattedAmount = 'Rp '.number_format($this->order->amount, 0, ',', '.');
         $leaderboardUrl = route('sponsor.index');
         $orderCode = $this->order->provider_order_id ?? "#{$this->order->id}";

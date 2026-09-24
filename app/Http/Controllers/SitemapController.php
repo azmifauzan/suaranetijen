@@ -113,7 +113,7 @@ class SitemapController extends Controller
             $snapshot = $entity->sentimentSnapshots->firstWhere('period', Period::OneYear->value)
                 ?? $entity->sentimentSnapshots->firstWhere('period', Period::All->value);
 
-            $lastmod = ($snapshot?->updated_at ?? $entity->updated_at)?->toIso8601String();
+            $lastmod = ($snapshot->updated_at ?? $entity->updated_at)?->toIso8601String();
 
             $urls[] = [
                 'loc' => "{$baseUrl}/e/{$entity->slug}",

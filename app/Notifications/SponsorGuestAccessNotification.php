@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\URL;
 
 class SponsorGuestAccessNotification extends Notification
 {
-    public function __construct(private readonly bool $isNewUser = true) {}
+    public function __construct(public readonly bool $isNewUser = true) {}
 
     /**
      * @return array<int, string>

@@ -123,7 +123,7 @@ class EntityShowController extends Controller
                 'id' => $r->id,
                 'rating' => (int) $r->rating,
                 'review' => $r->review,
-                'user_name' => $r->user?->name ?? 'Pengguna',
+                'user_name' => $r->user->name,
                 'created_at' => $r->created_at?->diffForHumans() ?? '',
             ]);
 
