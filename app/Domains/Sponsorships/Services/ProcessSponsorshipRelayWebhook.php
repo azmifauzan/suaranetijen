@@ -223,7 +223,7 @@ class ProcessSponsorshipRelayWebhook
                 ]);
             });
 
-            if ($completedOrder instanceof SponsorshipOrder) {
+            if ($completedOrder instanceof SponsorshipOrder && $environment === 'live' && app()->environment('production')) {
                 try {
                     $this->telegramSponsorNotifier->send($completedOrder, $completedEntry);
                 } catch (Throwable $telegramException) {

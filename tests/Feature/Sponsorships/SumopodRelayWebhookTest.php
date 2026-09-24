@@ -123,7 +123,7 @@ test('it successfully settles order and updates entry total on payment.completed
     expect($entry->status)->toBe(SponsoredEntryStatus::Active);
     expect($entry->first_settled_at)->not->toBeNull();
 
-    Http::assertSentCount(1);
+    Http::assertSentCount(0);
 
     $this->assertDatabaseHas('sponsorship_relay_events', [
         'svix_id' => 'svix_event_001',
@@ -402,6 +402,8 @@ test('payment.completed succeeds when amount includes customer-paid fee but net_
 
     $headers = createSignedHeaders(json_encode($payload), 'svix_fee_test');
 
+    $this->app['env'] = 'production';
+
     $this->postJson(route('api.sponsor.webhooks.relay'), $payload, $headers)->assertOk();
 
     $order->refresh();
@@ -428,4 +430,44 @@ test('payment.completed succeeds when amount includes customer-paid fee but net_
             && str_contains((string) $data['text'], 'Website: https://sponsor-web.example')
             && str_contains((string) $data['text'], 'Nominal: Rp 1.000');
     });
+});
+
+test('sandbox payment does not notify Telegram on production', function () {
+    Notification::fake();
+    config()->set('sponsorship.telegram.bot_token', 'test-bot-token');
+    config()->set('sponsorship.telegram.chat_id', '-100123');
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://api.telegram.org/bottest-bot-token/sendMessage' => Http::response(['ok' => true]),
+    ]);
+
+    $user = User::factory()->create();
+    $entry = SponsoredEntry::factory()->create([
+        'period_id' => SponsorPeriod::factory()->create()->id,
+        'entity_id' => Entity::factory()->create()->id,
+        'settled_total_amount' => 0,
+        'status' => SponsoredEntryStatus::Pending,
+    ]);
+    $order = SponsorshipOrder::factory()->create([
+        'sponsored_entry_id' => $entry->id,
+        'user_id' => $user->id,
+        'amount' => 1000,
+        'provider_order_id' => 'SNT-SPN-SANDBOX',
+        'provider_payment_id' => 'pay_sandbox',
+        'status' => SponsorshipOrderStatus::Pending,
+    ]);
+
+    $payload = [
+        'event_type' => 'payment.completed',
+        'data' => ['order_id' => 'SNT-SPN-SANDBOX', 'payment_id' => 'pay_sandbox', 'amount' => 1000],
+    ];
+    $headers = createSignedHeaders(json_encode($payload), 'svix_sandbox');
+    $headers['X-Webhook-Environment'] = 'sandbox';
+    $this->app['env'] = 'production';
+
+    $this->postJson(route('api.sponsor.webhooks.relay'), $payload, $headers)->assertOk();
+
+    expect($order->fresh()->status)->toBe(SponsorshipOrderStatus::Paid);
+    Http::assertSentCount(0);
 });
