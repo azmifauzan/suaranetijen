@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Entities\Jobs\EnrichEntityWebsiteJob;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Ingestion\Jobs\ClassifySentimentJob;
 use App\Domains\Sentiment\Enums\SentimentClass;
@@ -38,6 +39,8 @@ it('dispatches both sentiment observation and theme extraction from the same cla
         && $job->text === 'Pelayanannya sangat bagus dan memuaskan'
         && $job->sourceDocumentHash === $item->content_hash
         && $job->contextSentiment === SentimentClass::Positive);
+
+    Queue::assertPushed(EnrichEntityWebsiteJob::class, fn ($job) => $job->entityId === $entity->id);
 });
 
 it('does not dispatch theme extraction when the text is not an evaluation', function () {
@@ -60,5 +63,6 @@ it('does not dispatch theme extraction when the text is not an evaluation', func
 
     Queue::assertNotPushed(ExtractThemesJob::class);
     Queue::assertNotPushed(UpsertSentimentObservationJob::class);
+    Queue::assertNotPushed(EnrichEntityWebsiteJob::class);
     expect(UnmatchedMention::query()->value('reason'))->toBe('not_an_evaluation');
 });

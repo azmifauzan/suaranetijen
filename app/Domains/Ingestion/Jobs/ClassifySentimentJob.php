@@ -2,6 +2,7 @@
 
 namespace App\Domains\Ingestion\Jobs;
 
+use App\Domains\Entities\Jobs\EnrichEntityWebsiteJob;
 use App\Domains\Sentiment\Jobs\UpsertSentimentObservationJob;
 use App\Domains\Sentiment\Services\SentimentClassifier;
 use App\Domains\Sources\Enums\ProcessingState;
@@ -12,6 +13,7 @@ use App\Domains\Sources\Models\UnmatchedMention;
 use App\Domains\Themes\Jobs\ExtractThemesJob;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Cache;
 
 class ClassifySentimentJob implements ShouldQueue
 {
@@ -76,5 +78,9 @@ class ClassifySentimentJob implements ShouldQueue
             contextSentiment: $sentiment,
             publishedAt: $item->published_at
         );
+
+        if (Cache::add("enrich:website:{$this->entityId}", true, now()->addDays(7))) {
+            EnrichEntityWebsiteJob::dispatch($this->entityId);
+        }
     }
 }
