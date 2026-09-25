@@ -468,7 +468,7 @@ Current implementation boundary:
 | Wave-2 adapters (Epic 6) | `KaskusAdapter`, `YouTubeAdapter`, `LowEndTalkAdapter` implemented and verified against fixtures; seeded `enabled: false` pending a live operator preflight |
 | Entity matching, relevance, sentiment classifier (Epic 7) | implemented and verified for the Phase 3 slice; LLM fallback for ambiguous candidates not implemented |
 | Public score (Epic 8) | implemented and verified against real PostgreSQL |
-| Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds |
+| Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds, LLM theme extraction with evidence grounding, and Ringkasan Suara Netijen |
 | Scoring/ranking thresholds | `config/scoring.php`, mirrors `examples/score-config.yaml` |
 | `noindex` for below-threshold entities (`docs/13`) | not implemented — tracked gap (Epic 10) |
 | Google OAuth / email magic link (`docs/12`) | Fortify password + 2FA |

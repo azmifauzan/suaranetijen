@@ -28,6 +28,7 @@ class ThemeAggregator
 
         $observations = ThemeObservation::query()
             ->where('entity_id', $entityId)
+            ->where('extractor', $this->activeExtractor())
             ->whereBetween('created_at', [$startOfDay, $endOfDay])
             ->select('theme_id', 'sentiment', DB::raw('count(*) as count'))
             ->groupBy('theme_id', 'sentiment')
@@ -75,6 +76,12 @@ class ThemeAggregator
             $created->push($daily);
         }
 
+        EntityThemeDaily::query()
+            ->where('entity_id', $entityId)
+            ->whereDate('date', $dateStr)
+            ->whereNotIn('theme_id', array_keys($byTheme))
+            ->delete();
+
         return $created;
     }
 
@@ -109,7 +116,8 @@ class ThemeAggregator
                 ->get();
         } else {
             $query = ThemeObservation::query()
-                ->where('entity_id', $entityId);
+                ->where('entity_id', $entityId)
+                ->where('extractor', $this->activeExtractor());
 
             if ($startDate !== null) {
                 $query->where('created_at', '>=', $startDate);
@@ -147,6 +155,17 @@ class ThemeAggregator
                 ]
             );
         }
+
+        EntityThemeSnapshot::query()
+            ->where('entity_id', $entityId)
+            ->where('window', $period)
+            ->whereNotIn('theme_id', $rows->pluck('theme_id')->map(fn ($id) => (int) $id)->all())
+            ->delete();
+    }
+
+    private function activeExtractor(): string
+    {
+        return (string) config('themes.extractor', 'keyword');
     }
 
     /**

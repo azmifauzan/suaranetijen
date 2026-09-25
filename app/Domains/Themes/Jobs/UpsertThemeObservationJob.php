@@ -24,7 +24,9 @@ class UpsertThemeObservationJob implements ShouldQueue
         public ?string $sourceDocumentHash,
         public SentimentClass $sentiment,
         public ?float $confidence = null,
-        public ?CarbonInterface $publishedAt = null
+        public ?CarbonInterface $publishedAt = null,
+        public string $extractor = 'keyword',
+        public ?string $context = null,
     ) {
         $this->onQueue('analysis');
     }
@@ -44,6 +46,8 @@ class UpsertThemeObservationJob implements ShouldQueue
                     'source_document_hash' => $this->sourceDocumentHash,
                     'sentiment' => $this->sentiment,
                     'confidence' => $this->confidence,
+                    'extractor' => $this->extractor,
+                    'context' => $this->context,
                     'published_at' => $this->publishedAt,
                 ]
             );
@@ -56,6 +60,8 @@ class UpsertThemeObservationJob implements ShouldQueue
                 'source_document_hash' => $this->sourceDocumentHash,
                 'sentiment' => $this->sentiment,
                 'confidence' => $this->confidence,
+                'extractor' => $this->extractor,
+                'context' => $this->context,
                 'published_at' => $this->publishedAt,
             ]);
         }

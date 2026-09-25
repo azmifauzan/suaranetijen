@@ -74,6 +74,7 @@ interface ThemeItem {
     positive_count?: number;
     neutral_count?: number;
     negative_count?: number;
+    note?: string | null;
 }
 
 interface ThemesData {
@@ -83,6 +84,7 @@ interface ThemesData {
     top_themes: ThemeItem[];
     positive_themes: ThemeItem[];
     negative_themes: ThemeItem[];
+    summary: { text: string; opinion_count: number; generated_at: string } | null;
 }
 
 interface RatingData {
@@ -953,14 +955,38 @@ async function removeRating(): Promise<void> {
                         Top Suara Netijen
                     </h2>
                     <p class="mt-0.5 text-xs text-neutral-500">
-                        Tema dan kata kunci yang paling sering dibahas netizen
-                        mengenai entitas ini (frekuensi tema, bukan skor
-                        numerik).
+                        Hal yang paling sering dibahas netizen tentang entitas ini, diurutkan berdasarkan jumlah opini.
                     </p>
                 </div>
 
                 <!-- Above threshold Top 5 Themes -->
                 <div v-if="themes.has_enough_data" class="mt-6 space-y-6">
+                    <div
+                        v-if="themes.summary"
+                        class="rounded-xl border border-neutral-200 bg-neutral-50 p-4"
+                    >
+                        <h3 class="text-sm font-semibold text-neutral-900">
+                            Ringkasan Suara Netijen
+                        </h3>
+                        <p class="mt-1.5 text-sm leading-relaxed text-neutral-700">
+                            {{ themes.summary.text }}
+                        </p>
+                        <p class="mt-2 text-xs text-neutral-500">
+                            Diringkas otomatis dari tema
+                            {{ themes.summary.opinion_count }} opini netizen,
+                            diperbarui
+                            {{
+                                new Date(
+                                    themes.summary.generated_at,
+                                ).toLocaleDateString('id-ID', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                })
+                            }}. Bisa kurang tepat.
+                        </p>
+                    </div>
+
                     <!-- Ranked List -->
                     <div>
                         <h3
@@ -972,21 +998,29 @@ async function removeRating(): Promise<void> {
                             <div
                                 v-for="(theme, index) in themes.top_themes"
                                 :key="theme.id"
-                                class="flex items-center justify-between rounded-lg bg-neutral-50 px-4 py-2.5"
+                                class="flex items-start justify-between gap-3 rounded-lg bg-neutral-50 px-4 py-2.5"
                             >
-                                <div class="flex items-center gap-3">
+                                <div class="flex items-start gap-3">
                                     <span
-                                        class="flex h-6 w-6 items-center justify-center rounded-full bg-neutral-200 text-xs font-bold text-neutral-700"
+                                        class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-xs font-bold text-neutral-700"
                                     >
                                         {{ index + 1 }}
                                     </span>
-                                    <span
-                                        class="text-sm font-semibold text-neutral-800"
-                                    >
-                                        {{ theme.display_label }}
-                                    </span>
+                                    <div class="min-w-0">
+                                        <span
+                                            class="text-sm font-semibold text-neutral-800"
+                                        >
+                                            {{ theme.display_label }}
+                                        </span>
+                                        <p
+                                            v-if="theme.note"
+                                            class="mt-0.5 text-xs leading-snug text-neutral-600"
+                                        >
+                                            {{ theme.note }}
+                                        </p>
+                                    </div>
                                 </div>
-                                <span class="text-xs text-neutral-500">
+                                <span class="shrink-0 text-xs text-neutral-500">
                                     {{ theme.observation_count }} opini
                                 </span>
                             </div>

@@ -39,6 +39,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Theme Extractor
+    |--------------------------------------------------------------------------
+    |
+    | 'keyword' matches the seeded dictionary (ThemeExtractor). 'llm' extracts
+    | specific theme phrases per opinion via LlmClient (LlmThemeExtractor).
+    | Aggregation only counts observations produced by the active extractor.
+    |
+    */
+    'extractor' => env('THEMES_EXTRACTOR', 'keyword'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Empty State Copy
     |--------------------------------------------------------------------------
     |

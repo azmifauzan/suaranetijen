@@ -16,6 +16,7 @@ use App\Domains\Themes\Jobs\UpsertThemeObservationJob;
 use App\Domains\Themes\Models\Theme;
 use App\Domains\Themes\Models\ThemeAlias;
 use App\Domains\Themes\Models\ThemeObservation;
+use App\Domains\Themes\Services\LlmThemeExtractor;
 use App\Domains\Themes\Services\ThemeExtractor;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Queue;
@@ -45,7 +46,7 @@ test('ExtractThemesJob extracts themes and dispatches UpsertThemeObservationJob 
 
     expect($job->queue)->toBe('analysis');
 
-    $job->handle(app(ThemeExtractor::class));
+    $job->handle(app(ThemeExtractor::class), app(LlmThemeExtractor::class));
 
     Queue::assertPushed(UpsertThemeObservationJob::class, function ($pushedJob) use ($theme) {
         return $pushedJob->entityId === 1

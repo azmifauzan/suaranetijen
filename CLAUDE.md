@@ -925,7 +925,7 @@ Current implementation boundary:
 | Mojok.co adapter | Added and enabled on staging (5 Sep 2026) — `/esai/` archive/article pages are WordPress SSR despite the homepage widget being CSR; live check produced 2 `source_items`, 0 `IngestionFailure`, cursor advanced |
 | Entity matching, relevance, sentiment classifier (Epic 7) | implemented and verified for the Phase 3 slice; LLM fallback for ambiguous candidates not implemented |
 | Public score (Epic 8) | implemented and verified against real PostgreSQL |
-| Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds |
+| Top Suara Netijen (Epic 12) | implemented and verified against real PostgreSQL; `config/themes.php` thresholds, LLM theme extraction with evidence grounding, and Ringkasan Suara Netijen |
 | Scoring/ranking thresholds | `config/scoring.php`, mirrors `examples/score-config.yaml` |
 | `noindex` for below-threshold entities (`docs/13`) | implemented (Epic 10) — `Entities/Show.vue` sets `robots` meta from `sentiment.is_eligible` |
 | Rating Netijen (Epic 9) | implemented and verified against real PostgreSQL (unique-constraint rejection confirmed live) |
@@ -1640,6 +1640,17 @@ Full staging cluster redeployment with latest commits (`4d620fd`):
   - `https://suaranetijen.id/leaderboard` -> HTTP 200
   - `https://suaranetijen.id/api/search?q=samsung` -> HTTP 200 JSON
   - Horizon running across all 3 distributed workers with 15 supervisors active and healthy.
+
+## Meaningful Top Suara Netijen: Grounded LLM themes & Ringkasan (25 September 2026)
+
+Replaced keyword dictionary theme matching with grounded LLM extraction and per-entity narrative summaries:
+
+- **Configurable Theme Extractor**: `config('themes.extractor')` supports `keyword` (default) and `llm`. `ExtractThemesJob` routes to `LlmThemeExtractor` or `ThemeExtractor`.
+- **Evidence-grounded Extraction**: `LlmThemeExtractor` parses opinions into specific Indonesian theme phrases (e.g., "baterai cepat habis", "cs lambat merespons"). Themes require exact evidence substring matching within the opinion text; hallucinations, ungrounded assertions, handles, and URLs are rejected.
+- **Context Paraphrasing & TTL Compliance**: Derived, sanitized context strings (≤200 chars) are stored on `theme_observations` without preserving raw text beyond the 72-hour adapter TTL.
+- **Extractor-scoped Aggregation & Rebuild**: `ThemeAggregator` aggregates counts and snapshots matching only the active extractor. Added Artisan command `themes:rebuild-aggregates` to clean stale aggregates when switching extractors.
+- **Ringkasan Suara Netijen**: `EntityThemeSummarizer` generates grounded 2-4 sentence qualitative summaries and per-theme contextual notes for the default 365-day window. Copy validation strictly guards against percentages, superlatives, and usernames/links. Scheduled daily via `themes:summarize`.
+- **Frontend & Public UI**: `resources/js/pages/Entities/Show.vue` renders the Ringkasan card with automated summary disclaimer and displays contextual explanatory notes alongside each top theme.
 
 ## Document map
 

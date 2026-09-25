@@ -19,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $source_document_hash
  * @property SentimentClass $sentiment
  * @property float|null $confidence
+ * @property string $extractor
+ * @property string|null $context
  * @property Carbon|null $published_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -44,6 +46,8 @@ class ThemeObservation extends Model
         'source_document_hash',
         'sentiment',
         'confidence',
+        'extractor',
+        'context',
         'published_at',
         'created_at',
     ];

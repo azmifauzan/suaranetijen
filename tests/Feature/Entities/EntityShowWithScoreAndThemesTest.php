@@ -8,6 +8,7 @@ use App\Domains\Entities\Models\Entity;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Domains\Themes\Models\EntityThemeDaily;
+use App\Domains\Themes\Models\EntityThemeSummary;
 use App\Domains\Themes\Models\Theme;
 use Carbon\Carbon;
 
@@ -144,4 +145,123 @@ test('entity show page supports period switching parameter', function () {
         ->where('sentiment.opinion_count', 200)
         ->where('sentiment.score', 65)
     );
+});
+
+test('entity page exposes the theme summary and per-theme notes for the default period', function () {
+    $category = Category::create([
+        'name' => 'Hosting',
+        'slug' => 'hosting',
+        'status' => CategoryStatus::Active,
+    ]);
+
+    $entity = Entity::create([
+        'category_id' => $category->id,
+        'type' => EntityType::Brand,
+        'name' => 'IDCloudHost',
+        'slug' => 'idcloudhost',
+        'status' => EntityStatus::Active,
+        'searchable' => true,
+        'rankable' => true,
+    ]);
+
+    SentimentSnapshot::create([
+        'entity_id' => $entity->id,
+        'period' => Period::OneYear->value,
+        'positive_count' => 60,
+        'neutral_count' => 20,
+        'negative_count' => 20,
+        'opinion_count' => 100,
+        'score' => 70.0,
+        'sentiment_model_version' => 'v1',
+        'score_formula_version' => 'v1',
+        'calculated_at' => now(),
+    ]);
+
+    $themeCepat = Theme::create(['slug' => 'cepat', 'display_label' => 'Cepat', 'canonical_key' => 'speed_fast']);
+    $themeMurah = Theme::create(['slug' => 'murah', 'display_label' => 'Murah', 'canonical_key' => 'price_affordable']);
+
+    $today = Carbon::today()->format('Y-m-d');
+    EntityThemeDaily::create([
+        'entity_id' => $entity->id,
+        'theme_id' => $themeCepat->id,
+        'date' => $today,
+        'positive_count' => 40,
+        'neutral_count' => 5,
+        'negative_count' => 1,
+        'observation_count' => 46,
+    ]);
+    EntityThemeDaily::create([
+        'entity_id' => $entity->id,
+        'theme_id' => $themeMurah->id,
+        'date' => $today,
+        'positive_count' => 30,
+        'neutral_count' => 2,
+        'negative_count' => 0,
+        'observation_count' => 32,
+    ]);
+
+    EntityThemeSummary::create([
+        'entity_id' => $entity->id,
+        'summary' => 'Netizen banyak memuji kecepatan server.',
+        'theme_notes' => [$themeCepat->id => 'Halaman dan panel terasa responsif.'],
+        'opinion_count' => 100,
+        'generated_at' => now(),
+    ]);
+
+    $this->get("/e/{$entity->slug}")->assertInertia(fn ($page) => $page
+        ->where('themes.summary.text', 'Netizen banyak memuji kecepatan server.')
+        ->where('themes.summary.opinion_count', 100)
+        ->where('themes.top_themes.0.note', 'Halaman dan panel terasa responsif.')
+        ->where('themes.top_themes.1.note', null));
+});
+
+test('theme summary is hidden for non-default periods', function () {
+    $category = Category::create([
+        'name' => 'Hosting',
+        'slug' => 'hosting',
+        'status' => CategoryStatus::Active,
+    ]);
+
+    $entity = Entity::create([
+        'category_id' => $category->id,
+        'type' => EntityType::Brand,
+        'name' => 'Niagahoster',
+        'slug' => 'niagahoster',
+        'status' => EntityStatus::Active,
+        'searchable' => true,
+        'rankable' => true,
+    ]);
+
+    SentimentSnapshot::create([
+        'entity_id' => $entity->id,
+        'period' => Period::ThirtyDays->value,
+        'positive_count' => 30,
+        'neutral_count' => 5,
+        'negative_count' => 5,
+        'opinion_count' => 40,
+        'score' => 81.25,
+        'calculated_at' => now(),
+    ]);
+
+    $theme = Theme::create(['slug' => 'cepat', 'display_label' => 'Cepat', 'canonical_key' => 'speed_fast']);
+    EntityThemeDaily::create([
+        'entity_id' => $entity->id,
+        'theme_id' => $theme->id,
+        'date' => Carbon::today()->format('Y-m-d'),
+        'positive_count' => 20,
+        'neutral_count' => 0,
+        'negative_count' => 0,
+        'observation_count' => 20,
+    ]);
+
+    EntityThemeSummary::create([
+        'entity_id' => $entity->id,
+        'summary' => 'Netizen banyak memuji kecepatan server.',
+        'theme_notes' => [$theme->id => 'Halaman dan panel terasa responsif.'],
+        'opinion_count' => 100,
+        'generated_at' => now(),
+    ]);
+
+    $this->get("/e/{$entity->slug}?period=30d")->assertInertia(fn ($page) => $page
+        ->where('themes.summary', null));
 });

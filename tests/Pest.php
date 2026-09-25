@@ -1,5 +1,14 @@
 <?php
 
+use App\Domains\Entities\Enums\CategoryStatus;
+use App\Domains\Entities\Enums\EntityStatus;
+use App\Domains\Entities\Enums\EntityType;
+use App\Domains\Entities\Models\Category;
+use App\Domains\Entities\Models\Entity;
+use App\Domains\Sources\Enums\SourceHealthState;
+use App\Domains\Sources\Enums\SourceType;
+use App\Domains\Sources\Models\Source;
+use App\Domains\Themes\Models\Theme;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -52,4 +61,22 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+function themeModeFixture(): array
+{
+    $category = Category::create(['name' => 'Smartphone', 'slug' => 'smartphone', 'status' => CategoryStatus::Active]);
+    $entity = Entity::create([
+        'category_id' => $category->id, 'type' => EntityType::Brand, 'name' => 'Samsung', 'slug' => 'samsung',
+        'status' => EntityStatus::Active, 'searchable' => true, 'rankable' => true,
+    ]);
+    $source = Source::create([
+        'key' => 'dwh', 'name' => 'DWH', 'adapter' => 'DiskusiWebHostingAdapter',
+        'source_type' => SourceType::Forum, 'enabled' => true, 'priority' => 10,
+        'health_state' => SourceHealthState::Healthy,
+    ]);
+    $keyword = Theme::create(['slug' => 'murah', 'display_label' => 'Murah', 'canonical_key' => 'price_affordable']);
+    $llm = Theme::create(['slug' => 'baterai-cepat-habis', 'display_label' => 'Baterai cepat habis', 'canonical_key' => 'baterai-cepat-habis']);
+
+    return [$entity, $source, $keyword, $llm];
 }

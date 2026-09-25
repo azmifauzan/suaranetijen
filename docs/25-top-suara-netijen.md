@@ -206,6 +206,23 @@ engine. See `docs/18` Post-MVP list.
 
 Top 5 is the MVP default — faster to read, cleaner on mobile than Top 10.
 
+## LLM extraction and Ringkasan (25 Sep 2026)
+
+To replace keyword-only matching with specific, natural phrases ("baterai cepat habis", "cs lambat merespons"):
+
+1. **Specific phrases with evidence grounding:**
+   Opinions are parsed into specific theme phrases via `LlmThemeExtractor` (when `THEMES_EXTRACTOR=llm`). Each extracted theme requires an `evidence` span that appears verbatim in the opinion text; hallucinations or ungrounded assertions are discarded.
+2. **Context paraphrase persistence:**
+   Only our own derived `context` paraphrase (≤200 chars, no handles, no URLs, no identifiers) is persisted on `theme_observations`. Raw third-party payloads expire according to adapter TTL (72 hours).
+3. **Aggregation per active extractor:**
+   `ThemeAggregator` aggregates daily counts and snapshot rankings scoped strictly to `config('themes.extractor')`. Switching to `llm` drops keyword-era noise upon running `themes:rebuild-aggregates` without deleting past raw rows.
+4. **Daily summary and copy-rule validation:**
+   `EntityThemeSummarizer` generates "Ringkasan Suara Netijen" (2-4 sentences) and per-theme explanatory notes for eligible entities in the default 365d window. Copy rules are strictly enforced: no unqualified percentages, no superlatives ("terbaik"/"terburuk"), and no usernames/links.
+5. **Transparency disclaimer:**
+   The UI displays: *"Diringkas otomatis dari tema N opini netizen, diperbarui [Tanggal]. Bisa kurang tepat."*
+6. **ADR-008 preserved:**
+   Summary and per-theme notes provide qualitative context only. They are explanatory text, not a score; Top Suara Netijen continues to rank by frequency (`observation_count`) without numeric theme scores.
+
 ## Product principles
 
 1. Never verifies whether an opinion is true or false.

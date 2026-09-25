@@ -8,6 +8,7 @@ use App\Domains\Sentiment\Models\SentimentObservation;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Domains\Themes\Models\EntityThemeDaily;
 use App\Domains\Themes\Models\EntityThemeSnapshot;
+use App\Domains\Themes\Models\EntityThemeSummary;
 use App\Domains\Themes\Models\Theme;
 use App\Domains\Themes\Models\ThemeObservation;
 use Carbon\Carbon;
@@ -22,9 +23,10 @@ class TopThemesService
      *     has_enough_data: bool,
      *     empty_state_message: string|null,
      *     opinion_count: int,
-     *     top_themes: array<int, array{id: int, slug: string, display_label: string, observation_count: int, positive_count: int, neutral_count: int, negative_count: int}>,
+     *     top_themes: array<int, array{id: int, slug: string, display_label: string, observation_count: int, positive_count: int, neutral_count: int, negative_count: int, note: string|null}>,
      *     positive_themes: array<int, array{id: int, slug: string, display_label: string, observation_count: int}>,
-     *     negative_themes: array<int, array{id: int, slug: string, display_label: string, observation_count: int}>
+     *     negative_themes: array<int, array{id: int, slug: string, display_label: string, observation_count: int}>,
+     *     summary: array{text: string, opinion_count: int, generated_at: string}|null
      * }
      */
     public function getTopThemesForEntity(
@@ -49,6 +51,7 @@ class TopThemesService
                 'top_themes' => [],
                 'positive_themes' => [],
                 'negative_themes' => [],
+                'summary' => null,
             ];
         }
 
@@ -66,6 +69,7 @@ class TopThemesService
                 'top_themes' => [],
                 'positive_themes' => [],
                 'negative_themes' => [],
+                'summary' => null,
             ];
         }
 
@@ -75,6 +79,13 @@ class TopThemesService
             ->values()
             ->take($limit)
             ->all();
+
+        $summaryRow = $period === Period::OneYear
+            ? EntityThemeSummary::query()->where('entity_id', $entity->id)->first()
+            : null;
+        $notes = $summaryRow !== null ? $summaryRow->theme_notes : [];
+
+        $topThemes = array_map(fn (array $row) => [...$row, 'note' => $notes[$row['id']] ?? null], $topThemes);
 
         // Positive group ("Netijen Paling Suka") - positive > negative
         $positiveThemes = $eligibleRows
@@ -111,6 +122,11 @@ class TopThemesService
             'top_themes' => $topThemes,
             'positive_themes' => $positiveThemes,
             'negative_themes' => $negativeThemes,
+            'summary' => $summaryRow === null ? null : [
+                'text' => $summaryRow->summary,
+                'opinion_count' => $summaryRow->opinion_count,
+                'generated_at' => $summaryRow->generated_at->toIso8601String(),
+            ],
         ];
     }
 
