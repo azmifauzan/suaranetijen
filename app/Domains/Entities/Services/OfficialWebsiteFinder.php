@@ -278,6 +278,7 @@ class OfficialWebsiteFinder
             'tiktok.com',
             't.me',
             'telegram.org',
+            'archive.org',
         ];
 
         foreach ($blockedHosts as $blocked) {
