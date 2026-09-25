@@ -138,6 +138,7 @@ class OfficialWebsiteFinder
                 'mountain in', 'gunung', 'crater', 'asteroid', 'airport in', 'bandar udara',
                 'lake in', 'danau', 'species', 'taxon', 'plant', 'tumbuhan',
                 'city in', 'city of', 'town in', 'capital of', 'prefecture in', 'prefecture of',
+                'kota di', 'kota ', 'provinsi ', 'kabupaten ', 'kecamatan ', 'desa ',
                 'island in', 'county in', 'family name', 'surname', 'given name', 'human settlement',
                 'administrative division',
             ];
@@ -148,7 +149,7 @@ class OfficialWebsiteFinder
                 }
             }
 
-            if (preg_match('/^(city|town|village|commune|municipality|capital|prefecture|county|district)\b/i', $description) === 1) {
+            if (preg_match('/^(city|town|village|commune|municipality|capital|prefecture|county|district|kota|desa|kelurahan|kecamatan|kabupaten|provinsi)\b/i', $description) === 1) {
                 return true;
             }
         }
@@ -285,16 +286,19 @@ class OfficialWebsiteFinder
             }
         }
 
+        $cleanHost = (string) preg_replace('/^www\./i', '', $host);
+
         // Exclude government / municipal / regional administration websites
         if (
-            str_ends_with($host, '.gov')
-            || str_ends_with($host, '.go.id')
-            || str_contains($host, '.gov.')
-            || str_contains($host, '.go.')
-            || str_ends_with($host, '.lg.jp')
-            || str_starts_with($host, 'city.')
-            || str_starts_with($host, 'pemkab-')
-            || str_starts_with($host, 'pemkot-')
+            str_ends_with($cleanHost, '.gov')
+            || str_ends_with($cleanHost, '.go.id')
+            || str_contains($cleanHost, '.gov.')
+            || str_contains($cleanHost, '.go.')
+            || str_ends_with($cleanHost, '.lg.jp')
+            || str_starts_with($cleanHost, 'city.')
+            || str_starts_with($cleanHost, 'pemkab-')
+            || str_starts_with($cleanHost, 'pemkot-')
+            || str_starts_with($cleanHost, 'pemda.')
         ) {
             return null;
         }
