@@ -133,16 +133,23 @@ class OfficialWebsiteFinder
 
         if (in_array($entity->type, [EntityType::Brand, EntityType::Product, EntityType::Service], true)) {
             $irrelevantKeywords = [
-                'village', 'desa', 'kelurahan', 'kecamatan', 'district', 'regency',
-                'kabupaten', 'commune', 'municipality', 'canton', 'river', 'sungai',
-                'mountain', 'gunung', 'crater', 'asteroid', 'airport', 'bandar udara',
-                'lake', 'danau', 'species', 'taxon', 'plant', 'tumbuhan',
+                'village', 'desa', 'kelurahan', 'kecamatan', 'district in', 'regency in',
+                'kabupaten', 'commune in', 'municipality in', 'canton in', 'river in', 'sungai',
+                'mountain in', 'gunung', 'crater', 'asteroid', 'airport in', 'bandar udara',
+                'lake in', 'danau', 'species', 'taxon', 'plant', 'tumbuhan',
+                'city in', 'city of', 'town in', 'capital of', 'prefecture in', 'prefecture of',
+                'island in', 'county in', 'family name', 'surname', 'given name', 'human settlement',
+                'administrative division',
             ];
 
             foreach ($irrelevantKeywords as $kw) {
                 if (str_contains($description, $kw)) {
                     return true;
                 }
+            }
+
+            if (preg_match('/^(city|town|village|commune|municipality|capital|prefecture|county|district)\b/i', $description) === 1) {
+                return true;
             }
         }
 
@@ -268,7 +275,6 @@ class OfficialWebsiteFinder
             'linkedin.com',
             'youtube.com',
             'tiktok.com',
-            'github.com',
             't.me',
             'telegram.org',
         ];
@@ -277,6 +283,20 @@ class OfficialWebsiteFinder
             if ($host === $blocked || str_ends_with($host, '.'.$blocked)) {
                 return null;
             }
+        }
+
+        // Exclude government / municipal / regional administration websites
+        if (
+            str_ends_with($host, '.gov')
+            || str_ends_with($host, '.go.id')
+            || str_contains($host, '.gov.')
+            || str_contains($host, '.go.')
+            || str_ends_with($host, '.lg.jp')
+            || str_starts_with($host, 'city.')
+            || str_starts_with($host, 'pemkab-')
+            || str_starts_with($host, 'pemkot-')
+        ) {
+            return null;
         }
 
         $path = parse_url($url, PHP_URL_PATH);

@@ -315,3 +315,82 @@ it('throttles website enrichment job dispatch from sentiment classification usin
     (new ClassifySentimentJob($item2->id, $entity->id))->handle($classifier);
     Queue::assertPushed(EnrichEntityWebsiteJob::class, 1);
 });
+
+it('skips municipal city candidates and government domains for automotive brand Toyota', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        '*action=wbsearchentities*' => Http::response([
+            'search' => [
+                [
+                    'id' => 'Q201117',
+                    'label' => 'Toyota',
+                    'description' => 'city in Aichi Prefecture, Japan',
+                ],
+                [
+                    'id' => 'Q53268',
+                    'label' => 'Toyota',
+                    'description' => 'Japanese multinational automotive manufacturer',
+                ],
+            ],
+        ]),
+        '*action=wbgetclaims*entity=Q53268*' => Http::response([
+            'claims' => [
+                'P856' => [
+                    [
+                        'mainsnak' => [
+                            'datavalue' => ['value' => 'https://www.toyota.com/'],
+                        ],
+                        'rank' => 'preferred',
+                    ],
+                ],
+            ],
+        ]),
+    ]);
+
+    $entity = Entity::factory()->create([
+        'name' => 'Toyota',
+        'type' => EntityType::Brand,
+    ]);
+
+    $finder = new OfficialWebsiteFinder;
+    $url = $finder->find($entity);
+
+    expect($url)->toBe('https://www.toyota.com');
+});
+
+it('allows github.com official website for GitHub entity', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        '*action=wbsearchentities*' => Http::response([
+            'search' => [
+                [
+                    'id' => 'Q364',
+                    'label' => 'GitHub',
+                    'description' => 'hosting service for software projects using Git',
+                ],
+            ],
+        ]),
+        '*action=wbgetclaims*entity=Q364*' => Http::response([
+            'claims' => [
+                'P856' => [
+                    [
+                        'mainsnak' => [
+                            'datavalue' => ['value' => 'https://github.com'],
+                        ],
+                        'rank' => 'normal',
+                    ],
+                ],
+            ],
+        ]),
+    ]);
+
+    $entity = Entity::factory()->create([
+        'name' => 'GitHub',
+        'type' => EntityType::Service,
+    ]);
+
+    $finder = new OfficialWebsiteFinder;
+    $url = $finder->find($entity);
+
+    expect($url)->toBe('https://github.com');
+});
