@@ -11,14 +11,26 @@ use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\SerializesModels;
 
 class ExtractThemesJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 3;
+    /**
+     * Rate-limit releases and 429s must not eat the retry budget (same lesson as the
+     * crawler's self-throttle): only real exceptions count, capped by $maxExceptions,
+     * while retryUntil() bounds how long a throttled job may keep waiting.
+     */
+    public int $maxExceptions = 3;
+
+    public function retryUntil(): CarbonInterface
+    {
+        return now()->addHours(6);
+    }
 
     /**
      * @return list<int>
@@ -26,6 +38,14 @@ class ExtractThemesJob implements ShouldQueue
     public function backoff(): array
     {
         return [30, 120];
+    }
+
+    /**
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return config('themes.extractor') === 'llm' ? [new RateLimited('themes-llm')] : [];
     }
 
     public function __construct(
@@ -67,7 +87,17 @@ class ExtractThemesJob implements ShouldQueue
                 return;
             }
 
-            $extracted = $llmExtractor->extract($this->entityId, $entityName, $this->text);
+            try {
+                $extracted = $llmExtractor->extract($this->entityId, $entityName, $this->text);
+            } catch (RequestException $e) {
+                if ($e->response->status() !== 429) {
+                    throw $e;
+                }
+
+                $this->release(max(1, (int) $e->response->header('Retry-After') ?: 60));
+
+                return;
+            }
         } else {
             $extracted = array_map(
                 fn (array $item) => [...$item, 'context' => null],

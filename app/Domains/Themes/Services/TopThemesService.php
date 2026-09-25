@@ -64,7 +64,7 @@ class TopThemesService
         if ($eligibleRows->isEmpty()) {
             return [
                 'has_enough_data' => false,
-                'empty_state_message' => $emptyStateMessage,
+                'empty_state_message' => (string) config('themes.sparse_state_message', 'Opini netizen masih beragam, belum ada tema yang muncul berulang.'),
                 'opinion_count' => $opinionCount,
                 'top_themes' => [],
                 'positive_themes' => [],

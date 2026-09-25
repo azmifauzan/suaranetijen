@@ -62,6 +62,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | LLM Calls per Minute
+    |--------------------------------------------------------------------------
+    |
+    | Cluster-wide cap (shared Redis limiter) on theme-extraction LLM calls.
+    | Jobs over the cap are released back to the queue, never failed.
+    |
+    */
+    'llm_per_minute' => (int) env('THEMES_LLM_PER_MINUTE', 60),
+
+    /*
+    |--------------------------------------------------------------------------
     | Empty State Copy
     |--------------------------------------------------------------------------
     |
@@ -69,5 +80,16 @@ return [
     |
     */
     'empty_state_message' => 'Belum cukup opini untuk merangkum Suara Netijen.',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sparse Themes Copy
+    |--------------------------------------------------------------------------
+    |
+    | Displayed when the entity has enough opinions but no theme repeats often
+    | enough to be shown.
+    |
+    */
+    'sparse_state_message' => 'Opini netizen masih beragam, belum ada tema yang muncul berulang.',
 
 ];

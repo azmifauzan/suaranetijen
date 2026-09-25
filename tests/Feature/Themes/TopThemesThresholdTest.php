@@ -87,7 +87,7 @@ test('PRD AC 11: entity with >= 30 opinions but themes with < 3 occurrences show
     $result = $service->getTopThemesForEntity($entity, Period::OneYear);
 
     expect($result['has_enough_data'])->toBeFalse()
-        ->and($result['empty_state_message'])->toBe('Belum cukup opini untuk merangkum Suara Netijen.')
+        ->and($result['empty_state_message'])->toBe('Opini netizen masih beragam, belum ada tema yang muncul berulang.')
         ->and($result['top_themes'])->toBeEmpty();
 });
 

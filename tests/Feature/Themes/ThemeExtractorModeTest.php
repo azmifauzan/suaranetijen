@@ -14,7 +14,12 @@ use App\Domains\Themes\Services\LlmThemeExtractor;
 use App\Domains\Themes\Services\ThemeAggregator;
 use App\Domains\Themes\Services\ThemeExtractor;
 use Carbon\CarbonImmutable;
+use GuzzleHttp\Psr7\Response;
+use Illuminate\Contracts\Queue\Job;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Queue\Middleware\RateLimited;
+use Illuminate\Support\Facades\RateLimiter;
 
 it('only aggregates observations from the active extractor', function () {
     [$entity, $source, $keyword, $llm] = themeModeFixture();
@@ -150,4 +155,58 @@ it('collapses bursts of aggregate jobs for one entity into a single pending job'
         ->and((new RefreshThemeSnapshotJob(7))->uniqueId())->toBe('7')
         ->and(new RefreshThemeSnapshotJob(7))
         ->toBeInstanceOf(ShouldBeUniqueUntilProcessing::class);
+});
+
+it('rate-limits llm extraction through a shared limiter and never in keyword mode', function () {
+    config(['themes.extractor' => 'llm', 'themes.llm_per_minute' => 2]);
+    $job = new ExtractThemesJob(entityId: 1, sourceId: 1, sourceItemId: null, text: 'x');
+
+    expect($job->middleware())->toHaveCount(1)->and($job->middleware()[0])->toBeInstanceOf(RateLimited::class);
+
+    $limit = RateLimiter::limiter('themes-llm')();
+    expect($limit->maxAttempts)->toBe(2);
+
+    config(['themes.extractor' => 'keyword']);
+    expect($job->middleware())->toBe([]);
+});
+
+it('releases the job instead of failing it when the llm answers 429', function () {
+    [$entity, $source] = themeModeFixture();
+    config(['themes.extractor' => 'llm']);
+    Queue::fake();
+
+    $response = new Illuminate\Http\Client\Response(new Response(429, ['Retry-After' => '45']));
+    $this->mock(LlmThemeExtractor::class)
+        ->shouldReceive('extract')->andThrow(new RequestException($response));
+
+    $queueJob = Mockery::mock(Job::class);
+    $queueJob->shouldReceive('release')->once()->with(45);
+
+    $job = new ExtractThemesJob(
+        entityId: $entity->id, sourceId: $source->id, sourceItemId: null,
+        text: 'Baterainya cepat habis sejak update kemarin.'
+    );
+    $job->setJob($queueJob);
+    $job->handle(app(ThemeExtractor::class), app(LlmThemeExtractor::class));
+
+    Queue::assertNothingPushed();
+});
+
+it('still fails on non-429 llm errors and keeps the exception budget bounded', function () {
+    [$entity, $source] = themeModeFixture();
+    config(['themes.extractor' => 'llm']);
+
+    $response = new Illuminate\Http\Client\Response(new Response(500));
+    $this->mock(LlmThemeExtractor::class)
+        ->shouldReceive('extract')->andThrow(new RequestException($response));
+
+    $job = new ExtractThemesJob(
+        entityId: $entity->id, sourceId: $source->id, sourceItemId: null,
+        text: 'Baterainya cepat habis sejak update kemarin.'
+    );
+
+    expect(fn () => $job->handle(app(ThemeExtractor::class), app(LlmThemeExtractor::class)))
+        ->toThrow(RequestException::class)
+        ->and($job->maxExceptions)->toBe(3)
+        ->and($job->retryUntil()->isFuture())->toBeTrue();
 });

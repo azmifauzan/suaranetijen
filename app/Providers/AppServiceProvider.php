@@ -37,6 +37,8 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureInertiaErrors();
 
+        RateLimiter::for('themes-llm', fn () => Limit::perMinute(max(1, (int) config('themes.llm_per_minute', 60))));
+
         RateLimiter::for('ratings', function (Request $request) {
             $userId = $request->user()?->getAuthIdentifier();
 
