@@ -471,3 +471,93 @@ test('sandbox payment does not notify Telegram on production', function () {
     expect($order->fresh()->status)->toBe(SponsorshipOrderStatus::Paid);
     Http::assertSentCount(0);
 });
+
+test('live payment notifies Telegram on staging', function () {
+    Notification::fake();
+    config()->set('sponsorship.telegram.bot_token', 'test-bot-token');
+    config()->set('sponsorship.telegram.chat_id', '-100123');
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://api.telegram.org/bottest-bot-token/sendMessage' => Http::response(['ok' => true]),
+    ]);
+
+    $user = User::factory()->create();
+    $entry = SponsoredEntry::factory()->create([
+        'period_id' => SponsorPeriod::factory()->create()->id,
+        'entity_id' => Entity::factory()->create([
+            'name' => 'Staging Sponsor Entity',
+            'website_url' => 'https://staging-sponsor.example',
+        ])->id,
+        'settled_total_amount' => 0,
+        'status' => SponsoredEntryStatus::Pending,
+    ]);
+    $order = SponsorshipOrder::factory()->create([
+        'sponsored_entry_id' => $entry->id,
+        'user_id' => $user->id,
+        'amount' => 2500,
+        'provider_order_id' => 'SNT-SPN-STAGING-TEST',
+        'provider_payment_id' => 'pay_staging_test',
+        'status' => SponsorshipOrderStatus::Pending,
+    ]);
+
+    $payload = [
+        'event_type' => 'payment.completed',
+        'data' => ['order_id' => 'SNT-SPN-STAGING-TEST', 'payment_id' => 'pay_staging_test', 'amount' => 2500],
+    ];
+    $headers = createSignedHeaders(json_encode($payload), 'svix_staging_test');
+    $this->app['env'] = 'staging';
+
+    $this->postJson(route('api.sponsor.webhooks.relay'), $payload, $headers)->assertOk();
+
+    expect($order->fresh()->status)->toBe(SponsorshipOrderStatus::Paid);
+    Http::assertSent(function (Request $request): bool {
+        $data = $request->data();
+
+        return $request->url() === 'https://api.telegram.org/bottest-bot-token/sendMessage'
+            && $data['chat_id'] === '-100123'
+            && str_contains((string) $data['text'], 'Staging Sponsor Entity')
+            && str_contains((string) $data['text'], 'Website: https://staging-sponsor.example')
+            && str_contains((string) $data['text'], 'Nominal: Rp 2.500');
+    });
+});
+
+test('sandbox payment does not notify Telegram on staging', function () {
+    Notification::fake();
+    config()->set('sponsorship.telegram.bot_token', 'test-bot-token');
+    config()->set('sponsorship.telegram.chat_id', '-100123');
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://api.telegram.org/bottest-bot-token/sendMessage' => Http::response(['ok' => true]),
+    ]);
+
+    $user = User::factory()->create();
+    $entry = SponsoredEntry::factory()->create([
+        'period_id' => SponsorPeriod::factory()->create()->id,
+        'entity_id' => Entity::factory()->create()->id,
+        'settled_total_amount' => 0,
+        'status' => SponsoredEntryStatus::Pending,
+    ]);
+    $order = SponsorshipOrder::factory()->create([
+        'sponsored_entry_id' => $entry->id,
+        'user_id' => $user->id,
+        'amount' => 1000,
+        'provider_order_id' => 'SNT-SPN-SANDBOX-STG',
+        'provider_payment_id' => 'pay_sandbox_stg',
+        'status' => SponsorshipOrderStatus::Pending,
+    ]);
+
+    $payload = [
+        'event_type' => 'payment.completed',
+        'data' => ['order_id' => 'SNT-SPN-SANDBOX-STG', 'payment_id' => 'pay_sandbox_stg', 'amount' => 1000],
+    ];
+    $headers = createSignedHeaders(json_encode($payload), 'svix_sandbox_stg');
+    $headers['X-Webhook-Environment'] = 'sandbox';
+    $this->app['env'] = 'staging';
+
+    $this->postJson(route('api.sponsor.webhooks.relay'), $payload, $headers)->assertOk();
+
+    expect($order->fresh()->status)->toBe(SponsorshipOrderStatus::Paid);
+    Http::assertSentCount(0);
+});

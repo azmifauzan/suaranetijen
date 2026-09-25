@@ -29,6 +29,7 @@ return [
     'telegram' => [
         'bot_token' => (string) env('SPONSORSHIP_TELEGRAM_BOT_TOKEN', ''),
         'chat_id' => (string) env('SPONSORSHIP_TELEGRAM_CHAT_ID', ''),
+        'environments' => array_filter(array_map('trim', explode(',', (string) env('SPONSORSHIP_TELEGRAM_ENVIRONMENTS', 'production,staging')))),
     ],
 
 ];
