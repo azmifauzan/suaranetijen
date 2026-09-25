@@ -29,7 +29,7 @@ class ExtractThemesJob implements ShouldQueue
 
     public function retryUntil(): CarbonInterface
     {
-        return now()->addHours(6);
+        return now()->addHours(24);
     }
 
     /**

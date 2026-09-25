@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Ingestion\Jobs\ExpireRawPayloadJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -16,3 +17,4 @@ Schedule::command('monitor:metrics')->everyFifteenMinutes()->withoutOverlapping(
 Schedule::command('entities:scan-candidates')->weekly()->withoutOverlapping();
 Schedule::command('entities:enrich-websites')->dailyAt('04:00')->withoutOverlapping();
 Schedule::command('themes:summarize')->dailyAt('03:30')->withoutOverlapping();
+Schedule::job(new ExpireRawPayloadJob)->everyFifteenMinutes();
