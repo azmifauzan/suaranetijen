@@ -6,6 +6,7 @@ use App\Domains\Sentiment\Enums\SentimentClass;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Domains\Themes\Models\EntityThemeSnapshot;
 use App\Domains\Themes\Models\EntityThemeSummary;
+use App\Domains\Themes\Models\Theme;
 use App\Domains\Themes\Models\ThemeObservation;
 use App\Domains\Themes\Services\EntityThemeSummarizer;
 use Illuminate\Http\Client\Request;
@@ -77,6 +78,7 @@ it('keeps the previous summary when the new one breaks copy rules', function (st
     expect($previous->fresh()->summary)->toBe('Ringkasan lama.');
 })->with([
     '73% netizen bilang baterai boros.',
+    'Sebanyak 73 persen netizen bilang baterai boros.',
     'Samsung adalah HP terbaik di Indonesia.',
     '',
 ]);
@@ -102,4 +104,31 @@ it('returns null below the theme threshold', function () {
     Http::fake();
 
     expect(app(EntityThemeSummarizer::class)->summarize($entity))->toBeNull();
+});
+
+it('gives every top theme its own context examples in the prompt', function () {
+    [$entity, $llm] = summaryFixture();
+    $second = Theme::create(['slug' => 'kamera-bagus', 'display_label' => 'Kamera bagus', 'canonical_key' => 'kamera-bagus']);
+    EntityThemeSnapshot::create([
+        'entity_id' => $entity->id, 'theme_id' => $second->id, 'window' => Period::OneYear,
+        'observation_count' => 5, 'positive_count' => 5, 'neutral_count' => 0, 'negative_count' => 0,
+        'rank' => 2, 'calculated_at' => now(),
+    ]);
+    $sourceId = ThemeObservation::first()->source_id;
+    ThemeObservation::create([
+        'entity_id' => $entity->id, 'theme_id' => $second->id, 'source_id' => $sourceId,
+        'sentiment' => SentimentClass::Positive, 'extractor' => 'llm', 'context' => 'Kamera malam terasa tajam.',
+    ]);
+    // Newer rows of the first theme must not crowd the second theme's example out.
+    foreach (range(1, 30) as $i) {
+        ThemeObservation::create([
+            'entity_id' => $entity->id, 'theme_id' => $llm->id, 'source_id' => $sourceId,
+            'sentiment' => SentimentClass::Negative, 'extractor' => 'llm', 'context' => "Baterai boros kasus {$i}.",
+        ]);
+    }
+    fakeSummaryLlm(['summary' => 'Ringkasan singkat.', 'theme_notes' => []]);
+
+    app(EntityThemeSummarizer::class)->summarize($entity);
+
+    Http::assertSent(fn (Request $r) => str_contains($r['messages'][1]['content'], 'Kamera malam terasa tajam.'));
 });

@@ -223,6 +223,9 @@ To replace keyword-only matching with specific, natural phrases ("baterai cepat 
 6. **ADR-008 preserved:**
    Summary and per-theme notes provide qualitative context only. They are explanatory text, not a score; Top Suara Netijen continues to rank by frequency (`observation_count`) without numeric theme scores.
 
+7. **Isolation and cost controls (review, 25 Sep 2026):**
+   `ExtractThemesJob` runs on its own `themes` queue (`supervisor-themes`), so seconds-long LLM calls never queue sentiment classification behind them. Opinions shorter than `THEMES_LLM_MIN_CHARS` (default 30) and items that already have LLM observations are skipped (no re-billing on backfill/replay). Known labels for prompt reuse are cached 10 minutes. `AggregateDailyThemeJob`/`RefreshThemeSnapshotJob` are `ShouldBeUniqueUntilProcessing`, so the up-to-5 upserts per opinion collapse into one pending aggregate per entity. Rollout needs a Horizon restart on every host so the `themes` supervisor starts.
+
 ## Product principles
 
 1. Never verifies whether an opinion is true or false.

@@ -5,6 +5,7 @@ use App\Domains\Sentiment\Enums\SentimentClass;
 use App\Domains\Themes\Models\Theme;
 use App\Domains\Themes\Services\LlmThemeExtractor;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 function fakeThemeLlm(array $themes): void
@@ -76,4 +77,16 @@ it('truncates very long opinions before sending', function () {
     app(LlmThemeExtractor::class)->extract(1, 'Samsung', str_repeat('a ', 10_000));
 
     Http::assertSent(fn (Request $request) => mb_strlen($request['messages'][1]['content']) < 5_000);
+});
+
+it('queries known labels once and serves later calls from cache', function () {
+    fakeThemeLlm([]);
+    DB::enableQueryLog();
+
+    app(LlmThemeExtractor::class)->extract(1, 'Samsung', OPINION);
+    $first = count(DB::getQueryLog());
+    app(LlmThemeExtractor::class)->extract(1, 'Samsung', OPINION);
+    $second = count(DB::getQueryLog()) - $first;
+
+    expect($second)->toBeLessThan($first);
 });

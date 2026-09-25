@@ -4,6 +4,7 @@ namespace App\Domains\Themes\Jobs;
 
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Sentiment\Enums\SentimentClass;
+use App\Domains\Themes\Models\ThemeObservation;
 use App\Domains\Themes\Services\LlmThemeExtractor;
 use App\Domains\Themes\Services\ThemeExtractor;
 use Carbon\CarbonInterface;
@@ -36,7 +37,16 @@ class ExtractThemesJob implements ShouldQueue
         public ?SentimentClass $contextSentiment = null,
         public ?CarbonInterface $publishedAt = null
     ) {
-        $this->onQueue('analysis');
+        $this->onQueue('themes');
+    }
+
+    private function alreadyExtractedByLlm(): bool
+    {
+        return $this->sourceItemId !== null
+            && ThemeObservation::query()
+                ->where('source_item_id', $this->sourceItemId)
+                ->where('extractor', 'llm')
+                ->exists();
     }
 
     public function handle(ThemeExtractor $keywordExtractor, LlmThemeExtractor $llmExtractor): void
@@ -44,6 +54,14 @@ class ExtractThemesJob implements ShouldQueue
         $useLlm = config('themes.extractor') === 'llm';
 
         if ($useLlm) {
+            // Short comments ("mantap") carry no concrete judgement; skipping them
+            // saves an LLM call. An item that already has LLM observations is skipped
+            // so backfills, replays and retries never double-count or re-bill it.
+            if (mb_strlen(trim($this->text)) < (int) config('themes.llm_min_chars', 30)
+                || $this->alreadyExtractedByLlm()) {
+                return;
+            }
+
             $entityName = Entity::query()->whereKey($this->entityId)->value('name');
             if (! is_string($entityName)) {
                 return;

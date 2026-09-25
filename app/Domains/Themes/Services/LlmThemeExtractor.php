@@ -7,6 +7,7 @@ use App\Domains\Entities\Services\TextNormalizer;
 use App\Domains\Sentiment\Enums\SentimentClass;
 use App\Domains\Themes\Models\Theme;
 use App\Domains\Themes\Models\ThemeAlias;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 /**
@@ -165,16 +166,21 @@ class LlmThemeExtractor
      */
     private function knownLabels(int $entityId): array
     {
-        $query = fn (?int $scopeEntityId) => Theme::query()
-            ->join('theme_observations', 'themes.id', '=', 'theme_observations.theme_id')
-            ->where('theme_observations.extractor', 'llm')
-            ->when($scopeEntityId !== null, fn ($q) => $q->where('theme_observations.entity_id', $scopeEntityId))
-            ->groupBy('themes.id', 'themes.display_label')
-            ->orderByRaw('count(*) desc')
-            ->limit(self::KNOWN_LABELS_PER_SCOPE)
-            ->pluck('display_label');
+        $query = fn (?int $scopeEntityId): array => Cache::remember(
+            'themes:known-labels:'.($scopeEntityId ?? 'global'),
+            now()->addMinutes(10),
+            fn () => Theme::query()
+                ->join('theme_observations', 'themes.id', '=', 'theme_observations.theme_id')
+                ->where('theme_observations.extractor', 'llm')
+                ->when($scopeEntityId !== null, fn ($q) => $q->where('theme_observations.entity_id', $scopeEntityId))
+                ->groupBy('themes.id', 'themes.display_label')
+                ->orderByRaw('count(*) desc')
+                ->limit(self::KNOWN_LABELS_PER_SCOPE)
+                ->pluck('display_label')
+                ->all()
+        );
 
-        return array_values(array_unique(array_merge($query($entityId)->all(), $query(null)->all())));
+        return array_values(array_unique(array_merge($query($entityId), $query(null))));
     }
 
     /**

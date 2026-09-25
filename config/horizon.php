@@ -259,6 +259,24 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
+        // Isolates LLM-backed theme extraction (ExtractThemesJob, seconds per
+        // job) from 'analysis' so slow LLM calls never queue sentiment
+        // classification behind them (docs/25: the theme branch must never
+        // block sentiment).
+        'supervisor-themes' => [
+            'connection' => 'redis',
+            'queue' => ['themes'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'minProcesses' => 1,
+            'maxProcesses' => 2,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 1,
+            'timeout' => 60,
+            'nice' => 0,
+        ],
         'supervisor-maintenance' => [
             'connection' => 'redis',
             'queue' => ['maintenance'],
@@ -291,6 +309,11 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-themes' => [
+                'maxProcesses' => 4,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
             'supervisor-maintenance' => [],
         ],
 
@@ -308,6 +331,7 @@ return [
             'supervisor-analysis' => [
                 'maxProcesses' => 3,
             ],
+            'supervisor-themes' => [],
             'supervisor-maintenance' => [],
         ],
 
@@ -340,6 +364,9 @@ return [
             'supervisor-analysis' => [
                 'maxProcesses' => 3,
             ],
+            'supervisor-themes' => [
+                'maxProcesses' => 3,
+            ],
             'supervisor-maintenance' => [
                 'minProcesses' => 1,
                 'maxProcesses' => 1,
@@ -368,6 +395,9 @@ return [
             'supervisor-analysis' => [
                 'maxProcesses' => 2,
             ],
+            'supervisor-themes' => [
+                'maxProcesses' => 2,
+            ],
             'supervisor-maintenance' => [
                 'minProcesses' => 1,
                 'maxProcesses' => 1,
@@ -378,6 +408,7 @@ return [
             'supervisor-critical' => [],
             'supervisor-crawl' => [],
             'supervisor-analysis' => [],
+            'supervisor-themes' => [],
             'supervisor-maintenance' => [],
         ],
     ],

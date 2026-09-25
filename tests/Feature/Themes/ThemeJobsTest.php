@@ -44,7 +44,7 @@ test('ExtractThemesJob extracts themes and dispatches UpsertThemeObservationJob 
         sourceDocumentHash: 'doc-hash-123'
     );
 
-    expect($job->queue)->toBe('analysis');
+    expect($job->queue)->toBe('themes');
 
     $job->handle(app(ThemeExtractor::class), app(LlmThemeExtractor::class));
 

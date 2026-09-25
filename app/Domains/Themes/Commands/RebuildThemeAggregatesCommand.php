@@ -23,23 +23,28 @@ class RebuildThemeAggregatesCommand extends Command
 
     public function handle(ThemeAggregator $aggregator): int
     {
-        EntityThemeDaily::query()->delete();
-        EntityThemeSnapshot::query()->delete();
+        // One transaction so pages keep the old aggregates until the rebuild commits.
+        [$days, $entityIds] = DB::transaction(function () use ($aggregator): array {
+            EntityThemeDaily::query()->delete();
+            EntityThemeSnapshot::query()->delete();
 
-        $days = DB::table('theme_observations')
-            ->where('extractor', (string) config('themes.extractor', 'keyword'))
-            ->selectRaw('entity_id, date(created_at) as day')
-            ->distinct()
-            ->get();
+            $days = DB::table('theme_observations')
+                ->where('extractor', (string) config('themes.extractor', 'keyword'))
+                ->selectRaw('entity_id, date(created_at) as day')
+                ->distinct()
+                ->get();
 
-        foreach ($days as $row) {
-            $aggregator->aggregateDaily((int) $row->entity_id, CarbonImmutable::parse((string) $row->day));
-        }
+            foreach ($days as $row) {
+                $aggregator->aggregateDaily((int) $row->entity_id, CarbonImmutable::parse((string) $row->day));
+            }
 
-        $entityIds = $days->pluck('entity_id')->unique();
-        foreach ($entityIds as $entityId) {
-            $aggregator->refreshAllSnapshots((int) $entityId);
-        }
+            $entityIds = $days->pluck('entity_id')->unique();
+            foreach ($entityIds as $entityId) {
+                $aggregator->refreshAllSnapshots((int) $entityId);
+            }
+
+            return [$days, $entityIds];
+        });
 
         $this->info("Rebuilt theme aggregates for {$entityIds->count()} entities ({$days->count()} entity-days).");
 

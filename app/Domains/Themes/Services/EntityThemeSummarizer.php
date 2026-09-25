@@ -78,7 +78,7 @@ class EntityThemeSummarizer
         return $text !== ''
             && mb_strlen($text) <= $maxChars
             && ! str_contains($text, '%')
-            && ! preg_match('/\b(terbaik|terburuk)\b|@\w|https?:\/\//iu', $text);
+            && ! preg_match('/\b(terbaik|terburuk|persen|percent)\b|@\w|https?:\/\//iu', $text);
     }
 
     /**
@@ -89,18 +89,20 @@ class EntityThemeSummarizer
     {
         $themeIds = array_map(fn (array $t) => $t['id'], $topThemes);
 
-        $contexts = ThemeObservation::query()
-            ->where('entity_id', $entity->id)
-            ->whereIn('theme_id', $themeIds)
-            ->where('extractor', 'llm')
-            ->whereNotNull('context')
-            ->latest('id')
-            ->limit(count($themeIds) * self::CONTEXTS_PER_THEME * 4)
-            ->get(['theme_id', 'context'])
-            ->groupBy('theme_id');
+        // Sampled per theme so a low-volume theme still gets its own examples.
+        $contexts = collect($themeIds)->mapWithKeys(fn (int $themeId) => [
+            $themeId => ThemeObservation::query()
+                ->where('entity_id', $entity->id)
+                ->where('theme_id', $themeId)
+                ->where('extractor', 'llm')
+                ->whereNotNull('context')
+                ->latest('id')
+                ->limit(self::CONTEXTS_PER_THEME)
+                ->pluck('context'),
+        ]);
 
         $lines = array_map(function (array $t) use ($contexts): string {
-            $examples = $contexts->get($t['id'])?->take(self::CONTEXTS_PER_THEME)->pluck('context')->implode(' | ') ?? '';
+            $examples = $contexts->get($t['id'])?->implode(' | ') ?? '';
 
             return "- [id {$t['id']}] {$t['display_label']}: {$t['observation_count']} opini "
                 ."(positif {$t['positive_count']}, negatif {$t['negative_count']}). Contoh: {$examples}";

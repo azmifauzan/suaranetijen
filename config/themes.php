@@ -51,6 +51,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Minimum Opinion Length for LLM Extraction
+    |--------------------------------------------------------------------------
+    |
+    | Opinions shorter than this many characters are skipped by the LLM
+    | extractor: they rarely hold a concrete judgement and cost a call each.
+    |
+    */
+    'llm_min_chars' => (int) env('THEMES_LLM_MIN_CHARS', 30),
+
+    /*
+    |--------------------------------------------------------------------------
     | Empty State Copy
     |--------------------------------------------------------------------------
     |
