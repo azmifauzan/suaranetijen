@@ -74,6 +74,14 @@ interface CategoryItem {
     slug: string;
 }
 
+interface SponsorEntitySelection {
+    id: number;
+    name: string;
+    type_label: string;
+    category_name: string;
+    website_url: string | null;
+}
+
 const props = defineProps<{
     periods: PeriodItem[];
     activePeriod: { id: number; key: string; name: string };
@@ -152,8 +160,8 @@ const urlInput = ref('');
 const isFetchingPreview = ref(false);
 const previewError = ref<string | null>(null);
 const urlPreview = ref<{ title: string; url: string; description: string | null } | null>(null);
-const candidates = ref<Array<{ id: number; name: string; slug: string; category_name: string; type_label: string }>>([]);
-const selectedEntity = ref<{ id: number; name: string; slug: string } | null>(null);
+const candidates = ref<SponsorEntitySelection[]>([]);
+const selectedEntity = ref<SponsorEntitySelection | null>(null);
 // New-entity mode: the retrieved URL matched no existing entity, so the user names it and picks
 // a category instead (RankUp asks the same at submission) — the entity itself isn't created
 // until the payment actually confirms (docs/26; see ProcessSponsorshipRelayWebhook).
@@ -278,7 +286,9 @@ watch(urlInput, (value) => {
     urlPreview.value = null;
     candidates.value = [];
     previewError.value = null;
-    selectedEntity.value = null;
+    if (value.trim()) {
+        selectedEntity.value = null;
+    }
     newEntityName.value = '';
     newEntityCategoryId.value = null;
     newEntityDescription.value = '';
@@ -312,9 +322,9 @@ watch(urlInput, (value) => {
             candidates.value = (json.candidates || []).slice(0, 5).map((item: any) => ({
                 id: item.id,
                 name: item.name,
-                slug: item.slug,
                 category_name: item.category_name || item.category?.name || 'Umum',
                 type_label: item.type_label || 'Entitas',
+                website_url: item.website_url || urlPreview.value?.url || null,
             }));
 
             if (candidates.value.length === 0) {
@@ -379,8 +389,14 @@ onMounted(() => {
 
 // Used by "+ Sponsori" buttons on already-listed entities: skip the URL step entirely and jump
 // straight to step 2, scrolling the (always-on-page) form into view.
-function selectEntityAndScrollToForm(entity: { id: number; name: string; slug: string }) {
-    selectedEntity.value = entity;
+function selectEntityAndScrollToForm(entry: LeaderboardEntry) {
+    selectedEntity.value = {
+        id: entry.entity_id,
+        name: entry.name,
+        type_label: entry.type_label,
+        category_name: entry.category_name,
+        website_url: entry.website_url || null,
+    };
     urlInput.value = '';
     urlPreview.value = null;
     candidates.value = [];
@@ -700,7 +716,7 @@ function formatRupiah(amount: number): string {
                                 <button
                                     type="button"
                                     class="inline-flex min-h-8 items-center justify-center rounded-lg border border-[#d8e3d6] bg-white px-2.5 py-1 text-xs font-bold text-[#1f4a38] transition hover:border-[#8cb896] hover:bg-[#edf6ee]"
-                                    @click="selectEntityAndScrollToForm({ id: entry.entity_id, name: entry.name, slug: entry.slug })"
+                                    @click="selectEntityAndScrollToForm(entry)"
                                 >
                                     + Sponsor
                                 </button>
@@ -790,13 +806,13 @@ function formatRupiah(amount: number): string {
                         Kami ambil judul situsnya, lalu cocokkan dengan entitas yang sudah terdaftar di SuaraNetijen.
                     </p>
 
-                    <div v-if="isFetchingPreview" class="mt-3 flex items-center gap-2 text-xs text-[#637568]">
+                    <div v-if="isFetchingPreview && !selectedEntity" class="mt-3 flex items-center gap-2 text-xs text-[#637568]">
                         <span class="size-3.5 animate-spin rounded-full border-2 border-[#cfd9ce] border-t-[#087f5b]" />
                         Mengambil informasi situs...
                     </div>
 
                     <div
-                        v-if="previewError"
+                        v-if="previewError && !selectedEntity"
                         class="mt-3 rounded-xl border border-[#f3c9c9] bg-[#fdf2f2] p-3 text-xs text-[#b91c1c]"
                     >
                         {{ previewError }}
@@ -887,19 +903,35 @@ function formatRupiah(amount: number): string {
 
                     <div
                         v-if="selectedEntity"
-                        class="mt-2 flex items-center justify-between rounded-xl border border-[#bfe2ca] bg-[#f0faf2] p-3 text-xs"
+                        class="mt-2 rounded-xl border border-[#bfe2ca] bg-[#f0faf2] p-3 text-xs"
                     >
-                        <span class="inline-flex items-center gap-1.5 font-bold text-[#1b6b44]">
-                            <CheckCircle2 class="size-4 text-[#16a34a]" />
-                            Terpilih: {{ selectedEntity.name }}
-                        </span>
-                        <button
-                            type="button"
-                            class="font-semibold text-[#8b998f] hover:text-[#a73520]"
-                            @click="selectedEntity = null"
-                        >
-                            Ganti
-                        </button>
+                        <div class="flex items-start justify-between gap-3">
+                            <dl class="min-w-0 flex-1 space-y-2">
+                                <div>
+                                    <dt class="text-[10px] font-bold tracking-wide text-[#31483b] uppercase">Nama entitas</dt>
+                                    <dd class="mt-0.5 font-bold text-[#1b6b44]">{{ selectedEntity.name }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-[10px] font-bold tracking-wide text-[#31483b] uppercase">Jenis</dt>
+                                    <dd class="mt-0.5 text-[#18392d]">{{ selectedEntity.type_label }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-[10px] font-bold tracking-wide text-[#31483b] uppercase">Kategori</dt>
+                                    <dd class="mt-0.5 text-[#18392d]">{{ selectedEntity.category_name }}</dd>
+                                </div>
+                                <div class="min-w-0">
+                                    <dt class="text-[10px] font-bold tracking-wide text-[#31483b] uppercase">Situs resmi</dt>
+                                    <dd class="mt-0.5 break-all text-[#18392d]">{{ selectedEntity.website_url || 'Tidak tercantum' }}</dd>
+                                </div>
+                            </dl>
+                            <button
+                                type="button"
+                                class="shrink-0 font-semibold text-[#31483b] hover:text-[#a73520]"
+                                @click="selectedEntity = null"
+                            >
+                                Ganti
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -986,6 +1018,7 @@ function formatRupiah(amount: number): string {
                     <!-- Error message -->
                     <div
                         v-if="errorMessage"
+                        role="alert"
                         class="mt-4 flex items-center gap-2 rounded-xl bg-[#fdf2f2] p-3 text-xs text-[#b91c1c]"
                     >
                         <AlertCircle class="size-4 shrink-0" />
@@ -996,10 +1029,7 @@ function formatRupiah(amount: number): string {
                         <button
                             type="button"
                             class="w-full rounded-full bg-[#d97706] py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#b45309] disabled:opacity-50"
-                            :disabled="
-                                (!currentUser && !isValidGuestEmail) ||
-                                (isNewEntityMode && (!newEntityName.trim() || !newEntityCategoryId))
-                            "
+                            :disabled="isSubmitting"
                             @click="openConfirmModal()"
                         >
                             Lanjut ke Pembayaran QRIS ({{ formatRupiah(contributionAmount) }})
@@ -1146,7 +1176,7 @@ function formatRupiah(amount: number): string {
                                     <button
                                         type="button"
                                         class="inline-flex min-h-8 items-center justify-center rounded-lg border border-[#d8e3d6] bg-white px-2.5 py-1 text-xs font-bold text-[#18392d] transition hover:border-[#8cb896] hover:bg-[#f0f7f0]"
-                                        @click="selectEntityAndScrollToForm({ id: entry.entity_id, name: entry.name, slug: entry.slug })"
+                                        @click="selectEntityAndScrollToForm(entry)"
                                     >
                                         + Sponsori
                                     </button>
