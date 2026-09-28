@@ -159,3 +159,30 @@ it('runs themes:rebuild-aggregates afterward when --rebuild is passed and someth
 
     expect(EntityThemeSnapshot::where('entity_id', $entity->id)->where('theme_id', $cepat->id)->where('observation_count', 4)->exists())->toBeTrue();
 });
+
+it('drops a group member that an earlier group in the same run already merged away', function () {
+    config(['themes.extractor' => 'llm']);
+    $a = Theme::create(['slug' => 'a', 'display_label' => 'A', 'canonical_key' => 'a']);
+    $b = Theme::create(['slug' => 'b', 'display_label' => 'B', 'canonical_key' => 'b']);
+    $c = Theme::create(['slug' => 'c', 'display_label' => 'C', 'canonical_key' => 'c']);
+    $entity = Entity::factory()->create();
+    themeObservationFor($entity->id, $a->id);
+    foreach (range(1, 3) as $i) {
+        themeObservationFor($entity->id, $b->id);
+    }
+    themeObservationFor($entity->id, $c->id);
+
+    // The LLM put theme A in two different "synonym" groups within one response — a
+    // real observed failure mode. Group 1 merges A into B and deletes A; group 2's
+    // reference to A is now stale and must be dropped, not crash on a foreign key.
+    fakeConsolidateLlm([
+        ['canonical_label' => 'B', 'member_ids' => [$a->id, $b->id]],
+        ['canonical_label' => 'A', 'member_ids' => [$a->id, $c->id]],
+    ]);
+
+    $this->artisan('themes:consolidate')->assertSuccessful();
+
+    expect(Theme::whereKey($a->id)->exists())->toBeFalse()
+        ->and(Theme::whereKey($c->id)->exists())->toBeTrue()
+        ->and(ThemeObservation::where('theme_id', $b->id)->count())->toBe(4);
+});

@@ -82,6 +82,16 @@ class ConsolidateThemesCommand extends Command
                     array_map('intval', (array) ($group['member_ids'] ?? [])),
                     $chunk->pluck('id')->all()
                 ));
+
+                // A group can name a theme id that an EARLIER group in this same run
+                // already merged away (the LLM can put one theme in two "synonym"
+                // groups, and $chunk is a snapshot taken before any merge started) —
+                // re-check against the live table so a stale id is dropped here rather
+                // than surfacing as a foreign key violation deeper in mergeThemeInto().
+                if ($memberIds !== []) {
+                    $memberIds = array_values(array_map('intval', Theme::query()->whereIn('id', $memberIds)->pluck('id')->all()));
+                }
+
                 $canonicalLabel = trim((string) ($group['canonical_label'] ?? ''));
 
                 if (count($memberIds) < 2 || $canonicalLabel === '') {
