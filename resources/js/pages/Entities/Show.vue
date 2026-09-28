@@ -702,6 +702,157 @@ async function removeRating(): Promise<void> {
                 </div>
             </div>
 
+            <!-- Top Suara Netijen (Theme Index per docs/25) -->
+            <div
+                class="mt-6 rounded-2xl border-2 border-emerald-200 bg-white p-6 shadow-sm sm:p-8"
+            >
+                <div class="border-b border-neutral-100 pb-4">
+                    <h2 class="text-xl font-bold text-emerald-800">
+                        Top Suara Netijen
+                    </h2>
+                    <p class="mt-0.5 text-xs text-neutral-500">
+                        Hal yang paling sering dibahas netizen tentang entitas ini, diurutkan berdasarkan jumlah opini.
+                    </p>
+                </div>
+
+                <!-- Above threshold Top 5 Themes -->
+                <div v-if="themes.has_enough_data" class="mt-6 space-y-6">
+                    <div
+                        v-if="themes.summary"
+                        class="rounded-xl border border-neutral-200 bg-neutral-50 p-4"
+                    >
+                        <h3 class="text-sm font-semibold text-neutral-900">
+                            Ringkasan Suara Netijen
+                        </h3>
+                        <p class="mt-1.5 text-sm leading-relaxed text-neutral-700">
+                            {{ themes.summary.text }}
+                        </p>
+                        <p class="mt-2 text-xs text-neutral-500">
+                            Diringkas otomatis dari tema
+                            {{ themes.summary.opinion_count }} opini netizen,
+                            diperbarui
+                            {{
+                                new Date(
+                                    themes.summary.generated_at,
+                                ).toLocaleDateString('id-ID', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                })
+                            }}. Bisa kurang tepat.
+                        </p>
+                    </div>
+
+                    <!-- Ranked List -->
+                    <div>
+                        <h3
+                            class="text-xs font-semibold tracking-wider text-neutral-500 uppercase"
+                        >
+                            Top 5 Tema Paling Sering Muncul
+                        </h3>
+                        <div class="mt-3 space-y-2.5">
+                            <div
+                                v-for="(theme, index) in themes.top_themes"
+                                :key="theme.id"
+                                class="flex items-start justify-between gap-3 rounded-lg bg-neutral-50 px-4 py-2.5"
+                            >
+                                <div class="flex items-start gap-3">
+                                    <span
+                                        class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-xs font-bold text-neutral-700"
+                                    >
+                                        {{ index + 1 }}
+                                    </span>
+                                    <div class="min-w-0">
+                                        <span
+                                            class="text-sm font-semibold text-neutral-800"
+                                        >
+                                            {{ theme.display_label }}
+                                        </span>
+                                        <p
+                                            v-if="theme.note"
+                                            class="mt-0.5 text-xs leading-snug text-neutral-600"
+                                        >
+                                            {{ theme.note }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <span class="shrink-0 text-xs text-neutral-500">
+                                    {{ theme.observation_count }} opini
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Groups: Paling Suka & Sering Dikeluhkan -->
+                    <div class="grid gap-4 pt-2 sm:grid-cols-2">
+                        <!-- Netijen Paling Suka -->
+                        <div
+                            class="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-4"
+                        >
+                            <div class="text-xs font-bold text-emerald-800">
+                                Netizen Paling Suka
+                            </div>
+                            <div
+                                v-if="themes.positive_themes.length > 0"
+                                class="mt-2.5 flex flex-wrap gap-1.5"
+                            >
+                                <span
+                                    v-for="t in themes.positive_themes"
+                                    :key="t.id"
+                                    class="inline-flex items-center rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800"
+                                >
+                                    {{ t.display_label }} ({{
+                                        t.observation_count
+                                    }})
+                                </span>
+                            </div>
+                            <div v-else class="mt-2 text-xs text-neutral-400">
+                                Belum ada tema positif yang dominan.
+                            </div>
+                        </div>
+
+                        <!-- Paling Sering Dikeluhkan -->
+                        <div
+                            class="rounded-xl border border-rose-200/80 bg-rose-50/40 p-4"
+                        >
+                            <div class="text-xs font-bold text-rose-800">
+                                Paling Sering Dikeluhkan
+                            </div>
+                            <div
+                                v-if="themes.negative_themes.length > 0"
+                                class="mt-2.5 flex flex-wrap gap-1.5"
+                            >
+                                <span
+                                    v-for="t in themes.negative_themes"
+                                    :key="t.id"
+                                    class="inline-flex items-center rounded-md bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-800"
+                                >
+                                    {{ t.display_label }} ({{
+                                        t.observation_count
+                                    }})
+                                </span>
+                            </div>
+                            <div v-else class="mt-2 text-xs text-neutral-400">
+                                Belum ada keluhan berulang yang terdeteksi.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Below threshold empty state -->
+                <div
+                    v-else
+                    class="mt-6 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center"
+                >
+                    <p class="text-xs text-neutral-500">
+                        {{
+                            themes.empty_state_message ||
+                            'Belum cukup opini untuk merangkum Suara Netijen.'
+                        }}
+                    </p>
+                </div>
+            </div>
+
             <!-- Trend Chart Sederhana (Element 8 per docs/04) -->
             <div
                 class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
@@ -943,157 +1094,6 @@ async function removeRating(): Promise<void> {
                             </p>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Top Suara Netijen (Theme Index per docs/25) -->
-            <div
-                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
-            >
-                <div class="border-b border-neutral-100 pb-4">
-                    <h2 class="text-lg font-bold text-neutral-900">
-                        Top Suara Netijen
-                    </h2>
-                    <p class="mt-0.5 text-xs text-neutral-500">
-                        Hal yang paling sering dibahas netizen tentang entitas ini, diurutkan berdasarkan jumlah opini.
-                    </p>
-                </div>
-
-                <!-- Above threshold Top 5 Themes -->
-                <div v-if="themes.has_enough_data" class="mt-6 space-y-6">
-                    <div
-                        v-if="themes.summary"
-                        class="rounded-xl border border-neutral-200 bg-neutral-50 p-4"
-                    >
-                        <h3 class="text-sm font-semibold text-neutral-900">
-                            Ringkasan Suara Netijen
-                        </h3>
-                        <p class="mt-1.5 text-sm leading-relaxed text-neutral-700">
-                            {{ themes.summary.text }}
-                        </p>
-                        <p class="mt-2 text-xs text-neutral-500">
-                            Diringkas otomatis dari tema
-                            {{ themes.summary.opinion_count }} opini netizen,
-                            diperbarui
-                            {{
-                                new Date(
-                                    themes.summary.generated_at,
-                                ).toLocaleDateString('id-ID', {
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric',
-                                })
-                            }}. Bisa kurang tepat.
-                        </p>
-                    </div>
-
-                    <!-- Ranked List -->
-                    <div>
-                        <h3
-                            class="text-xs font-semibold tracking-wider text-neutral-500 uppercase"
-                        >
-                            Top 5 Tema Paling Sering Muncul
-                        </h3>
-                        <div class="mt-3 space-y-2.5">
-                            <div
-                                v-for="(theme, index) in themes.top_themes"
-                                :key="theme.id"
-                                class="flex items-start justify-between gap-3 rounded-lg bg-neutral-50 px-4 py-2.5"
-                            >
-                                <div class="flex items-start gap-3">
-                                    <span
-                                        class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-xs font-bold text-neutral-700"
-                                    >
-                                        {{ index + 1 }}
-                                    </span>
-                                    <div class="min-w-0">
-                                        <span
-                                            class="text-sm font-semibold text-neutral-800"
-                                        >
-                                            {{ theme.display_label }}
-                                        </span>
-                                        <p
-                                            v-if="theme.note"
-                                            class="mt-0.5 text-xs leading-snug text-neutral-600"
-                                        >
-                                            {{ theme.note }}
-                                        </p>
-                                    </div>
-                                </div>
-                                <span class="shrink-0 text-xs text-neutral-500">
-                                    {{ theme.observation_count }} opini
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Groups: Paling Suka & Sering Dikeluhkan -->
-                    <div class="grid gap-4 pt-2 sm:grid-cols-2">
-                        <!-- Netijen Paling Suka -->
-                        <div
-                            class="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-4"
-                        >
-                            <div class="text-xs font-bold text-emerald-800">
-                                Netizen Paling Suka
-                            </div>
-                            <div
-                                v-if="themes.positive_themes.length > 0"
-                                class="mt-2.5 flex flex-wrap gap-1.5"
-                            >
-                                <span
-                                    v-for="t in themes.positive_themes"
-                                    :key="t.id"
-                                    class="inline-flex items-center rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800"
-                                >
-                                    {{ t.display_label }} ({{
-                                        t.observation_count
-                                    }})
-                                </span>
-                            </div>
-                            <div v-else class="mt-2 text-xs text-neutral-400">
-                                Belum ada tema positif yang dominan.
-                            </div>
-                        </div>
-
-                        <!-- Paling Sering Dikeluhkan -->
-                        <div
-                            class="rounded-xl border border-rose-200/80 bg-rose-50/40 p-4"
-                        >
-                            <div class="text-xs font-bold text-rose-800">
-                                Paling Sering Dikeluhkan
-                            </div>
-                            <div
-                                v-if="themes.negative_themes.length > 0"
-                                class="mt-2.5 flex flex-wrap gap-1.5"
-                            >
-                                <span
-                                    v-for="t in themes.negative_themes"
-                                    :key="t.id"
-                                    class="inline-flex items-center rounded-md bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-800"
-                                >
-                                    {{ t.display_label }} ({{
-                                        t.observation_count
-                                    }})
-                                </span>
-                            </div>
-                            <div v-else class="mt-2 text-xs text-neutral-400">
-                                Belum ada keluhan berulang yang terdeteksi.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Below threshold empty state -->
-                <div
-                    v-else
-                    class="mt-6 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center"
-                >
-                    <p class="text-xs text-neutral-500">
-                        {{
-                            themes.empty_state_message ||
-                            'Belum cukup opini untuk merangkum Suara Netijen.'
-                        }}
-                    </p>
                 </div>
             </div>
 
