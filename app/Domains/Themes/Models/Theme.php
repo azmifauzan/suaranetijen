@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $canonical_key
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read int $observation_count only present when loaded via withCount('observations as observation_count') (ConsolidateThemesCommand)
  */
 class Theme extends Model
 {

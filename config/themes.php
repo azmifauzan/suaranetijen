@@ -73,6 +73,43 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | LLM Batch Size
+    |--------------------------------------------------------------------------
+    |
+    | Opinions sent to the LLM per call during batch backfill (themes:backfill-batch).
+    | Batching amortizes one instruction+known-label prompt over many opinions and
+    | lets the model reuse the same label across opinions in the same call, instead
+    | of every opinion minting its own near-duplicate theme.
+    |
+    */
+    'llm_batch_size' => (int) env('THEMES_LLM_BATCH_SIZE', 15),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Backfill Entity Cap
+    |--------------------------------------------------------------------------
+    |
+    | Most-recent opinions processed per entity during batch backfill. Top themes
+    | stabilize well before an entity's full opinion history is read, so this
+    | bounds LLM cost without materially changing which themes surface.
+    |
+    */
+    'backfill_entity_cap' => (int) env('THEMES_BACKFILL_ENTITY_CAP', 150),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Consolidation Limit
+    |--------------------------------------------------------------------------
+    |
+    | Default max number of existing LLM themes (highest observation count
+    | first) that themes:consolidate considers per run. Bounds cost on a
+    | large, already-fragmented theme table; pass --limit=0 to process all.
+    |
+    */
+    'consolidate_limit' => (int) env('THEMES_CONSOLIDATE_LIMIT', 400),
+
+    /*
+    |--------------------------------------------------------------------------
     | Empty State Copy
     |--------------------------------------------------------------------------
     |

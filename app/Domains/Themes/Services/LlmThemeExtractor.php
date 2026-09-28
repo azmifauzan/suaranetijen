@@ -28,6 +28,8 @@ class LlmThemeExtractor
 
     private const KNOWN_LABELS_PER_SCOPE = 25;
 
+    private const MAX_BATCH_ITEM_CHARS = 1200;
+
     public function __construct(
         private readonly LlmClient $client,
         private readonly ThemeNormalizer $normalizer,
@@ -69,6 +71,69 @@ class LlmThemeExtractor
         }
 
         return array_values($found);
+    }
+
+    /**
+     * Batched sibling of extract(): one LLM call covers many opinions from the same
+     * entity instead of one call each. Amortizing the instructions+known-labels prompt
+     * over a batch is the main cost saving; seeing several opinions together also lets
+     * the model reuse one label across them instead of each opinion minting its own
+     * near-duplicate ("baterai boros" / "baterai cepat habis" / "baterai drop").
+     *
+     * @param  array<int|string, array{key: int|string, text: string}>  $items  keyed however the caller likes; that key is echoed back
+     * @return array<int|string, list<array{theme: Theme, sentiment: SentimentClass, confidence: float, context: string|null}>>
+     */
+    public function extractBatch(int $entityId, string $entityName, array $items): array
+    {
+        $items = array_values($items);
+        if ($items === []) {
+            return [];
+        }
+
+        $normalizedTexts = [];
+        foreach ($items as $index => $item) {
+            $normalizedTexts[$index] = TextNormalizer::normalize(mb_substr($item['text'], 0, self::MAX_BATCH_ITEM_CHARS));
+        }
+
+        $response = $this->client->chat($this->batchMessages($entityId, $entityName, $items), $this->batchSchema());
+
+        $found = [];
+
+        foreach ((array) ($response['results'] ?? []) as $result) {
+            if (! is_array($result)) {
+                continue;
+            }
+
+            $index = (int) ($result['opinion_index'] ?? 0) - 1;
+            if (! isset($items[$index])) {
+                continue;
+            }
+
+            $key = $items[$index]['key'];
+            $normalizedText = $normalizedTexts[$index];
+
+            foreach (array_slice((array) ($result['themes'] ?? []), 0, self::MAX_THEMES) as $themeItem) {
+                $parsed = is_array($themeItem) ? $this->parseItem($themeItem, $normalizedText) : null;
+                if ($parsed === null) {
+                    continue;
+                }
+
+                $theme = $this->resolveOrCreateTheme($parsed['label']);
+                if ($theme === null) {
+                    continue;
+                }
+
+                $found[$key] ??= [];
+                $found[$key][$theme->id] ??= [
+                    'theme' => $theme,
+                    'sentiment' => $parsed['sentiment'],
+                    'confidence' => 0.8,
+                    'context' => $parsed['context'],
+                ];
+            }
+        }
+
+        return array_map('array_values', $found);
     }
 
     /**
@@ -159,6 +224,46 @@ class LlmThemeExtractor
     }
 
     /**
+     * @param  list<array{key: int|string, text: string}>  $items
+     * @return list<array{role: string, content: string}>
+     */
+    private function batchMessages(int $entityId, string $entityName, array $items): array
+    {
+        $known = $this->knownLabels($entityId);
+
+        $numbered = [];
+        foreach ($items as $index => $item) {
+            $numbered[] = '['.($index + 1).'] '.mb_substr($item['text'], 0, self::MAX_BATCH_ITEM_CHARS);
+        }
+
+        return [
+            [
+                'role' => 'system',
+                'content' => "You extract what Indonesian netizens say about \"{$entityName}\" from a numbered list of "
+                    .'independent opinions. Process EACH opinion on its own — never let one opinion\'s content leak '
+                    .'into another\'s themes/evidence. For each opinion, return at most 5 themes, only about '.$entityName.' itself. '
+                    .'label: a short Indonesian phrase, 2-6 words, lowercase, naming the specific thing AND the judgement '
+                    .'(e.g. "baterai cepat habis", "kamera malam bagus", "cs lambat merespons", "harga seri a terjangkau"). '
+                    .'Avoid a bare generic word like "bagus" or "mahal" when the opinion says what is good or expensive. '
+                    .'Reuse the exact same label across opinions that describe the same underlying theme — do not mint a '
+                    .'new near-duplicate label ("baterai boros" vs "baterai cepat habis") for what is really one theme, '
+                    .'either within this batch or against a known label below. '
+                    .'sentiment: that opinion\'s stance on that theme (positive, neutral, negative). '
+                    .'evidence: copy the exact words from THAT SAME opinion (max 12 words) that support the theme. '
+                    .'context: one sentence in Indonesian, max 25 words, in your own words, paraphrasing what was said — '
+                    .'never names, usernames, links or direct quotes. '
+                    .'No numeric scores. opinion_index is 1-based and must match the numbered opinion below. Skip an '
+                    .'opinion entirely (omit it from results) if it has no concrete judgement about '.$entityName.'.',
+            ],
+            [
+                'role' => 'user',
+                'content' => 'Known labels: '.($known === [] ? '(none yet)' : implode('; ', $known))
+                    ."\n\nOpinions:\n".implode("\n\n", $numbered),
+            ],
+        ];
+    }
+
+    /**
      * Labels already used for this entity first, then globally, so the LLM reuses
      * them instead of inventing near-duplicates (lazy clustering, docs/25).
      *
@@ -209,6 +314,48 @@ class LlmThemeExtractor
                     ],
                 ],
                 'required' => ['themes'],
+                'additionalProperties' => false,
+            ],
+        ];
+    }
+
+    /**
+     * @return array{name: string, schema: array<string, mixed>}
+     */
+    private function batchSchema(): array
+    {
+        return [
+            'name' => 'opinion_themes_batch',
+            'schema' => [
+                'type' => 'object',
+                'properties' => [
+                    'results' => [
+                        'type' => 'array',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'opinion_index' => ['type' => 'integer'],
+                                'themes' => [
+                                    'type' => 'array',
+                                    'items' => [
+                                        'type' => 'object',
+                                        'properties' => [
+                                            'label' => ['type' => 'string'],
+                                            'sentiment' => ['type' => 'string', 'enum' => array_column(SentimentClass::cases(), 'value')],
+                                            'evidence' => ['type' => 'string'],
+                                            'context' => ['type' => 'string'],
+                                        ],
+                                        'required' => ['label', 'sentiment', 'evidence', 'context'],
+                                        'additionalProperties' => false,
+                                    ],
+                                ],
+                            ],
+                            'required' => ['opinion_index', 'themes'],
+                            'additionalProperties' => false,
+                        ],
+                    ],
+                ],
+                'required' => ['results'],
                 'additionalProperties' => false,
             ],
         ];

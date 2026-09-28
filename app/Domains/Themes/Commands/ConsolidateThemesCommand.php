@@ -1,0 +1,242 @@
+<?php
+
+namespace App\Domains\Themes\Commands;
+
+use App\Domains\Entities\Services\LlmClient;
+use App\Domains\Themes\Models\Theme;
+use App\Domains\Themes\Models\ThemeObservation;
+use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
+
+/**
+ * One-off maintenance command: per-opinion LLM extraction (themes:backfill /
+ * ClassifySentimentJob's ExtractThemesJob) can mint near-duplicate labels for the
+ * same underlying theme ("baterai boros" / "baterai cepat habis" / "baterai drop")
+ * when each opinion is judged in isolation. This asks the LLM to group existing
+ * LLM-extracted themes into synonyms and merges each group onto one canonical theme.
+ *
+ * Themes are a global dictionary (docs/25), not per-entity, so grouping runs once
+ * over the whole table rather than per entity. Operator-invoked, not scheduled —
+ * a handful of calls per run, so it does not go through the themes-llm queue
+ * limiter the way per-opinion/per-batch jobs do.
+ */
+class ConsolidateThemesCommand extends Command
+{
+    private const CHUNK_SIZE = 150;
+
+    /**
+     * @var string
+     */
+    protected $signature = 'themes:consolidate
+        {--limit= : Max existing LLM themes to consider, highest observation count first (default: config(themes.consolidate_limit); 0 = all)}
+        {--rebuild : Also run themes:rebuild-aggregates afterward so merged counts show up immediately}
+        {--dry-run : Show what would be merged without writing anything}';
+
+    /**
+     * @var string
+     */
+    protected $description = 'Merge near-duplicate LLM-extracted theme labels (e.g. "baterai boros" / "baterai cepat habis") onto one canonical theme';
+
+    public function handle(LlmClient $client): int
+    {
+        if (config('themes.extractor') !== 'llm') {
+            $this->warn('THEMES_EXTRACTOR is not llm; nothing to consolidate.');
+
+            return self::SUCCESS;
+        }
+
+        $limitOption = $this->option('limit');
+        $limit = $limitOption !== null ? (int) $limitOption : (int) config('themes.consolidate_limit', 400);
+        $dryRun = (bool) $this->option('dry-run');
+
+        $query = Theme::query()
+            ->whereIn('id', ThemeObservation::query()->where('extractor', 'llm')->select('theme_id'))
+            ->withCount(['observations as observation_count' => fn ($q) => $q->where('extractor', 'llm')])
+            ->orderByDesc('observation_count')
+            ->orderBy('id');
+
+        if ($limit > 0) {
+            $query->limit($limit);
+        }
+
+        $themes = $query->get(['id', 'slug', 'display_label']);
+
+        if ($themes->count() < 2) {
+            $this->info('Fewer than 2 LLM themes exist; nothing to consolidate.');
+
+            return self::SUCCESS;
+        }
+
+        $merged = 0;
+
+        foreach ($themes->chunk(self::CHUNK_SIZE) as $chunk) {
+            $response = $client->chat($this->messages($chunk), $this->schema());
+
+            foreach ((array) ($response['groups'] ?? []) as $group) {
+                if (! is_array($group)) {
+                    continue;
+                }
+
+                $memberIds = array_values(array_intersect(
+                    array_map('intval', (array) ($group['member_ids'] ?? [])),
+                    $chunk->pluck('id')->all()
+                ));
+                $canonicalLabel = trim((string) ($group['canonical_label'] ?? ''));
+
+                if (count($memberIds) < 2 || $canonicalLabel === '') {
+                    continue;
+                }
+
+                if ($dryRun) {
+                    $this->line('Would merge ['.implode(',', $memberIds).'] -> "'.$canonicalLabel.'"');
+                    $merged += count($memberIds) - 1;
+
+                    continue;
+                }
+
+                $canonicalId = $this->resolveCanonical($chunk, $memberIds, $canonicalLabel);
+
+                foreach ($memberIds as $memberId) {
+                    if ($memberId === $canonicalId) {
+                        continue;
+                    }
+
+                    $this->mergeThemeInto($memberId, $canonicalId);
+                    $merged++;
+                }
+            }
+        }
+
+        $verb = $dryRun ? 'Would merge' : 'Merged';
+        $this->info("{$verb} {$merged} duplicate theme(s) across {$themes->count()} considered.");
+
+        if (! $dryRun && $merged > 0 && $this->option('rebuild')) {
+            $this->call('themes:rebuild-aggregates');
+        }
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Renames the highest-observation-count member to the LLM's canonical label
+     * (rather than creating a new theme row) and returns its id — every other
+     * member in the group gets merged onto it.
+     *
+     * @param  Collection<int, Theme>  $chunk
+     * @param  list<int>  $memberIds
+     */
+    private function resolveCanonical(Collection $chunk, array $memberIds, string $canonicalLabel): int
+    {
+        $best = $chunk->whereIn('id', $memberIds)->sortByDesc('observation_count')->first();
+        $slug = Str::slug($canonicalLabel);
+
+        if ($best === null) {
+            return $memberIds[0];
+        }
+
+        $slugTaken = $slug !== '' && $slug !== $best->slug
+            && Theme::query()->where('slug', $slug)->where('id', '!=', $best->id)->exists();
+
+        if ($slug !== '' && $slug !== $best->slug && ! $slugTaken) {
+            $best->update([
+                'slug' => $slug,
+                'display_label' => Str::ucfirst(mb_strtolower($canonicalLabel)),
+                'canonical_key' => $slug,
+            ]);
+        }
+
+        return $best->id;
+    }
+
+    /**
+     * Reassigns every observation from $fromThemeId to $intoThemeId. A row that would
+     * collide with the (entity_id, theme_id, source_item_id) unique constraint (both
+     * themes already observed on the same opinion) is dropped rather than merged —
+     * the canonical theme's own observation for that opinion already covers it.
+     */
+    private function mergeThemeInto(int $fromThemeId, int $intoThemeId): void
+    {
+        ThemeObservation::query()
+            ->where('theme_id', $fromThemeId)
+            ->orderBy('id')
+            ->chunkById(500, function (Collection $rows) use ($intoThemeId): void {
+                foreach ($rows as $row) {
+                    // A null source_item_id is never a duplicate of another null one — the
+                    // (entity_id, theme_id, source_item_id) unique index treats NULLs as
+                    // distinct (Postgres semantics), so only a real, matching source_item_id
+                    // is a genuine collision worth dropping instead of moving.
+                    $duplicate = $row->source_item_id !== null && ThemeObservation::query()
+                        ->where('entity_id', $row->entity_id)
+                        ->where('theme_id', $intoThemeId)
+                        ->where('source_item_id', $row->source_item_id)
+                        ->exists();
+
+                    if ($duplicate) {
+                        $row->delete();
+                    } else {
+                        $row->update(['theme_id' => $intoThemeId]);
+                    }
+                }
+            });
+
+        if (! ThemeObservation::query()->where('theme_id', $fromThemeId)->exists()) {
+            Theme::query()->whereKey($fromThemeId)->delete();
+        }
+    }
+
+    /**
+     * @param  Collection<int, Theme>  $chunk
+     * @return list<array{role: string, content: string}>
+     */
+    private function messages(Collection $chunk): array
+    {
+        $list = $chunk->map(fn (Theme $theme) => "{$theme->id}: {$theme->display_label} ({$theme->observation_count} opini)")->implode("\n");
+
+        return [
+            [
+                'role' => 'system',
+                'content' => 'You group Indonesian theme labels that describe the same underlying opinion into synonym '
+                    .'groups, e.g. "baterai boros", "baterai cepat habis", "baterai drop" all belong in one group with '
+                    .'canonical_label "baterai cepat habis". Only group labels that are genuinely the same concept and the '
+                    .'same polarity — never group opposites (e.g. "kamera bagus" and "kamera buram" are opposite, not the '
+                    .'same theme). Every group needs at least 2 member_ids. canonical_label should be the clearest, most '
+                    .'natural Indonesian phrasing among the group — reuse one of the given labels verbatim when it already '
+                    .'reads naturally, rather than inventing new wording. Omit any label that has no genuine synonym in this list.',
+            ],
+            [
+                'role' => 'user',
+                'content' => "Theme labels (id: label (count)):\n{$list}",
+            ],
+        ];
+    }
+
+    /**
+     * @return array{name: string, schema: array<string, mixed>}
+     */
+    private function schema(): array
+    {
+        return [
+            'name' => 'theme_consolidation',
+            'schema' => [
+                'type' => 'object',
+                'properties' => [
+                    'groups' => [
+                        'type' => 'array',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'canonical_label' => ['type' => 'string'],
+                                'member_ids' => ['type' => 'array', 'items' => ['type' => 'integer']],
+                            ],
+                            'required' => ['canonical_label', 'member_ids'],
+                            'additionalProperties' => false,
+                        ],
+                    ],
+                ],
+                'required' => ['groups'],
+                'additionalProperties' => false,
+            ],
+        ];
+    }
+}

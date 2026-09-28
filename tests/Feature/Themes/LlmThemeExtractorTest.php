@@ -90,3 +90,71 @@ it('queries known labels once and serves later calls from cache', function () {
 
     expect($second)->toBeLessThan($first);
 });
+
+it('groups per-opinion themes by opinion_index and keeps evidence grounded per opinion', function () {
+    LlmSetting::create(['base_url' => 'https://llm.test/v1', 'model' => 'm', 'api_key' => 'k', 'max_tokens' => 800, 'temperature' => 0.1, 'timeout_seconds' => 20]);
+    Http::preventStrayRequests();
+    Http::fake(['llm.test/*' => Http::response([
+        'choices' => [['message' => ['content' => json_encode([
+            'results' => [
+                ['opinion_index' => 1, 'themes' => [
+                    ['label' => 'kamera bagus', 'sentiment' => 'positive', 'evidence' => 'kameranya bagus banget', 'context' => 'Pengguna puas dengan kamera.'],
+                ]],
+                ['opinion_index' => 2, 'themes' => [
+                    ['label' => 'baterai cepat habis', 'sentiment' => 'negative', 'evidence' => 'baterai cepet abis', 'context' => 'Baterai dinilai boros.'],
+                ]],
+            ],
+        ])]]],
+    ])]);
+
+    $result = app(LlmThemeExtractor::class)->extractBatch(1, 'Samsung', [
+        'a' => ['key' => 'a', 'text' => 'Kameranya bagus banget buat foto malam.'],
+        'b' => ['key' => 'b', 'text' => 'Sayangnya baterai cepet abis dipakai gaming.'],
+    ]);
+
+    expect($result['a'])->toHaveCount(1)
+        ->and($result['a'][0]['theme']->display_label)->toBe('Kamera bagus')
+        ->and($result['b'][0]['theme']->display_label)->toBe('Baterai cepat habis')
+        ->and($result['b'][0]['sentiment'])->toBe(SentimentClass::Negative);
+});
+
+it('drops a batch theme whose evidence is not in ITS OWN opinion, even if it is in another', function () {
+    Http::preventStrayRequests();
+    LlmSetting::create(['base_url' => 'https://llm.test/v1', 'model' => 'm', 'api_key' => 'k', 'max_tokens' => 800, 'temperature' => 0.1, 'timeout_seconds' => 20]);
+    Http::fake(['llm.test/*' => Http::response([
+        'choices' => [['message' => ['content' => json_encode([
+            'results' => [
+                // Evidence belongs to opinion 2's text, wrongly attributed to opinion 1.
+                ['opinion_index' => 1, 'themes' => [
+                    ['label' => 'baterai cepat habis', 'sentiment' => 'negative', 'evidence' => 'baterai cepet abis', 'context' => 'x'],
+                ]],
+            ],
+        ])]]],
+    ])]);
+
+    $result = app(LlmThemeExtractor::class)->extractBatch(1, 'Samsung', [
+        ['key' => 0, 'text' => 'Kameranya bagus banget buat foto malam.'],
+        ['key' => 1, 'text' => 'Sayangnya baterai cepet abis dipakai gaming.'],
+    ]);
+
+    expect($result)->toBe([]);
+});
+
+it('ignores an out-of-range opinion_index instead of crashing', function () {
+    Http::preventStrayRequests();
+    LlmSetting::create(['base_url' => 'https://llm.test/v1', 'model' => 'm', 'api_key' => 'k', 'max_tokens' => 800, 'temperature' => 0.1, 'timeout_seconds' => 20]);
+    Http::fake(['llm.test/*' => Http::response([
+        'choices' => [['message' => ['content' => json_encode([
+            'results' => [['opinion_index' => 99, 'themes' => [['label' => 'x', 'sentiment' => 'positive', 'evidence' => 'x', 'context' => 'x']]]],
+        ])]]],
+    ])]);
+
+    expect(app(LlmThemeExtractor::class)->extractBatch(1, 'Samsung', [['key' => 0, 'text' => 'Kameranya bagus.']]))->toBe([]);
+});
+
+it('never calls the LLM for an empty batch', function () {
+    Http::preventStrayRequests();
+
+    expect(app(LlmThemeExtractor::class)->extractBatch(1, 'Samsung', []))->toBe([]);
+    Http::assertNothingSent();
+});
