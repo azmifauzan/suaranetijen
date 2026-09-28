@@ -85,6 +85,9 @@ it('keeps the previous summary when the new one breaks copy rules', function (st
 
 it('skips regeneration when the summary is fresh and opinion count barely moved', function () {
     [$entity] = summaryFixture();
+    // The theme snapshot itself must predate the summary too, or the freshness check
+    // below (rightly) treats the summary as stale relative to it.
+    EntityThemeSnapshot::query()->where('entity_id', $entity->id)->update(['calculated_at' => now()->subDays(2)]);
     EntityThemeSummary::create([
         'entity_id' => $entity->id, 'summary' => 'Masih segar.', 'theme_notes' => [],
         'opinion_count' => 38, 'generated_at' => now()->subDay(),
@@ -95,6 +98,26 @@ it('skips regeneration when the summary is fresh and opinion count barely moved'
     app(EntityThemeSummarizer::class)->summarize($entity);
 
     Http::assertNothingSent();
+});
+
+it('regenerates when the theme snapshot was recalculated after the summary, even if opinion_count barely moved', function () {
+    [$entity, $llm] = summaryFixture();
+    // Same setup as the "skips" test above, EXCEPT the snapshot was recalculated (e.g.
+    // by themes:rebuild-aggregates or themes:consolidate) AFTER the summary was written
+    // — this is exactly what happened live on 28 Sep 2026: a consolidate run rewrote an
+    // entity's top themes without touching its opinion count, and the summary stayed
+    // stale under the opinion_count-only check.
+    EntityThemeSummary::create([
+        'entity_id' => $entity->id, 'summary' => 'Ringkasan lama, sebelum tema digabung.', 'theme_notes' => [],
+        'opinion_count' => 38, 'generated_at' => now()->subDay(),
+    ]);
+    EntityThemeSnapshot::query()->where('entity_id', $entity->id)->update(['calculated_at' => now()]);
+    fakeSummaryLlm(['summary' => 'Ringkasan baru setelah tema digabung.', 'theme_notes' => []]);
+
+    $result = app(EntityThemeSummarizer::class)->summarize($entity);
+
+    expect($result->summary)->toBe('Ringkasan baru setelah tema digabung.');
+    Http::assertSentCount(1);
 });
 
 it('returns null below the theme threshold', function () {

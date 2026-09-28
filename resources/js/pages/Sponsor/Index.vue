@@ -774,10 +774,10 @@ function formatRupiah(amount: number): string {
 
                 <!-- Step 1: URL first — fetch the site, then match against existing entities. -->
                 <div class="mt-4">
-                    <label class="block text-xs font-bold text-[#31483b]">
+                    <label v-if="!selectedEntity" class="block text-xs font-bold text-[#31483b]">
                         Link Website Resmi Entitas
                     </label>
-                    <div class="relative mt-1.5">
+                    <div v-if="!selectedEntity" class="relative mt-1.5">
                         <Search class="absolute top-3 left-3 size-4 text-[#8e9f93]" />
                         <input
                             v-model="urlInput"
@@ -786,7 +786,7 @@ function formatRupiah(amount: number): string {
                             class="w-full rounded-xl border border-[#cfd9ce] py-2.5 pr-4 pl-9 text-sm text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
                         />
                     </div>
-                    <p class="mt-1.5 text-[11px] text-[#788a7e]">
+                    <p v-if="!selectedEntity" class="mt-1.5 text-[11px] text-[#788a7e]">
                         Kami ambil judul situsnya, lalu cocokkan dengan entitas yang sudah terdaftar di SuaraNetijen.
                     </p>
 

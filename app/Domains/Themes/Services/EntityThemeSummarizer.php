@@ -5,6 +5,7 @@ namespace App\Domains\Themes\Services;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Services\LlmClient;
 use App\Domains\Sentiment\Enums\Period;
+use App\Domains\Themes\Models\EntityThemeSnapshot;
 use App\Domains\Themes\Models\EntityThemeSummary;
 use App\Domains\Themes\Models\ThemeObservation;
 use Illuminate\Support\Facades\Log;
@@ -34,9 +35,22 @@ class EntityThemeSummarizer
         }
 
         $existing = EntityThemeSummary::query()->where('entity_id', $entity->id)->first();
+        // Theme data can change without the opinion count moving at all — a backfill,
+        // an extractor switch, or a themes:consolidate merge all rewrite theme_observations/
+        // EntityThemeSnapshot without adding a single new sentiment opinion. Comparing
+        // opinion_count alone missed exactly that case (confirmed live, 28 Sep 2026: a
+        // consolidate run changed an entity's top themes but its summary, gated only on
+        // opinion_count, stayed stale for two days). A summary is fresh only when its own
+        // theme snapshot has not been recalculated more recently than the summary itself.
+        $themesRecalculatedAt = EntityThemeSnapshot::query()
+            ->where('entity_id', $entity->id)
+            ->where('window', Period::OneYear->value)
+            ->value('calculated_at');
+
         if ($existing !== null
             && $existing->generated_at->gt(now()->subDays(self::FRESH_DAYS))
-            && abs($data['opinion_count'] - $existing->opinion_count) < self::MIN_NEW_OPINIONS) {
+            && abs($data['opinion_count'] - $existing->opinion_count) < self::MIN_NEW_OPINIONS
+            && ($themesRecalculatedAt === null || $existing->generated_at->gte($themesRecalculatedAt))) {
             return $existing;
         }
 
