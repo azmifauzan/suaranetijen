@@ -4,6 +4,7 @@ namespace App\Domains\Entities\Requests;
 
 use App\Domains\Entities\Enums\AliasType;
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Entities\Services\AliasPolicy;
 use App\Domains\Entities\Services\TextNormalizer;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -39,6 +40,12 @@ class StoreEntityAliasRequest extends FormRequest
                     $normalized = TextNormalizer::normalize((string) $value);
                     if ($normalized === '') {
                         $fail('The alias must contain valid alphanumeric characters.');
+
+                        return;
+                    }
+
+                    if (! AliasPolicy::isUsable($normalized)) {
+                        $fail('This alias is too ambiguous to identify an entity (everyday word or shared between entities).');
 
                         return;
                     }

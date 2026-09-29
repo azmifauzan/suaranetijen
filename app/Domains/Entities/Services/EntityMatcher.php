@@ -13,6 +13,16 @@ class EntityMatcher
      */
     public function match(string $text): ?Entity
     {
+        return $this->matchWithTerm($text)['entity'] ?? null;
+    }
+
+    /**
+     * Same as match(), also returning the alias or name phrase that matched.
+     *
+     * @return array{entity: Entity, term: string}|null
+     */
+    public function matchWithTerm(string $text): ?array
+    {
         // ponytail: scan the active entity set; add indexed candidate retrieval when volume requires it.
         $normalizedText = TextNormalizer::normalize($text);
         if ($normalizedText === '') {
@@ -21,18 +31,24 @@ class EntityMatcher
 
         $matches = [];
         foreach (Entity::query()->active()->searchable()->with('aliases')->get() as $entity) {
-            $terms = [
-                TextNormalizer::normalize($entity->name),
-                ...$entity->aliases->pluck('normalized_alias')->all(),
-            ];
+            $name = TextNormalizer::normalize($entity->name);
+            $terms = [$name, ...$entity->aliases->pluck('normalized_alias')->all()];
 
             foreach (array_unique(array_filter($terms)) as $term) {
-                if ($this->containsPhrase($normalizedText, $term)) {
-                    $matches[] = [
-                        'entity' => $entity,
-                        'length' => mb_strlen($term, 'UTF-8'),
-                    ];
+                if (! AliasPolicy::isUsable($term) || ! $this->containsPhrase($normalizedText, $term)) {
+                    continue;
                 }
+
+                if ($term !== $name && AliasPolicy::requiresUppercase($term)
+                    && ! AliasPolicy::appearsUppercase($text, $term)) {
+                    continue;
+                }
+
+                $matches[] = [
+                    'entity' => $entity,
+                    'term' => $term,
+                    'length' => mb_strlen($term, 'UTF-8'),
+                ];
             }
         }
 
@@ -56,7 +72,7 @@ class EntityMatcher
             return null;
         }
 
-        return $matches[0]['entity'];
+        return ['entity' => $matches[0]['entity'], 'term' => $matches[0]['term']];
     }
 
     private function containsPhrase(string $text, string $phrase): bool

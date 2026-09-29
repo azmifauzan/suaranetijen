@@ -66,3 +66,18 @@ it('does not dispatch theme extraction when the text is not an evaluation', func
     Queue::assertNotPushed(EnrichEntityWebsiteJob::class);
     expect(UnmatchedMention::query()->value('reason'))->toBe('not_an_evaluation');
 });
+
+it('leaves llm theme extraction to the batched command instead of one call per opinion', function () {
+    Queue::fake();
+    config(['themes.extractor' => 'llm']);
+
+    $entity = Entity::factory()->create();
+    $source = Source::factory()->create();
+    $item = SourceItem::factory()->create(['source_id' => $source->id]);
+    app(RawPayloadStorage::class)->store($source, 'Pelayanannya sangat bagus dan memuaskan', $item, 'text/plain');
+
+    (new ClassifySentimentJob($item->id, $entity->id, 'samsung'))->handle(app(SentimentClassifier::class));
+
+    Queue::assertPushed(UpsertSentimentObservationJob::class, fn ($job) => $job->matchedTerm === 'samsung');
+    Queue::assertNotPushed(ExtractThemesJob::class);
+});

@@ -3,6 +3,7 @@
 namespace App\Domains\Themes\Jobs;
 
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Sentiment\Models\SentimentObservation;
 use App\Domains\Themes\Services\LlmThemeExtractor;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -101,5 +102,12 @@ class ExtractThemesBatchJob implements ShouldQueue
                 );
             }
         }
+
+        // Opinions with zero themes leave no theme_observations row, so mark them here
+        // or themes:extract-pending would resend them every run.
+        SentimentObservation::query()
+            ->where('entity_id', $this->entityId)
+            ->whereIn('source_item_id', array_column($this->items, 'sourceItemId'))
+            ->update(['themes_extracted_at' => now()]);
     }
 }

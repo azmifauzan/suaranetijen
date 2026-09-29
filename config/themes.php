@@ -129,4 +129,15 @@ return [
     */
     'sparse_state_message' => 'Opini netizen masih beragam, belum ada tema yang muncul berulang.',
 
+    /*
+    |--------------------------------------------------------------------------
+    | Pending Extraction Window
+    |--------------------------------------------------------------------------
+    |
+    | themes:extract-pending only considers opinions created within this many
+    | hours. Keep it under the raw payload TTL (72h), after which the text is gone.
+    |
+    */
+    'pending_window_hours' => (int) env('THEMES_PENDING_WINDOW_HOURS', 60),
+
 ];

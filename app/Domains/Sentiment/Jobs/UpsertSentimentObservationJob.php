@@ -17,7 +17,8 @@ class UpsertSentimentObservationJob implements ShouldQueue
     public function __construct(
         public int $sourceItemId,
         public int $entityId,
-        public SentimentClass $sentiment
+        public SentimentClass $sentiment,
+        public ?string $matchedTerm = null
     ) {
         $this->queue = 'analysis';
     }
@@ -38,6 +39,7 @@ class UpsertSentimentObservationJob implements ShouldQueue
             [
                 'source_id' => $item->source_id,
                 'sentiment' => $this->sentiment,
+                'matched_term' => $this->matchedTerm !== null ? mb_substr($this->matchedTerm, 0, 120) : null,
                 'model_confidence' => null,
                 'observed_at' => $observedAt,
             ]

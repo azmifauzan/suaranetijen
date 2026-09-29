@@ -21,7 +21,8 @@ class ClassifySentimentJob implements ShouldQueue
 
     public function __construct(
         public int $sourceItemId,
-        public int $entityId
+        public int $entityId,
+        public ?string $matchedTerm = null
     ) {
         $this->queue = 'analysis';
     }
@@ -65,19 +66,22 @@ class ClassifySentimentJob implements ShouldQueue
             return;
         }
 
-        UpsertSentimentObservationJob::dispatch($item->id, $this->entityId, $sentiment);
+        UpsertSentimentObservationJob::dispatch($item->id, $this->entityId, $sentiment, $this->matchedTerm);
 
         // Theme extraction is a second, independent branch off the same relevant-opinion
         // output (docs/25) — it never blocks, and is never blocked by, sentiment classification.
-        ExtractThemesJob::dispatch(
-            entityId: $this->entityId,
-            sourceId: $item->source_id,
-            sourceItemId: $item->id,
-            text: $payload,
-            sourceDocumentHash: $item->content_hash,
-            contextSentiment: $sentiment,
-            publishedAt: $item->published_at
-        );
+        // The LLM extractor is batched by themes:extract-pending instead of one call per opinion.
+        if (config('themes.extractor') !== 'llm') {
+            ExtractThemesJob::dispatch(
+                entityId: $this->entityId,
+                sourceId: $item->source_id,
+                sourceItemId: $item->id,
+                text: $payload,
+                sourceDocumentHash: $item->content_hash,
+                contextSentiment: $sentiment,
+                publishedAt: $item->published_at
+            );
+        }
 
         if (Cache::add("enrich:website:{$this->entityId}", true, now()->addDays(7))) {
             EnrichEntityWebsiteJob::dispatch($this->entityId);

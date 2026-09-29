@@ -176,7 +176,7 @@ class SeedEntityImporter
 
                         $normalized = TextNormalizer::normalize($rawAlias);
 
-                        if ($normalized === '') {
+                        if (! AliasPolicy::isUsable($normalized)) {
                             continue;
                         }
 

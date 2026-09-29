@@ -46,8 +46,8 @@ class MatchEntitiesJob implements ShouldQueue
             return;
         }
 
-        $entity = $matcher->match($payload);
-        if ($entity === null) {
+        $match = $matcher->matchWithTerm($payload);
+        if ($match === null) {
             UnmatchedMention::updateOrCreate(
                 ['source_item_id' => $item->id],
                 [
@@ -62,6 +62,6 @@ class MatchEntitiesJob implements ShouldQueue
         }
 
         UnmatchedMention::query()->where('source_item_id', $item->id)->delete();
-        ClassifySentimentJob::dispatch($item->id, $entity->id);
+        ClassifySentimentJob::dispatch($item->id, $match['entity']->id, $match['term']);
     }
 }

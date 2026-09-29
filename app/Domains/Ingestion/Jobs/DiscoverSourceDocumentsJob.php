@@ -3,6 +3,8 @@
 namespace App\Domains\Ingestion\Jobs;
 
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Entities\Services\AliasPolicy;
+use App\Domains\Entities\Services\TextNormalizer;
 use App\Domains\Sources\Contracts\CrawlCursor;
 use App\Domains\Sources\Enums\DocumentState;
 use App\Domains\Sources\Exceptions\RateLimitExceededException;
@@ -96,7 +98,7 @@ class DiscoverSourceDocumentsJob implements ShouldQueue
                             ...$entity->aliases->pluck('normalized_alias')->all(),
                         ];
                     })
-                    ->filter()
+                    ->filter(fn (?string $term): bool => $term !== null && AliasPolicy::isUsable(TextNormalizer::normalize($term)))
                     ->unique()
                     ->values()
                     ->all();

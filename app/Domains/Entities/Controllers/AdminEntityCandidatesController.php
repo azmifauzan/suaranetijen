@@ -9,6 +9,7 @@ use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Models\EntityAlias;
 use App\Domains\Entities\Models\EntityCandidate;
 use App\Domains\Entities\Requests\ApproveEntityCandidateRequest;
+use App\Domains\Entities\Services\AliasPolicy;
 use App\Domains\Entities\Services\TextNormalizer;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
@@ -75,7 +76,7 @@ class AdminEntityCandidatesController extends Controller
                 }
 
                 $normalized = TextNormalizer::normalize($alias);
-                if (isset($seenNormalized[$normalized])) {
+                if (! AliasPolicy::isUsable($normalized) || isset($seenNormalized[$normalized])) {
                     continue;
                 }
                 $seenNormalized[$normalized] = true;

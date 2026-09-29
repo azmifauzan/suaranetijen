@@ -18,9 +18,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $entity_id
  * @property int $source_id
  * @property int $source_item_id
+ * @property string|null $matched_term
  * @property SentimentClass $sentiment
  * @property float|null $model_confidence
  * @property CarbonImmutable $observed_at
+ * @property CarbonImmutable|null $themes_extracted_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read Entity $entity
@@ -31,9 +33,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'entity_id',
     'source_id',
     'source_item_id',
+    'matched_term',
     'sentiment',
     'model_confidence',
     'observed_at',
+    'themes_extracted_at',
 ])]
 class SentimentObservation extends Model
 {
@@ -49,6 +53,7 @@ class SentimentObservation extends Model
             'sentiment' => SentimentClass::class,
             'model_confidence' => 'float',
             'observed_at' => 'immutable_datetime',
+            'themes_extracted_at' => 'immutable_datetime',
         ];
     }
 
