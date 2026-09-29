@@ -16,9 +16,10 @@ class LlmClient
     /**
      * @param  list<array{role: string, content: string}>  $messages
      * @param  array{name: string, schema: array<string, mixed>}|null  $jsonSchema
+     * @param  int|null  $timeoutSeconds  Overrides the configured timeout for one long-running call.
      * @return array<string, mixed>
      */
-    public function chat(array $messages, ?array $jsonSchema = null): array
+    public function chat(array $messages, ?array $jsonSchema = null, ?int $timeoutSeconds = null): array
     {
         $settings = $this->resolveSettings();
 
@@ -37,7 +38,7 @@ class LlmClient
         }
 
         $response = Http::withToken($settings['api_key'])
-            ->timeout($settings['timeout_seconds'])
+            ->timeout($timeoutSeconds ?? $settings['timeout_seconds'])
             ->post(rtrim((string) $settings['base_url'], '/').'/chat/completions', $body);
         $response->throw();
 

@@ -7,6 +7,7 @@ use App\Domains\Themes\Models\Theme;
 use App\Domains\Themes\Models\ThemeObservation;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Client\HttpClientException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -25,6 +26,8 @@ use Illuminate\Support\Str;
 class ConsolidateThemesCommand extends Command
 {
     private const CHUNK_SIZE = 150;
+
+    private const REQUEST_TIMEOUT_SECONDS = 120;
 
     /**
      * @var string
@@ -61,7 +64,12 @@ class ConsolidateThemesCommand extends Command
             }
 
             $considered += $themes->count();
-            $merged += $this->consolidate($client, $themes, $dryRun);
+
+            try {
+                $merged += $this->consolidate($client, $themes, $dryRun);
+            } catch (HttpClientException $e) {
+                $this->warn('Skipped a theme set after an LLM error: '.$e->getMessage());
+            }
         }
 
         if ($considered === 0) {
@@ -131,7 +139,7 @@ class ConsolidateThemesCommand extends Command
         $merged = 0;
 
         foreach ($themes->chunk(self::CHUNK_SIZE) as $chunk) {
-            $response = $client->chat($this->messages($chunk), $this->schema());
+            $response = $client->chat($this->messages($chunk), $this->schema(), self::REQUEST_TIMEOUT_SECONDS);
 
             foreach ((array) ($response['groups'] ?? []) as $group) {
                 if (! is_array($group)) {

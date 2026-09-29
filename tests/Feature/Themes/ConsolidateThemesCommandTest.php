@@ -207,3 +207,27 @@ it('groups the themes of one entity together with --per-entity', function () {
         ->and(ThemeObservation::where('entity_id', $entity->id)->where('theme_id', $murah->id)->count())->toBe(2);
     Http::assertSentCount(1);
 });
+
+it('skips an entity whose LLM call fails and keeps going', function () {
+    config(['themes.extractor' => 'llm', 'themes.min_entity_opinions' => 2]);
+    $a = Theme::create(['slug' => 'a', 'display_label' => 'A', 'canonical_key' => 'a']);
+    $b = Theme::create(['slug' => 'b', 'display_label' => 'B', 'canonical_key' => 'b']);
+    $first = Entity::factory()->create();
+    $second = Entity::factory()->create();
+    foreach ([$first, $second] as $entity) {
+        themeObservationFor($entity->id, $a->id);
+        themeObservationFor($entity->id, $b->id);
+    }
+
+    LlmSetting::create(['base_url' => 'https://llm.test/v1', 'model' => 'm', 'api_key' => 'k', 'max_tokens' => 800, 'temperature' => 0.1, 'timeout_seconds' => 20]);
+    Http::fake(['llm.test/*' => Http::sequence()
+        ->push('timeout', 500)
+        ->push(['choices' => [['message' => ['content' => json_encode(['groups' => [
+            ['canonical_label' => 'A', 'member_ids' => [$a->id, $b->id]],
+        ]])]]]]),
+    ]);
+
+    $this->artisan('themes:consolidate --per-entity')->assertSuccessful();
+
+    expect(Theme::whereKey($b->id)->exists())->toBeFalse();
+});
