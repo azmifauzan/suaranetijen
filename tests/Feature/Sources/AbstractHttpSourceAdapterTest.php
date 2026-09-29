@@ -7,6 +7,7 @@ use App\Domains\Sources\Contracts\FetchedDocument;
 use App\Domains\Sources\Contracts\SourceDocumentRef;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 function testHttpSourceAdapter(): AbstractHttpSourceAdapter
@@ -101,6 +102,10 @@ it('reuses one FlareSolverr session across multiple requests to the same host', 
     Http::fake(function (Request $request) use (&$sessionCreateCalls) {
         expect($request->url())->toBe('http://flaresolverr:8191/v1');
 
+        if ($request['cmd'] === 'sessions.destroy') {
+            return Http::response(['status' => 'ok']);
+        }
+
         if ($request['cmd'] === 'sessions.create') {
             $sessionCreateCalls++;
 
@@ -126,7 +131,7 @@ it('recreates the FlareSolverr session and retries once when the session no long
     $requestGetCalls = 0;
     Http::preventStrayRequests();
     Http::fake(function (Request $request) use (&$requestGetCalls) {
-        if ($request['cmd'] === 'sessions.create') {
+        if (in_array($request['cmd'], ['sessions.create', 'sessions.destroy'], true)) {
             return Http::response(['status' => 'ok']);
         }
 
@@ -143,4 +148,81 @@ it('recreates the FlareSolverr session and retries once when the session no long
 
     expect($requestGetCalls)->toBe(2)
         ->and($response->body())->toBe('recovered');
+});
+
+function fakeFlareSolverrCommands(array &$commands): void
+{
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) use (&$commands) {
+        $commands[] = $request['cmd'];
+
+        return $request['cmd'] === 'request.get'
+            ? Http::response(['status' => 'ok', 'solution' => ['status' => 200, 'response' => 'ok']])
+            : Http::response(['status' => 'ok']);
+    });
+}
+
+it('destroys the FlareSolverr session before creating it, so its browser does not live forever', function () {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191']);
+    Cache::flush();
+    $commands = [];
+    fakeFlareSolverrCommands($commands);
+
+    testChallengeSolvingAdapter()->callRequest('https://example.test/page-1');
+
+    expect($commands)->toBe(['sessions.destroy', 'sessions.create', 'request.get']);
+});
+
+it('rotates the FlareSolverr session once its lifetime has passed and not before', function () {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191', 'services.flaresolverr.session_ttl_minutes' => 15]);
+    Cache::flush();
+    $commands = [];
+    fakeFlareSolverrCommands($commands);
+    $adapter = testChallengeSolvingAdapter();
+
+    $adapter->callRequest('https://example.test/page-1');
+    $this->travel(14)->minutes();
+    $adapter->callRequest('https://example.test/page-2');
+    $this->travel(2)->minutes();
+    $adapter->callRequest('https://example.test/page-3');
+
+    expect($commands)->toBe([
+        'sessions.destroy', 'sessions.create', 'request.get',
+        'request.get',
+        'sessions.destroy', 'sessions.create', 'request.get',
+    ]);
+});
+
+it('keeps the FlareSolverr session bookkeeping per container, since every worker runs its own browser', function () {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191']);
+    Cache::flush();
+    $commands = [];
+    fakeFlareSolverrCommands($commands);
+
+    testChallengeSolvingAdapter()->callRequest('https://example.test/page-1');
+
+    $sessionId = 'src-'.substr(md5('example.test'), 0, 16);
+    expect(Cache::has('flaresolverr:session:'.gethostname().':'.$sessionId))->toBeTrue();
+});
+
+it('does not destroy the session when it only has to recreate a missing one', function () {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191']);
+    Cache::flush();
+    $commands = [];
+    $requestGets = 0;
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) use (&$commands, &$requestGets) {
+        $commands[] = $request['cmd'];
+        if ($request['cmd'] !== 'request.get') {
+            return Http::response(['status' => 'ok']);
+        }
+
+        return ++$requestGets === 1
+            ? Http::response(['status' => 'error', 'message' => 'Error: This session does not exist.'])
+            : Http::response(['status' => 'ok', 'solution' => ['status' => 200, 'response' => 'ok']]);
+    });
+
+    testChallengeSolvingAdapter()->callRequest('https://example.test/page');
+
+    expect($commands)->toBe(['sessions.destroy', 'sessions.create', 'request.get', 'sessions.create', 'request.get']);
 });

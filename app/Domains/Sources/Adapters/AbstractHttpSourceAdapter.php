@@ -162,25 +162,46 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
      * Best-effort: a failure here just means the next request.get falls
      * back to solving its own challenge from scratch, same as before this
      * session-reuse existed — never worth failing the caller over.
+     *
+     * A session is one long-lived browser, and on staging three of them grew from ~40MB to the
+     * container's whole memory limit within ~3 hours (tab crashes, 502 on every discovery).
+     * So the session is rotated (destroyed, then created) once its lifetime has passed; only the
+     * request that wins the atomic Cache::add rotates it, the others carry on with the fresh one.
+     * The bookkeeping is per container (hostname): every worker runs its own FlareSolverr, and a
+     * cluster-wide key made a worker believe a session existed on a browser that never had it.
+     * Recovering a missing session only creates it: destroying would kill a session another job
+     * on the same container just created.
      */
     private function ensureFlareSolverrSession(string $flareSolverrUrl, string $sessionId, bool $forceRecreate = false): void
     {
-        $cacheKey = "flaresolverr:session:{$sessionId}";
+        $cacheKey = 'flaresolverr:session:'.gethostname().':'.$sessionId;
+        $expiresAt = now()->addMinutes(max(1, (int) config('services.flaresolverr.session_ttl_minutes', 15)));
 
-        if (! $forceRecreate && Cache::has($cacheKey)) {
+        if ($forceRecreate) {
+            $this->flareSolverrCommand($flareSolverrUrl, ['cmd' => 'sessions.create', 'session' => $sessionId]);
+            Cache::put($cacheKey, true, $expiresAt);
+
             return;
         }
 
+        if (! Cache::add($cacheKey, true, $expiresAt)) {
+            return;
+        }
+
+        $this->flareSolverrCommand($flareSolverrUrl, ['cmd' => 'sessions.destroy', 'session' => $sessionId]);
+        $this->flareSolverrCommand($flareSolverrUrl, ['cmd' => 'sessions.create', 'session' => $sessionId]);
+    }
+
+    /**
+     * @param  array<string, string>  $payload
+     */
+    private function flareSolverrCommand(string $flareSolverrUrl, array $payload): void
+    {
         try {
-            Http::timeout(30)->post(rtrim($flareSolverrUrl, '/').'/v1', [
-                'cmd' => 'sessions.create',
-                'session' => $sessionId,
-            ]);
+            Http::timeout(30)->post(rtrim($flareSolverrUrl, '/').'/v1', $payload);
         } catch (Throwable) {
-            return;
+            // best-effort, see ensureFlareSolverrSession()
         }
-
-        Cache::put($cacheKey, true, now()->addMinutes(25));
     }
 
     private function postFlareSolverrRequest(string $flareSolverrUrl, string $targetUrl, string $sessionId, int $maxTimeout): Response

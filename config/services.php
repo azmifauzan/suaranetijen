@@ -51,6 +51,8 @@ return [
         // DiscoverSourceDocumentsJob) so a slow-but-solvable challenge doesn't get killed
         // by the job timeout before FlareSolverr even responds.
         'max_timeout_ms' => env('FLARESOLVERR_MAX_TIMEOUT_MS', 45000),
+        // Minutes before a session's browser is destroyed and recreated (memory grows with its age).
+        'session_ttl_minutes' => (int) env('FLARESOLVERR_SESSION_TTL_MINUTES', 15),
     ],
 
     // Fallback defaults used only until an admin saves a row in llm_settings
