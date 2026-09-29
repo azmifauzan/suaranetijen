@@ -91,68 +91,74 @@ class ExtractCandidateOpinionsJob implements ShouldQueue
             $textsByExternalId[$opinion->externalItemId] = $opinion->text;
         }
 
-        foreach (array_chunk(array_values($rows), 200) as $chunk) {
-            SourceItem::query()->upsert(
-                $chunk,
-                ['source_id', 'external_id'],
-                ['source_document_id', 'content_hash', 'processing_state', 'published_at']
-            );
-        }
-
-        $itemIds = [];
-        foreach (array_chunk(array_keys($rows), 500) as $externalIds) {
-            $itemIds += SourceItem::query()
-                ->where('source_id', $source->id)
-                ->whereIn('external_id', $externalIds)
-                ->pluck('id', 'external_id')
-                ->all();
-        }
-
-        $alreadyStored = [];
-        foreach (array_chunk(array_values($itemIds), 500) as $ids) {
-            foreach (RawPayload::query()->whereIn('source_item_id', $ids)->pluck('source_item_id') as $id) {
-                $alreadyStored[$id] = true;
-            }
-        }
-
-        $payloadRows = [];
-        $refsByItemId = [];
-        foreach ($itemIds as $externalId => $itemId) {
-            if (isset($alreadyStored[$itemId])) {
-                continue;
+        // One transaction: a worker killed mid-way (timeout, deploy) must not leave items
+        // without a payload, which no later step would ever pick up.
+        $itemIds = DB::transaction(function () use ($rows, $source, $textsByExternalId, $now, $expiresAt): array {
+            foreach (array_chunk(array_values($rows), 200) as $chunk) {
+                SourceItem::query()->upsert(
+                    $chunk,
+                    ['source_id', 'external_id'],
+                    ['source_document_id', 'content_hash', 'processing_state', 'published_at']
+                );
             }
 
-            $ref = 'payload-'.Str::uuid()->toString();
-            $refsByItemId[$itemId] = $ref;
-            $payloadRows[] = [
-                'source_id' => $source->id,
-                'source_item_id' => $itemId,
-                'payload_ref' => $ref,
-                'payload' => $textsByExternalId[$externalId],
-                'content_type' => 'text/plain',
-                'expires_at' => $expiresAt,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
-        }
-
-        foreach (array_chunk($payloadRows, 100) as $chunk) {
-            RawPayload::query()->insert($chunk);
-        }
-
-        foreach (array_chunk($refsByItemId, 200, true) as $chunk) {
-            $cases = str_repeat('when ? then ? ', count($chunk));
-            $bindings = [];
-            foreach ($chunk as $itemId => $ref) {
-                array_push($bindings, $itemId, $ref);
+            $itemIds = [];
+            foreach (array_chunk(array_keys($rows), 500) as $externalIds) {
+                $itemIds += SourceItem::query()
+                    ->where('source_id', $source->id)
+                    ->whereIn('external_id', $externalIds)
+                    ->pluck('id', 'external_id')
+                    ->all();
             }
-            array_push($bindings, $expiresAt, $now, ...array_keys($chunk));
 
-            DB::update(
-                "update source_items set raw_payload_ref = case id {$cases}end, expires_at = ?, updated_at = ? where id in (".implode(',', array_fill(0, count($chunk), '?')).')',
-                $bindings
-            );
-        }
+            $alreadyStored = [];
+            foreach (array_chunk(array_values($itemIds), 500) as $ids) {
+                foreach (RawPayload::query()->whereIn('source_item_id', $ids)->pluck('source_item_id') as $id) {
+                    $alreadyStored[$id] = true;
+                }
+            }
+
+            $payloadRows = [];
+            $refsByItemId = [];
+            foreach ($itemIds as $externalId => $itemId) {
+                if (isset($alreadyStored[$itemId])) {
+                    continue;
+                }
+
+                $ref = 'payload-'.Str::uuid()->toString();
+                $refsByItemId[$itemId] = $ref;
+                $payloadRows[] = [
+                    'source_id' => $source->id,
+                    'source_item_id' => $itemId,
+                    'payload_ref' => $ref,
+                    'payload' => $textsByExternalId[$externalId],
+                    'content_type' => 'text/plain',
+                    'expires_at' => $expiresAt,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            foreach (array_chunk($payloadRows, 100) as $chunk) {
+                RawPayload::query()->insert($chunk);
+            }
+
+            foreach (array_chunk($refsByItemId, 200, true) as $chunk) {
+                $cases = str_repeat('when ? then ? ', count($chunk));
+                $bindings = [];
+                foreach ($chunk as $itemId => $ref) {
+                    array_push($bindings, $itemId, $ref);
+                }
+                array_push($bindings, $expiresAt, $now, ...array_keys($chunk));
+
+                DB::update(
+                    "update source_items set raw_payload_ref = case id {$cases}end, expires_at = ?, updated_at = ? where id in (".implode(',', array_fill(0, count($chunk), '?')).')',
+                    $bindings
+                );
+            }
+
+            return $itemIds;
+        });
 
         foreach ($itemIds as $itemId) {
             MatchEntitiesJob::dispatch($itemId);
