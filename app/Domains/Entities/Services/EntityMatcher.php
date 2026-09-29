@@ -77,6 +77,10 @@ class EntityMatcher
 
     private function containsPhrase(string $text, string $phrase): bool
     {
-        return str_contains(" {$text} ", " {$phrase} ");
+        if (! AliasPolicy::isModelNumber($phrase)) {
+            return str_contains(" {$text} ", " {$phrase} ");
+        }
+
+        return preg_match(AliasPolicy::standaloneModelPattern($phrase), $text) === 1;
     }
 }

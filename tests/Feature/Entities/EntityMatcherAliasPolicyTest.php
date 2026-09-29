@@ -75,3 +75,24 @@ it('rejects a blocked alias from the admin alias form', function () {
 
     expect($entity->aliases()->where('normalized_alias', 'ga')->exists())->toBeFalse();
 });
+
+it('does not attribute a model variant to the base model', function () {
+    $s24 = entityWithAliases('Samsung Galaxy S24', ['S24']);
+
+    expect(app(EntityMatcher::class)->match('Baru beli S24 FE, worth it?'))->toBeNull()
+        ->and(app(EntityMatcher::class)->match('kamera s24 ultra juara'))->toBeNull()
+        ->and(app(EntityMatcher::class)->match('kamera S24 bagus banget')?->is($s24))->toBeTrue();
+});
+
+it('matches the base model when it also appears on its own next to a variant', function () {
+    $s24 = entityWithAliases('Samsung Galaxy S24', ['S24']);
+
+    expect(app(EntityMatcher::class)->match('S24 FE atau S24 biasa?')?->is($s24))->toBeTrue();
+});
+
+it('lets an entity that owns the variant phrase win over the base model', function () {
+    entityWithAliases('Samsung Galaxy S24', ['S24']);
+    $fe = entityWithAliases('Samsung Galaxy S24 FE', ['S24 FE']);
+
+    expect(app(EntityMatcher::class)->match('Baru beli S24 FE, worth it?')?->is($fe))->toBeTrue();
+});

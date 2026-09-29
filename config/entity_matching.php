@@ -30,4 +30,17 @@ return [
     */
     'uppercase_only_max_length' => 3,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Model Variant Suffixes
+    |--------------------------------------------------------------------------
+    |
+    | A model-number alias ("s24", "iphone 15") does not match when the text
+    | continues with one of these tokens ("S24 FE", "iPhone 15 Pro"): that is a
+    | different model, and attributing it to the base model skews its score. An
+    | entity whose own name or alias is the longer phrase still wins by length.
+    |
+    */
+    'model_variant_suffixes' => ['fe', 'plus', 'ultra', 'pro', 'max', 'lite', 'mini', 'se', 'edge'],
+
 ];

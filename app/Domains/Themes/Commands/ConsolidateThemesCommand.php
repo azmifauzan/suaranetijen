@@ -6,6 +6,7 @@ use App\Domains\Entities\Services\LlmClient;
 use App\Domains\Themes\Models\Theme;
 use App\Domains\Themes\Models\ThemeObservation;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -30,6 +31,7 @@ class ConsolidateThemesCommand extends Command
      */
     protected $signature = 'themes:consolidate
         {--limit= : Max existing LLM themes to consider, highest observation count first (default: config(themes.consolidate_limit); 0 = all)}
+        {--per-entity : Group the themes of each entity together instead of the global top-N, so synonyms of one entity never land in different chunks}
         {--rebuild : Also run themes:rebuild-aggregates afterward so merged counts show up immediately}
         {--dry-run : Show what would be merged without writing anything}';
 
@@ -50,24 +52,82 @@ class ConsolidateThemesCommand extends Command
         $limit = $limitOption !== null ? (int) $limitOption : (int) config('themes.consolidate_limit', 400);
         $dryRun = (bool) $this->option('dry-run');
 
-        $query = Theme::query()
-            ->whereIn('id', ThemeObservation::query()->where('extractor', 'llm')->select('theme_id'))
-            ->withCount(['observations as observation_count' => fn ($q) => $q->where('extractor', 'llm')])
-            ->orderByDesc('observation_count')
-            ->orderBy('id');
+        $merged = 0;
+        $considered = 0;
 
-        if ($limit > 0) {
-            $query->limit($limit);
+        foreach ($this->themeSets($limit) as $themes) {
+            if ($themes->count() < 2) {
+                continue;
+            }
+
+            $considered += $themes->count();
+            $merged += $this->consolidate($client, $themes, $dryRun);
         }
 
-        $themes = $query->get(['id', 'slug', 'display_label']);
-
-        if ($themes->count() < 2) {
-            $this->info('Fewer than 2 LLM themes exist; nothing to consolidate.');
+        if ($considered === 0) {
+            $this->info('Fewer than 2 LLM themes to compare; nothing to consolidate.');
 
             return self::SUCCESS;
         }
 
+        $verb = $dryRun ? 'Would merge' : 'Merged';
+        $this->info("{$verb} {$merged} duplicate theme(s) across {$considered} considered.");
+
+        if (! $dryRun && $merged > 0 && $this->option('rebuild')) {
+            $this->call('themes:rebuild-aggregates');
+        }
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * @return \Generator<int, Collection<int, Theme>>
+     */
+    private function themeSets(int $limit): \Generator
+    {
+        if (! $this->option('per-entity')) {
+            $query = $this->llmThemes(fn ($q) => $q)->orderByDesc('observation_count')->orderBy('id');
+
+            if ($limit > 0) {
+                $query->limit($limit);
+            }
+
+            yield $query->get(['id', 'slug', 'display_label']);
+
+            return;
+        }
+
+        $entityIds = ThemeObservation::query()
+            ->where('extractor', 'llm')
+            ->groupBy('entity_id')
+            ->havingRaw('count(*) >= ?', [(int) config('themes.min_entity_opinions', 30)])
+            ->pluck('entity_id');
+
+        foreach ($entityIds as $entityId) {
+            yield $this->llmThemes(fn ($q) => $q->where('entity_id', $entityId))
+                ->orderByDesc('observation_count')->orderBy('id')
+                ->get(['id', 'slug', 'display_label']);
+        }
+    }
+
+    /**
+     * @param  \Closure(Builder<ThemeObservation>): mixed  $scope
+     * @return Builder<Theme>
+     */
+    private function llmThemes(\Closure $scope): Builder
+    {
+        return Theme::query()
+            ->whereIn('id', ThemeObservation::query()->where('extractor', 'llm')->tap($scope)->select('theme_id'))
+            ->withCount(['observations as observation_count' => fn ($q) => $q->where('extractor', 'llm')->tap($scope)]);
+    }
+
+    /**
+     * Asks the LLM to group $themes and merges each group. Returns how many themes were merged away.
+     *
+     * @param  Collection<int, Theme>  $themes
+     */
+    private function consolidate(LlmClient $client, Collection $themes, bool $dryRun): int
+    {
         $merged = 0;
 
         foreach ($themes->chunk(self::CHUNK_SIZE) as $chunk) {
@@ -118,14 +178,7 @@ class ConsolidateThemesCommand extends Command
             }
         }
 
-        $verb = $dryRun ? 'Would merge' : 'Merged';
-        $this->info("{$verb} {$merged} duplicate theme(s) across {$themes->count()} considered.");
-
-        if (! $dryRun && $merged > 0 && $this->option('rebuild')) {
-            $this->call('themes:rebuild-aggregates');
-        }
-
-        return self::SUCCESS;
+        return $merged;
     }
 
     /**

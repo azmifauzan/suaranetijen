@@ -31,4 +31,28 @@ class AliasPolicy
 
         return preg_match($pattern, $rawText) === 1;
     }
+
+    /**
+     * Whether the alias carries a digit, i.e. names a model ("s24", "iphone 15") rather than a brand.
+     */
+    public static function isModelNumber(string $normalizedAlias): bool
+    {
+        return preg_match('/\d/', $normalizedAlias) === 1;
+    }
+
+    /**
+     * Pattern for a model alias as its own phrase in normalized text, not followed by a variant
+     * suffix token ("s24 fe"). Any one standalone occurrence is enough to match.
+     */
+    public static function standaloneModelPattern(string $normalizedAlias): string
+    {
+        $variants = implode('|', array_map(
+            static fn (string $suffix): string => preg_quote($suffix, '/'),
+            (array) config('entity_matching.model_variant_suffixes', [])
+        ));
+        $boundary = '(?![\p{L}\p{N}])';
+        $notVariant = $variants === '' ? '' : "(?!\s+(?:{$variants}){$boundary})";
+
+        return '/(?<![\p{L}\p{N}])'.preg_quote($normalizedAlias, '/').$boundary.$notVariant.'/u';
+    }
 }

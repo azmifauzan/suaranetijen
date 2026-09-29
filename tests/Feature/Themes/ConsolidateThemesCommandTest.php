@@ -186,3 +186,24 @@ it('drops a group member that an earlier group in the same run already merged aw
         ->and(Theme::whereKey($c->id)->exists())->toBeTrue()
         ->and(ThemeObservation::where('theme_id', $b->id)->count())->toBe(4);
 });
+
+it('groups the themes of one entity together with --per-entity', function () {
+    config(['themes.extractor' => 'llm', 'themes.min_entity_opinions' => 2]);
+    $murah = Theme::create(['slug' => 'harga-murah', 'display_label' => 'Harga murah', 'canonical_key' => 'harga-murah']);
+    $murahFe = Theme::create(['slug' => 'harga-s24-fe-murah', 'display_label' => 'Harga s24 fe murah', 'canonical_key' => 'harga-s24-fe-murah']);
+    $entity = Entity::factory()->create();
+    $thin = Entity::factory()->create();
+    themeObservationFor($entity->id, $murah->id);
+    themeObservationFor($entity->id, $murahFe->id);
+    themeObservationFor($thin->id, $murah->id);
+
+    fakeConsolidateLlm([
+        ['canonical_label' => 'harga murah', 'member_ids' => [$murah->id, $murahFe->id]],
+    ]);
+
+    $this->artisan('themes:consolidate --per-entity')->assertSuccessful();
+
+    expect(Theme::whereKey($murahFe->id)->exists())->toBeFalse()
+        ->and(ThemeObservation::where('entity_id', $entity->id)->where('theme_id', $murah->id)->count())->toBe(2);
+    Http::assertSentCount(1);
+});
