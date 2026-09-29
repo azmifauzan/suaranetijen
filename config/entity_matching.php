@@ -43,4 +43,15 @@ return [
     */
     'model_variant_suffixes' => ['fe', 'plus', 'ultra', 'pro', 'max', 'lite', 'mini', 'se', 'edge'],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Candidate Cache
+    |--------------------------------------------------------------------------
+    |
+    | Seconds the normalized name/alias set of all active entities is cached for
+    | EntityMatcher. 0 disables the cache (tests).
+    |
+    */
+    'candidates_cache_seconds' => (int) env('ENTITY_MATCHER_CACHE_SECONDS', 60),
+
 ];

@@ -10,6 +10,7 @@ use App\Domains\Sources\Models\Source;
 use App\Domains\Sources\Models\SourceItem;
 use App\Domains\Sources\Services\RawPayloadStorage;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 
 function entityWithAliases(string $name, array $aliases): Entity
 {
@@ -95,4 +96,20 @@ it('lets an entity that owns the variant phrase win over the base model', functi
     $fe = entityWithAliases('Samsung Galaxy S24 FE', ['S24 FE']);
 
     expect(app(EntityMatcher::class)->match('Baru beli S24 FE, worth it?')?->is($fe))->toBeTrue();
+});
+
+it('serves entities from the candidate cache within its ttl', function () {
+    config(['entity_matching.candidates_cache_seconds' => 60]);
+    Cache::forget('entity-matcher:candidates');
+    $first = entityWithAliases('IDCloudHost', []);
+
+    expect(app(EntityMatcher::class)->match('IDCloudHost stabil')?->is($first))->toBeTrue();
+
+    entityWithAliases('Biznet Gio', []);
+
+    expect(app(EntityMatcher::class)->match('Biznet Gio stabil'))->toBeNull();
+
+    Cache::forget('entity-matcher:candidates');
+
+    expect(app(EntityMatcher::class)->match('Biznet Gio stabil'))->not->toBeNull();
 });

@@ -3,6 +3,7 @@
 namespace App\Domains\Entities\Services;
 
 use App\Domains\Entities\Models\Entity;
+use Illuminate\Support\Facades\Cache;
 
 class EntityMatcher
 {
@@ -30,9 +31,9 @@ class EntityMatcher
         }
 
         $matches = [];
-        foreach (Entity::query()->active()->searchable()->with('aliases')->get() as $entity) {
-            $name = TextNormalizer::normalize($entity->name);
-            $terms = [$name, ...$entity->aliases->pluck('normalized_alias')->all()];
+        foreach ($this->candidates() as $candidate) {
+            $name = $candidate['name'];
+            $terms = [$name, ...$candidate['aliases']];
 
             foreach (array_unique(array_filter($terms)) as $term) {
                 if (! AliasPolicy::isUsable($term) || ! $this->containsPhrase($normalizedText, $term)) {
@@ -45,7 +46,7 @@ class EntityMatcher
                 }
 
                 $matches[] = [
-                    'entity' => $entity,
+                    'entityId' => $candidate['id'],
                     'term' => $term,
                     'length' => mb_strlen($term, 'UTF-8'),
                 ];
@@ -65,14 +66,38 @@ class EntityMatcher
                 break;
             }
 
-            $longestEntityIds[$match['entity']->getKey()] = true;
+            $longestEntityIds[$match['entityId']] = true;
         }
 
         if (count($longestEntityIds) !== 1) {
             return null;
         }
 
-        return ['entity' => $matches[0]['entity'], 'term' => $matches[0]['term']];
+        $entity = Entity::query()->find($matches[0]['entityId']);
+
+        return $entity === null ? null : ['entity' => $entity, 'term' => $matches[0]['term']];
+    }
+
+    /**
+     * Normalized name and aliases of every active, searchable entity. Loading the whole set
+     * cost ~2s per call, so it is cached briefly (a new alias applies within the TTL).
+     *
+     * @return array<int, array{id: int, name: string, aliases: array<int, string>}>
+     */
+    private function candidates(): array
+    {
+        $load = static fn (): array => Entity::query()->active()->searchable()->with('aliases')->get()
+            ->map(static fn (Entity $entity): array => [
+                'id' => (int) $entity->getKey(),
+                'name' => TextNormalizer::normalize($entity->name),
+                'aliases' => $entity->aliases->map(static fn ($alias): string => (string) $alias->normalized_alias)->values()->all(),
+            ])
+            ->values()
+            ->all();
+
+        $ttl = (int) config('entity_matching.candidates_cache_seconds', 60);
+
+        return $ttl > 0 ? Cache::remember('entity-matcher:candidates', $ttl, $load) : $load();
     }
 
     private function containsPhrase(string $text, string $phrase): bool
