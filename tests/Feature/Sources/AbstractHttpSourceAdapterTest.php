@@ -5,6 +5,7 @@ use App\Domains\Sources\Contracts\CrawlCursor;
 use App\Domains\Sources\Contracts\DiscoveryBatch;
 use App\Domains\Sources\Contracts\FetchedDocument;
 use App\Domains\Sources\Contracts\SourceDocumentRef;
+use App\Domains\Sources\Exceptions\RateLimitExceededException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -225,4 +226,81 @@ it('does not destroy the session when it only has to recreate a missing one', fu
     testChallengeSolvingAdapter()->callRequest('https://example.test/page');
 
     expect($commands)->toBe(['sessions.destroy', 'sessions.create', 'request.get', 'sessions.create', 'request.get']);
+});
+
+function flareSolverrSlotKey(int $slot): string
+{
+    return 'flaresolverr:slot:'.gethostname().':'.$slot;
+}
+
+it('rejects a FlareSolverr request when every browser slot of the container is busy', function () {
+    config([
+        'services.flaresolverr.url' => 'http://flaresolverr:8191',
+        'services.flaresolverr.max_concurrent' => 1,
+        'services.flaresolverr.slot_wait_seconds' => 0,
+    ]);
+    Cache::flush();
+    $commands = [];
+    fakeFlareSolverrCommands($commands);
+    $busy = Cache::lock(flareSolverrSlotKey(0), 60);
+    expect($busy->get())->toBeTrue();
+
+    try {
+        testChallengeSolvingAdapter()->callRequest('https://example.test/page');
+    } finally {
+        $busy->release();
+    }
+})->throws(RateLimitExceededException::class);
+
+it('does not call FlareSolverr at all while every slot is busy', function () {
+    config([
+        'services.flaresolverr.url' => 'http://flaresolverr:8191',
+        'services.flaresolverr.max_concurrent' => 1,
+        'services.flaresolverr.slot_wait_seconds' => 0,
+    ]);
+    Cache::flush();
+    $commands = [];
+    fakeFlareSolverrCommands($commands);
+    $busy = Cache::lock(flareSolverrSlotKey(0), 60);
+    $busy->get();
+
+    try {
+        testChallengeSolvingAdapter()->callRequest('https://example.test/page');
+    } catch (RateLimitExceededException) {
+    } finally {
+        $busy->release();
+    }
+
+    expect($commands)->toBe([]);
+});
+
+it('frees the FlareSolverr slot after each request so the next one can use it', function () {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191', 'services.flaresolverr.max_concurrent' => 1, 'services.flaresolverr.slot_wait_seconds' => 0]);
+    Cache::flush();
+    $commands = [];
+    fakeFlareSolverrCommands($commands);
+    $adapter = testChallengeSolvingAdapter();
+
+    $adapter->callRequest('https://example.test/page-1');
+    $adapter->callRequest('https://example.test/page-2');
+
+    expect(array_count_values($commands)['request.get'])->toBe(2);
+});
+
+it('frees the FlareSolverr slot even when the request blows up', function () {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191', 'services.flaresolverr.max_concurrent' => 1, 'services.flaresolverr.slot_wait_seconds' => 0]);
+    Cache::flush();
+    Http::preventStrayRequests();
+    Http::fake(fn (Request $request) => $request['cmd'] === 'request.get'
+        ? throw new RuntimeException('connection reset')
+        : Http::response(['status' => 'ok']));
+
+    try {
+        testChallengeSolvingAdapter()->callRequest('https://example.test/page');
+    } catch (RuntimeException) {
+    }
+
+    $lock = Cache::lock(flareSolverrSlotKey(0), 5);
+    expect($lock->get())->toBeTrue();
+    $lock->release();
 });

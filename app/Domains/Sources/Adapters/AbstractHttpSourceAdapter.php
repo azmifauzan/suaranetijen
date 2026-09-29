@@ -10,6 +10,7 @@ use App\Domains\Sources\Contracts\FetchedDocument;
 use App\Domains\Sources\Contracts\SourceAdapter;
 use App\Domains\Sources\Contracts\SourceDocumentRef;
 use App\Domains\Sources\Contracts\SourceHealth;
+use App\Domains\Sources\Exceptions\RateLimitExceededException;
 use Carbon\CarbonImmutable;
 use DOMDocument;
 use DOMElement;
@@ -136,13 +137,17 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
         $sessionId = $this->flareSolverrSessionId($targetUrl);
         $maxTimeout = (int) config('services.flaresolverr.max_timeout_ms', 60000);
 
-        $this->ensureFlareSolverrSession($flareSolverrUrl, $sessionId);
-        $envelope = $this->postFlareSolverrRequest($flareSolverrUrl, $targetUrl, $sessionId, $maxTimeout);
-
-        if ($this->flareSolverrSessionMissing($envelope)) {
-            $this->ensureFlareSolverrSession($flareSolverrUrl, $sessionId, forceRecreate: true);
+        $envelope = $this->withFlareSolverrSlot(function () use ($flareSolverrUrl, $targetUrl, $sessionId, $maxTimeout): Response {
+            $this->ensureFlareSolverrSession($flareSolverrUrl, $sessionId);
             $envelope = $this->postFlareSolverrRequest($flareSolverrUrl, $targetUrl, $sessionId, $maxTimeout);
-        }
+
+            if ($this->flareSolverrSessionMissing($envelope)) {
+                $this->ensureFlareSolverrSession($flareSolverrUrl, $sessionId, forceRecreate: true);
+                $envelope = $this->postFlareSolverrRequest($flareSolverrUrl, $targetUrl, $sessionId, $maxTimeout);
+            }
+
+            return $envelope;
+        });
 
         $solution = (array) $envelope->json('solution', []);
 
@@ -151,6 +156,47 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
             [],
             (string) ($solution['response'] ?? '')
         ));
+    }
+
+    /**
+     * Cap how many pages this container's FlareSolverr renders at once.
+     *
+     * Every request is a Chromium tab (hundreds of MB for a Next.js page). With six crawl
+     * processes on a 2GB container, every tab crashed ("tab crashed", 40-100 requests a minute,
+     * 100% failing) and the retries of the failed jobs kept the pressure on, so nothing was
+     * ever fetched. A slot is a Cache::lock per container (hostname), since every worker runs
+     * its own FlareSolverr while the cache is shared. When no slot frees up in time the job is
+     * bounced like a source rate limit instead of piling more tabs on the browser.
+     *
+     * @template T
+     *
+     * @param  \Closure(): T  $callback
+     * @return T
+     */
+    private function withFlareSolverrSlot(\Closure $callback): mixed
+    {
+        $slots = max(1, (int) config('services.flaresolverr.max_concurrent', 2));
+        $waitSeconds = max(0, (int) config('services.flaresolverr.slot_wait_seconds', 20));
+        $holdSeconds = (int) ceil((int) config('services.flaresolverr.max_timeout_ms', 45000) / 1000) + 120;
+        $deadline = microtime(true) + $waitSeconds;
+
+        do {
+            for ($slot = 0; $slot < $slots; $slot++) {
+                $lock = Cache::lock('flaresolverr:slot:'.gethostname().':'.$slot, $holdSeconds);
+
+                if ($lock->get()) {
+                    try {
+                        return $callback();
+                    } finally {
+                        $lock->release();
+                    }
+                }
+            }
+
+            usleep(250_000);
+        } while (microtime(true) < $deadline);
+
+        throw new RateLimitExceededException('flaresolverr', max(5, $waitSeconds));
     }
 
     private function flareSolverrSessionId(string $targetUrl): string
