@@ -23,6 +23,7 @@ class AdminLlmSettingsController extends Controller
             'setting' => $setting !== null ? [
                 'base_url' => $setting->base_url,
                 'model' => $setting->model,
+                'fallback_model' => $setting->fallback_model,
                 'has_api_key' => $setting->api_key !== null,
                 'max_tokens' => $setting->max_tokens,
                 'temperature' => $setting->temperature,

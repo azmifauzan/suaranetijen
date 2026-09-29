@@ -2,8 +2,14 @@
 
 use App\Domains\Entities\Models\LlmSetting;
 use App\Domains\Entities\Services\LlmClient;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+
+beforeEach(fn () => Cache::flush());
 
 it('sends a chat completion using the saved llm_settings row', function () {
     LlmSetting::create([
@@ -70,4 +76,71 @@ it('requests a JSON schema response format when a schema is given', function () 
     );
 
     expect($result)->toBe(['suggested_name' => 'Foo']);
+});
+
+function llmSettingWithFallback(): void
+{
+    LlmSetting::create(['base_url' => 'https://llm.internal/v1', 'model' => 'main-model', 'fallback_model' => 'backup-model', 'api_key' => 'key']);
+}
+
+function llmOk(string $content = '{"ok":true}'): PromiseInterface
+{
+    return Http::response(['choices' => [['message' => ['content' => $content]]]]);
+}
+
+it('retries with the fallback model when the main model times out', function () {
+    llmSettingWithFallback();
+    Http::preventStrayRequests();
+    Http::fake(fn (Request $request) => $request['model'] === 'main-model'
+        ? throw new ConnectionException('cURL error 28: Operation timed out')
+        : llmOk());
+
+    expect((new LlmClient)->chat([['role' => 'user', 'content' => 'hi']]))->toBe(['ok' => true]);
+    Http::assertSent(fn (Request $request) => $request['model'] === 'backup-model');
+});
+
+it('retries with the fallback model on a 5xx from the main model', function () {
+    llmSettingWithFallback();
+    Http::preventStrayRequests();
+    Http::fake(fn (Request $request) => $request['model'] === 'main-model' ? Http::response('bad gateway', 502) : llmOk());
+
+    expect((new LlmClient)->chat([['role' => 'user', 'content' => 'hi']]))->toBe(['ok' => true]);
+});
+
+it('does not fall back on a client error such as a bad key', function () {
+    llmSettingWithFallback();
+    Http::preventStrayRequests();
+    Http::fake(['llm.internal/*' => Http::response('unauthorized', 401)]);
+
+    expect(fn () => (new LlmClient)->chat([['role' => 'user', 'content' => 'hi']]))->toThrow(RequestException::class);
+    Http::assertSentCount(1);
+});
+
+it('skips the main model straight to the fallback while it is marked down', function () {
+    llmSettingWithFallback();
+    $mainAttempts = 0;
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) use (&$mainAttempts) {
+        if ($request['model'] === 'main-model') {
+            $mainAttempts++;
+
+            throw new ConnectionException('cURL error 28: Operation timed out');
+        }
+
+        return llmOk();
+    });
+
+    $client = new LlmClient;
+    $client->chat([['role' => 'user', 'content' => 'hi']]);
+    $client->chat([['role' => 'user', 'content' => 'hi again']]);
+
+    expect($mainAttempts)->toBe(1);
+});
+
+it('still throws when no fallback model is configured', function () {
+    LlmSetting::create(['base_url' => 'https://llm.internal/v1', 'model' => 'main-model', 'api_key' => 'key']);
+    Http::preventStrayRequests();
+    Http::fake(fn () => throw new ConnectionException('cURL error 28: Operation timed out'));
+
+    expect(fn () => (new LlmClient)->chat([['role' => 'user', 'content' => 'hi']]))->toThrow(ConnectionException::class);
 });

@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string|null $base_url
  * @property string|null $model
+ * @property string|null $fallback_model
  * @property string|null $api_key
  * @property int $max_tokens
  * @property float $temperature
@@ -24,7 +25,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['base_url', 'model', 'api_key', 'max_tokens', 'temperature', 'timeout_seconds', 'updated_by'])]
+#[Fillable(['base_url', 'model', 'fallback_model', 'api_key', 'max_tokens', 'temperature', 'timeout_seconds', 'updated_by'])]
 class LlmSetting extends Model
 {
     /**

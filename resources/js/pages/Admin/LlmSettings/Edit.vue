@@ -5,6 +5,7 @@ import { toast } from 'vue-sonner';
 interface Setting {
     base_url: string | null;
     model: string | null;
+    fallback_model: string | null;
     has_api_key: boolean;
     max_tokens: number;
     temperature: number;
@@ -27,6 +28,7 @@ defineOptions({
 const form = useForm({
     base_url: props.setting?.base_url ?? '',
     model: props.setting?.model ?? '',
+    fallback_model: props.setting?.fallback_model ?? '',
     api_key: '',
     max_tokens: props.setting?.max_tokens ?? 1024,
     temperature: props.setting?.temperature ?? 0.2,
@@ -75,6 +77,20 @@ function save() {
                         class="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
                     />
                     <p v-if="form.errors.model" class="mt-1 text-xs text-rose-500">{{ form.errors.model }}</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-neutral-700 dark:text-neutral-300">Fallback model (optional)</label>
+                    <input
+                        v-model="form.fallback_model"
+                        type="text"
+                        placeholder="MiniMax-M3.1-Flash-Preview"
+                        class="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+                    />
+                    <p class="mt-1 text-xs text-neutral-500">
+                        Same base URL and key. Used when the main model times out or returns a 5xx/429 error; the main model is skipped for 5 minutes afterwards.
+                    </p>
+                    <p v-if="form.errors.fallback_model" class="mt-1 text-xs text-rose-500">{{ form.errors.fallback_model }}</p>
                 </div>
 
                 <div>

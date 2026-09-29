@@ -22,6 +22,7 @@ class UpdateLlmSettingsRequest extends FormRequest
         return [
             'base_url' => ['nullable', 'string', 'max:255', 'url'],
             'model' => ['required', 'string', 'max:255'],
+            'fallback_model' => ['nullable', 'string', 'max:255'],
             'api_key' => ['nullable', 'string', 'max:1000'],
             'max_tokens' => ['required', 'integer', 'min:1', 'max:128000'],
             'temperature' => ['required', 'numeric', 'min:0', 'max:2'],
