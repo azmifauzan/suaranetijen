@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Ingestion\Jobs\ExpireRawPayloadJob;
+use App\Domains\Sources\Models\UnmatchedMention;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -19,3 +20,5 @@ Schedule::command('entities:enrich-websites')->dailyAt('04:00')->withoutOverlapp
 Schedule::command('themes:extract-pending')->everySixHours()->withoutOverlapping();
 Schedule::command('themes:summarize')->dailyAt('03:30')->withoutOverlapping();
 Schedule::job(new ExpireRawPayloadJob)->everyFiveMinutes();
+Schedule::command('model:prune', ['--model' => [UnmatchedMention::class]])->dailyAt('05:00')->withoutOverlapping();
+Schedule::command('queue:prune-failed', ['--hours' => 168])->dailyAt('05:15')->withoutOverlapping();

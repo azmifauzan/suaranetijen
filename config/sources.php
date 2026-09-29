@@ -71,4 +71,7 @@ return [
         ],
     ],
 
+    // Days an unmatched_mentions row is kept before model:prune deletes it.
+    'unmatched_mentions_retention_days' => (int) env('UNMATCHED_MENTIONS_RETENTION_DAYS', 30),
+
 ];
