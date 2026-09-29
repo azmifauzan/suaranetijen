@@ -10,6 +10,7 @@ use App\Domains\Sources\Contracts\FetchedDocument;
 use App\Domains\Sources\Contracts\SourceDocumentRef;
 use App\Domains\Sources\Contracts\SourceHealth;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\Response;
 use RuntimeException;
 
 class YouTubeAdapter extends AbstractHttpSourceAdapter
@@ -154,6 +155,13 @@ class YouTubeAdapter extends AbstractHttpSourceAdapter
             }
 
             $response = $this->request($this->apiUrl('commentThreads'), $parameters);
+
+            // A video with comments turned off answers 403 commentsDisabled every time: it has
+            // no comments to collect, so retrying (or recording a failure) never helps.
+            if ($this->hasCommentsDisabled($response)) {
+                break;
+            }
+
             $response->throw();
             $payload = $response->json();
 
@@ -183,6 +191,12 @@ class YouTubeAdapter extends AbstractHttpSourceAdapter
             contentType: 'application/json',
             fetchedAt: CarbonImmutable::now()
         );
+    }
+
+    private function hasCommentsDisabled(Response $response): bool
+    {
+        return $response->status() === 403
+            && data_get($response->json(), 'error.errors.0.reason') === 'commentsDisabled';
     }
 
     public function extract(FetchedDocument $doc): iterable

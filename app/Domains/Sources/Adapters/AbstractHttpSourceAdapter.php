@@ -4,6 +4,8 @@ namespace App\Domains\Sources\Adapters;
 
 use App\Domains\Entities\Services\TextNormalizer;
 use App\Domains\Sources\Contracts\CandidateOpinion;
+use App\Domains\Sources\Contracts\CrawlCursor;
+use App\Domains\Sources\Contracts\DiscoveryBatch;
 use App\Domains\Sources\Contracts\FetchedDocument;
 use App\Domains\Sources\Contracts\SourceAdapter;
 use App\Domains\Sources\Contracts\SourceDocumentRef;
@@ -355,6 +357,45 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
         }
 
         return null;
+    }
+
+    /**
+     * One page of a WordPress feed archive, shared by the feed-based adapters.
+     *
+     * Archives paginate with ?paged=N (page= is silently ignored) and answer 404 past the
+     * last page. That means "end of feed", not an outage: wrap back to page 1 so newly
+     * posted articles are picked up, instead of failing on the same page every cycle. A 404
+     * on page 1 is still a real failure.
+     */
+    protected function discoverWordPressFeed(CrawlCursor $cursor, string $defaultFeedUrl): DiscoveryBatch
+    {
+        $page = max(1, (int) ($cursor->metadata['page'] ?? 1));
+        $feedUrl = (string) ($cursor->metadata['feed_url'] ?? $defaultFeedUrl);
+        $url = $page > 1
+            ? $feedUrl.(str_contains($feedUrl, '?') ? '&' : '?').'paged='.$page
+            : $feedUrl;
+        $response = $this->request($url);
+
+        $endOfFeed = $page > 1 && $response->status() === 404;
+        if (! $endOfFeed) {
+            $response->throw();
+        }
+
+        $documents = $endOfFeed ? [] : $this->parseFeedDocuments($response->body(), $cursor->sourceKey);
+        $nextPage = $documents === [] && $page > 1 ? 1 : $page + 1;
+
+        return new DiscoveryBatch(
+            documents: $documents,
+            nextCursor: new CrawlCursor(
+                sourceKey: $cursor->sourceKey,
+                cursorKey: $cursor->cursorKey,
+                cursorValue: 'page_'.$nextPage,
+                lastExternalId: $documents !== [] ? end($documents)->externalId : $cursor->lastExternalId,
+                lastCrawledAt: now()->toImmutable(),
+                metadata: ['page' => $nextPage, 'feed_url' => $feedUrl]
+            ),
+            hasMore: $documents !== []
+        );
     }
 
     /**

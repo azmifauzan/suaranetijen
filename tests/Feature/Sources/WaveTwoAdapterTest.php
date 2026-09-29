@@ -5,11 +5,13 @@ use App\Domains\Sources\Adapters\LowEndTalkAdapter;
 use App\Domains\Sources\Adapters\YouTubeAdapter;
 use App\Domains\Sources\Contracts\CrawlCursor;
 use App\Domains\Sources\Contracts\SourceAdapter;
+use App\Domains\Sources\Contracts\SourceDocumentRef;
 use App\Domains\Sources\Contracts\SourceHealth;
 use App\Domains\Sources\Enums\SourceHealthState;
 use App\Domains\Sources\Models\Source;
 use App\Domains\Sources\Services\SourceRegistry;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 
 function waveTwoSourceFixture(string $source, string $file): string
@@ -64,6 +66,37 @@ it('runs the YouTube adapter through API preflight, search pagination, comments 
         ->and($opinions[0]->text)->toContain('informatif')
         ->and($opinions[1]->text)->toContain('lambat');
 });
+
+it('treats a video with disabled comments as having no comments instead of failing', function () {
+    config(['sources.youtube.api_key' => 'test-key']);
+
+    Http::fake([
+        'https://www.googleapis.com/youtube/v3/commentThreads*' => Http::response([
+            'error' => [
+                'code' => 403,
+                'message' => 'The video identified by the <code>videoId</code> parameter has disabled comments.',
+                'errors' => [['reason' => 'commentsDisabled', 'domain' => 'youtube.commentThread']],
+            ],
+        ], 403),
+    ]);
+
+    $adapter = new YouTubeAdapter;
+    $fetched = $adapter->fetch(new SourceDocumentRef('youtube', 'abc123', 'https://youtu.be/abc123', 'Video'));
+
+    expect(iterator_to_array($adapter->extract($fetched)))->toBe([]);
+});
+
+it('still fails on other YouTube 403 errors such as an exhausted quota', function () {
+    config(['sources.youtube.api_key' => 'test-key']);
+
+    Http::fake([
+        'https://www.googleapis.com/youtube/v3/commentThreads*' => Http::response([
+            'error' => ['code' => 403, 'message' => 'quota exceeded', 'errors' => [['reason' => 'quotaExceeded']]],
+        ], 403),
+    ]);
+
+    (new YouTubeAdapter)->fetch(new SourceDocumentRef('youtube', 'abc123', 'https://youtu.be/abc123', 'Video'));
+})->throws(RequestException::class);
 
 it('reports YouTube as policy_disabled when its API key is missing', function () {
     config(['sources.youtube.api_key' => null]);

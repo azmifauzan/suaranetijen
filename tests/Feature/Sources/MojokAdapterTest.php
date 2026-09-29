@@ -6,6 +6,7 @@ use App\Domains\Sources\Contracts\SourceAdapter;
 use App\Domains\Sources\Models\Source;
 use App\Domains\Sources\Services\SourceRegistry;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 
 function mojokFixture(string $file): string
@@ -61,3 +62,28 @@ it('resolves the Mojok adapter through the source registry', function () {
     expect($registry->resolve($source))->toBeInstanceOf(MojokAdapter::class)
         ->and($registry->resolve($source))->toBeInstanceOf(SourceAdapter::class);
 });
+
+it('wraps back to page 1 when the feed 404s past its last page instead of failing forever', function () {
+    Http::fake([
+        'https://mojok.co/esai/feed?paged=355' => Http::response('<?xml version="1.0"?><rss/>', 404),
+    ]);
+
+    $cursor = new CrawlCursor(
+        sourceKey: 'mojok',
+        cursorValue: 'page_355',
+        metadata: ['page' => 355, 'feed_url' => 'https://mojok.co/esai/feed']
+    );
+
+    $batch = (new MojokAdapter)->discover($cursor);
+
+    expect($batch->documents)->toBe([])
+        ->and($batch->hasMore)->toBeFalse()
+        ->and($batch->nextCursor->cursorValue)->toBe('page_1')
+        ->and($batch->nextCursor->metadata['page'])->toBe(1);
+});
+
+it('still fails on a 404 for the first feed page, which is a real outage', function () {
+    Http::fake(['https://mojok.co/esai/feed' => Http::response('gone', 404)]);
+
+    (new MojokAdapter)->discover(CrawlCursor::initial('mojok'));
+})->throws(RequestException::class);

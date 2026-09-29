@@ -61,3 +61,22 @@ it('resolves the MediaKonsumen adapter through the source registry', function ()
     expect($registry->resolve($source))->toBeInstanceOf(MediaKonsumenAdapter::class)
         ->and($registry->resolve($source))->toBeInstanceOf(SourceAdapter::class);
 });
+
+it('wraps back to page 1 when the feed 404s past its last page instead of failing forever', function () {
+    Http::fake([
+        'https://mediakonsumen.com/feed?paged=99' => Http::response('<?xml version="1.0"?><rss/>', 404),
+    ]);
+
+    $cursor = new CrawlCursor(
+        sourceKey: 'mediakonsumen',
+        cursorValue: 'page_99',
+        metadata: ['page' => 99, 'feed_url' => 'https://mediakonsumen.com/feed']
+    );
+
+    $batch = (new MediaKonsumenAdapter)->discover($cursor);
+
+    expect($batch->documents)->toBe([])
+        ->and($batch->hasMore)->toBeFalse()
+        ->and($batch->nextCursor->cursorValue)->toBe('page_1')
+        ->and($batch->nextCursor->metadata['page'])->toBe(1);
+});
