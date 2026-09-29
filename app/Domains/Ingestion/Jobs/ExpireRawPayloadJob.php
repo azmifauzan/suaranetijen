@@ -17,7 +17,7 @@ class ExpireRawPayloadJob implements ShouldBeUnique, ShouldQueue
      */
     private const MAX_SECONDS = 45;
 
-    public int $uniqueFor = 300;
+    public int $uniqueFor = 120;
 
     public function __construct()
     {

@@ -15,6 +15,14 @@ class MatchEntitiesJob implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * Idempotent: a redelivery after a worker restart must not fail the job (the supervisors run
+     * with tries=1), while a real exception still fails it on the first throw.
+     */
+    public int $tries = 3;
+
+    public int $maxExceptions = 1;
+
     public function __construct(
         public int $sourceItemId
     ) {

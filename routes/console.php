@@ -19,6 +19,6 @@ Schedule::command('entities:scan-candidates')->weekly()->withoutOverlapping();
 Schedule::command('entities:enrich-websites')->dailyAt('04:00')->withoutOverlapping();
 Schedule::command('themes:extract-pending')->everySixHours()->withoutOverlapping();
 Schedule::command('themes:summarize')->dailyAt('03:30')->withoutOverlapping();
-Schedule::job(new ExpireRawPayloadJob)->everyFiveMinutes();
+Schedule::job(new ExpireRawPayloadJob)->everyTwoMinutes();
 Schedule::command('model:prune', ['--model' => [UnmatchedMention::class]])->dailyAt('05:00')->withoutOverlapping();
 Schedule::command('queue:prune-failed', ['--hours' => 168])->dailyAt('05:15')->withoutOverlapping();
