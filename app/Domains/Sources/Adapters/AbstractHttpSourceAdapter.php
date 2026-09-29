@@ -134,16 +134,23 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
     private function requestViaFlareSolverr(string $url, array $query, string $flareSolverrUrl): Response
     {
         $targetUrl = $query === [] ? $url : $url.(str_contains($url, '?') ? '&' : '?').http_build_query($query);
-        $sessionId = $this->flareSolverrSessionId($targetUrl);
         $maxTimeout = (int) config('services.flaresolverr.max_timeout_ms', 60000);
 
-        $envelope = $this->withFlareSolverrSlot(function () use ($flareSolverrUrl, $targetUrl, $sessionId, $maxTimeout): Response {
+        $this->assertFlareSolverrNotCoolingDown();
+
+        $envelope = $this->withFlareSolverrSlot(function (int $slot) use ($flareSolverrUrl, $targetUrl, $maxTimeout): Response {
+            $sessionId = $this->flareSolverrSessionId($slot);
+
             $this->ensureFlareSolverrSession($flareSolverrUrl, $sessionId);
             $envelope = $this->postFlareSolverrRequest($flareSolverrUrl, $targetUrl, $sessionId, $maxTimeout);
 
             if ($this->flareSolverrSessionMissing($envelope)) {
                 $this->ensureFlareSolverrSession($flareSolverrUrl, $sessionId, forceRecreate: true);
                 $envelope = $this->postFlareSolverrRequest($flareSolverrUrl, $targetUrl, $sessionId, $maxTimeout);
+            }
+
+            if ($this->flareSolverrTabCrashed($envelope)) {
+                $this->recoverFromFlareSolverrCrash($flareSolverrUrl, $sessionId);
             }
 
             return $envelope;
@@ -159,6 +166,37 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
     }
 
     /**
+     * After a tab crash the container is out of memory. Retrying at once only crashes the next
+     * tab (measured: 32 of 32 requests in 90s on a 1GB worker), and the failed jobs' own retries
+     * kept the pressure on. So the crashed session's browser is destroyed to free its memory and
+     * the container refuses new requests for a while; jobs bounce back with a delay, which does
+     * not spend their retry budget.
+     */
+    private function recoverFromFlareSolverrCrash(string $flareSolverrUrl, string $sessionId): void
+    {
+        $this->flareSolverrCommand($flareSolverrUrl, ['cmd' => 'sessions.destroy', 'session' => $sessionId]);
+        Cache::forget('flaresolverr:session:'.gethostname().':'.$sessionId);
+
+        $cooldown = max(1, (int) config('services.flaresolverr.crash_cooldown_seconds', 60));
+        Cache::put('flaresolverr:cooldown:'.gethostname(), now()->addSeconds($cooldown)->getTimestamp(), $cooldown);
+    }
+
+    private function assertFlareSolverrNotCoolingDown(): void
+    {
+        $until = Cache::get('flaresolverr:cooldown:'.gethostname());
+
+        if (is_int($until) && $until > now()->getTimestamp()) {
+            throw new RateLimitExceededException('flaresolverr', $until - now()->getTimestamp());
+        }
+    }
+
+    private function flareSolverrTabCrashed(Response $envelope): bool
+    {
+        return $envelope->json('status') === 'error'
+            && str_contains((string) $envelope->json('message'), 'tab crashed');
+    }
+
+    /**
      * Cap how many pages this container's FlareSolverr renders at once.
      *
      * Every request is a Chromium tab (hundreds of MB for a Next.js page). With six crawl
@@ -170,12 +208,12 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
      *
      * @template T
      *
-     * @param  \Closure(): T  $callback
+     * @param  \Closure(int): T  $callback
      * @return T
      */
     private function withFlareSolverrSlot(\Closure $callback): mixed
     {
-        $slots = max(1, (int) config('services.flaresolverr.max_concurrent', 2));
+        $slots = max(1, (int) config('services.flaresolverr.max_concurrent', 1));
         $waitSeconds = max(0, (int) config('services.flaresolverr.slot_wait_seconds', 20));
         $holdSeconds = (int) ceil((int) config('services.flaresolverr.max_timeout_ms', 45000) / 1000) + 120;
         $deadline = microtime(true) + $waitSeconds;
@@ -186,7 +224,7 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
 
                 if ($lock->get()) {
                     try {
-                        return $callback();
+                        return $callback($slot);
                     } finally {
                         $lock->release();
                     }
@@ -199,9 +237,14 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
         throw new RateLimitExceededException('flaresolverr', max(5, $waitSeconds));
     }
 
-    private function flareSolverrSessionId(string $targetUrl): string
+    /**
+     * One browser session per slot, not per host: a session is a resident Chromium, and three
+     * of them (one per crawled host) already filled a 1GB container before any tab opened.
+     * A slot is held by one request at a time, so a session is never shared concurrently.
+     */
+    private function flareSolverrSessionId(int $slot): string
     {
-        return 'src-'.substr(md5((string) parse_url($targetUrl, PHP_URL_HOST)), 0, 16);
+        return 'src-slot'.$slot;
     }
 
     /**

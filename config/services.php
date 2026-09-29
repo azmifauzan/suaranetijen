@@ -53,11 +53,13 @@ return [
         'max_timeout_ms' => env('FLARESOLVERR_MAX_TIMEOUT_MS', 45000),
         // Minutes before a session's browser is destroyed and recreated (memory grows with its age).
         'session_ttl_minutes' => (int) env('FLARESOLVERR_SESSION_TTL_MINUTES', 15),
-        // Pages rendered at once per FlareSolverr container (each is a Chromium tab; a 1-2GB
-        // container crashes every tab when too many run together).
-        'max_concurrent' => (int) env('FLARESOLVERR_MAX_CONCURRENT', 2),
+        // Pages rendered at once per FlareSolverr container, one browser session each (a 1GB
+        // container crashes every tab when more than one browser is resident).
+        'max_concurrent' => (int) env('FLARESOLVERR_MAX_CONCURRENT', 1),
         // Seconds a job waits for a free slot before it is bounced back to the queue.
         'slot_wait_seconds' => (int) env('FLARESOLVERR_SLOT_WAIT_SECONDS', 20),
+        // Seconds a container refuses new requests after a tab crash, so its memory can recover.
+        'crash_cooldown_seconds' => (int) env('FLARESOLVERR_CRASH_COOLDOWN_SECONDS', 60),
     ],
 
     // Fallback defaults used only until an admin saves a row in llm_settings

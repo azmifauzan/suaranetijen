@@ -202,8 +202,7 @@ it('keeps the FlareSolverr session bookkeeping per container, since every worker
 
     testChallengeSolvingAdapter()->callRequest('https://example.test/page-1');
 
-    $sessionId = 'src-'.substr(md5('example.test'), 0, 16);
-    expect(Cache::has('flaresolverr:session:'.gethostname().':'.$sessionId))->toBeTrue();
+    expect(Cache::has('flaresolverr:session:'.gethostname().':src-slot0'))->toBeTrue();
 });
 
 it('does not destroy the session when it only has to recreate a missing one', function () {
@@ -303,4 +302,69 @@ it('frees the FlareSolverr slot even when the request blows up', function () {
     $lock = Cache::lock(flareSolverrSlotKey(0), 5);
     expect($lock->get())->toBeTrue();
     $lock->release();
+});
+
+it('gives every slot of a container its own browser session, never sharing one between concurrent requests', function () {
+    config([
+        'services.flaresolverr.url' => 'http://flaresolverr:8191',
+        'services.flaresolverr.max_concurrent' => 2,
+        'services.flaresolverr.slot_wait_seconds' => 0,
+    ]);
+    Cache::flush();
+    $sessions = [];
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) use (&$sessions) {
+        if ($request['cmd'] === 'request.get') {
+            $sessions[] = $request['session'];
+
+            return Http::response(['status' => 'ok', 'solution' => ['status' => 200, 'response' => 'ok']]);
+        }
+
+        return Http::response(['status' => 'ok']);
+    });
+    $slotZeroBusy = Cache::lock(flareSolverrSlotKey(0), 60);
+    $slotZeroBusy->get();
+
+    try {
+        testChallengeSolvingAdapter()->callRequest('https://example.test/a');
+    } finally {
+        $slotZeroBusy->release();
+    }
+    testChallengeSolvingAdapter()->callRequest('https://other.test/b');
+
+    expect($sessions)->toBe(['src-slot1', 'src-slot0']);
+});
+
+it('destroys the session and pauses the container after a tab crash, bouncing jobs instead of retrying', function () {
+    config([
+        'services.flaresolverr.url' => 'http://flaresolverr:8191',
+        'services.flaresolverr.max_concurrent' => 1,
+        'services.flaresolverr.slot_wait_seconds' => 0,
+        'services.flaresolverr.crash_cooldown_seconds' => 60,
+    ]);
+    Cache::flush();
+    $commands = [];
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) use (&$commands) {
+        $commands[] = $request['cmd'];
+
+        return $request['cmd'] === 'request.get'
+            ? Http::response(['status' => 'error', 'message' => 'Error solving the challenge. Message: tab crashed'])
+            : Http::response(['status' => 'ok']);
+    });
+    $adapter = testChallengeSolvingAdapter();
+
+    $crashed = $adapter->callRequest('https://example.test/page-1');
+    $afterCrash = $commands;
+
+    expect($crashed->status())->toBe(502)
+        ->and($afterCrash)->toBe(['sessions.destroy', 'sessions.create', 'request.get', 'sessions.destroy']);
+
+    expect(fn () => $adapter->callRequest('https://example.test/page-2'))->toThrow(RateLimitExceededException::class)
+        ->and($commands)->toBe($afterCrash);
+
+    $this->travel(61)->seconds();
+    $adapter->callRequest('https://example.test/page-3');
+
+    expect(array_slice($commands, count($afterCrash)))->toBe(['sessions.destroy', 'sessions.create', 'request.get', 'sessions.destroy']);
 });
