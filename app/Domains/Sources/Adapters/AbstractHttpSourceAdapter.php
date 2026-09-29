@@ -68,6 +68,10 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
                     ['http_status' => $response->status()]
                 ),
             };
+        } catch (RateLimitExceededException $exception) {
+            // Our own throttle (FlareSolverr slot busy or cooling down), not the source's
+            // verdict: report nothing rather than blocking a source that may be fine.
+            throw $exception;
         } catch (Throwable $exception) {
             return SourceHealth::blocked(
                 'Source preflight failed: '.$exception->getMessage(),

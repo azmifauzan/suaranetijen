@@ -3,6 +3,7 @@
 namespace App\Domains\Ingestion\Jobs;
 
 use App\Domains\Sources\Enums\SourceHealthState;
+use App\Domains\Sources\Exceptions\RateLimitExceededException;
 use App\Domains\Sources\Models\Source;
 use App\Domains\Sources\Models\SourcePreflightLog;
 use App\Domains\Sources\Services\SourceRegistry;
@@ -14,6 +15,14 @@ use Throwable;
 class PreflightSourceJob implements ShouldQueue
 {
     use Queueable;
+
+    /**
+     * Attempts to wait for a free FlareSolverr slot: every source preflights at once, but a
+     * container renders one page at a time. maxExceptions keeps a real failure to one throw.
+     */
+    public int $tries = 6;
+
+    public int $maxExceptions = 1;
 
     public function __construct(
         public Source $source
@@ -42,6 +51,10 @@ class PreflightSourceJob implements ShouldQueue
                 'message' => $health->message,
                 'details' => $health->details,
             ]);
+        } catch (RateLimitExceededException $e) {
+            // The container was busy or cooling down, so nothing was learned about the source:
+            // try again later and keep its current health state (blocked would stop its crawl).
+            $this->release(max(10, $e->retryAfterSeconds));
         } catch (Throwable $e) {
             $durationMs = (int) round((microtime(true) - $startTime) * 1000);
 
