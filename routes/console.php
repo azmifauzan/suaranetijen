@@ -18,4 +18,4 @@ Schedule::command('entities:scan-candidates')->weekly()->withoutOverlapping();
 Schedule::command('entities:enrich-websites')->dailyAt('04:00')->withoutOverlapping();
 Schedule::command('themes:extract-pending')->everySixHours()->withoutOverlapping();
 Schedule::command('themes:summarize')->dailyAt('03:30')->withoutOverlapping();
-Schedule::job(new ExpireRawPayloadJob)->everyFifteenMinutes();
+Schedule::job(new ExpireRawPayloadJob)->everyFiveMinutes();

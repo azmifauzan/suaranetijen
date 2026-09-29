@@ -83,3 +83,22 @@ it('resolves the Carisinyal adapter through the source registry', function () {
     expect($registry->resolve($source))->toBeInstanceOf(CarisinyalAdapter::class)
         ->and($registry->resolve($source))->toBeInstanceOf(SourceAdapter::class);
 });
+
+it('wraps back to page 1 when the feed 404s past its last page instead of failing forever', function () {
+    Http::fake([
+        'https://carisinyal.com/feed?paged=204' => Http::response('<?xml version="1.0"?><rss/>', 404),
+    ]);
+
+    $cursor = new CrawlCursor(
+        sourceKey: 'carisinyal',
+        cursorValue: 'page_204',
+        metadata: ['page' => 204, 'feed_url' => 'https://carisinyal.com/feed']
+    );
+
+    $batch = (new CarisinyalAdapter)->discover($cursor);
+
+    expect($batch->documents)->toBe([])
+        ->and($batch->hasMore)->toBeFalse()
+        ->and($batch->nextCursor->cursorValue)->toBe('page_1')
+        ->and($batch->nextCursor->metadata['page'])->toBe(1);
+});

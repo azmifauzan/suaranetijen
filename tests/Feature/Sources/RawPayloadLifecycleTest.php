@@ -107,11 +107,21 @@ test('prune deletes expired payloads that have no item at all', function () {
     expect(app(RawPayloadStorage::class)->expireExpiredPayloads())->toBe(1);
 });
 
-test('expire job is unique and scheduled every fifteen minutes', function () {
+test('expire job is unique and scheduled every five minutes', function () {
     $scheduled = collect(app(Schedule::class)->events())
         ->first(fn ($event) => str_contains((string) $event->description, 'ExpireRawPayloadJob'));
 
     expect(new ExpireRawPayloadJob)->toBeInstanceOf(ShouldBeUnique::class)
         ->and($scheduled)->not->toBeNull()
-        ->and($scheduled->expression)->toBe('*/15 * * * *');
+        ->and($scheduled->expression)->toBe('*/5 * * * *');
+});
+
+test('prune only clears the ref of an item that still points at the deleted payload', function () {
+    [$payload, $item] = expiredPayloadFor(ProcessingState::Processed);
+    $item->update(['raw_payload_ref' => 'payload-newer-ref']);
+
+    app(RawPayloadStorage::class)->expireExpiredPayloads();
+
+    expect(RawPayload::whereKey($payload->id)->exists())->toBeFalse()
+        ->and($item->fresh()->raw_payload_ref)->toBe('payload-newer-ref');
 });

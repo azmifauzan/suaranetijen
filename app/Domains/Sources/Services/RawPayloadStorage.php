@@ -19,7 +19,11 @@ class RawPayloadStorage
      */
     public const UNPROCESSED_GRACE_DAYS = 14;
 
-    private const PRUNE_CHUNK = 2000;
+    /**
+     * Small enough that one chunk (large rows, TOAST deletes) finishes in seconds, so the
+     * time budget below is honoured instead of a single chunk overrunning the job timeout.
+     */
+    private const PRUNE_CHUNK = 500;
 
     private const PRUNE_PAUSE_MICROSECONDS = 100_000;
 
@@ -68,6 +72,7 @@ class RawPayloadStorage
         $graceCutoff = $referenceNow->subDays(self::UNPROCESSED_GRACE_DAYS);
         $deadline = $maxSeconds === null ? null : microtime(true) + $maxSeconds;
         $deleted = 0;
+        $chunkSeconds = 0.0;
 
         do {
             $ids = RawPayload::query()
@@ -87,14 +92,24 @@ class RawPayloadStorage
                 break;
             }
 
-            SourceItem::query()
-                ->whereIn('raw_payload_ref', RawPayload::query()->whereIn('id', $ids)->select('payload_ref'))
-                ->update(['raw_payload_ref' => null]);
+            $chunkStartedAt = microtime(true);
+
+            // By primary key (item ids taken from the payloads) rather than a subquery on
+            // raw_payload_ref, which cost seconds per chunk on a million-row table.
+            $links = RawPayload::query()->whereIn('id', $ids)->whereNotNull('source_item_id')->pluck('payload_ref', 'source_item_id');
+            if ($links->isNotEmpty()) {
+                SourceItem::query()
+                    ->whereIn('id', $links->keys())
+                    ->whereIn('raw_payload_ref', $links->values())
+                    ->update(['raw_payload_ref' => null]);
+            }
 
             $deleted += RawPayload::query()->whereIn('id', $ids)->delete();
 
             usleep(self::PRUNE_PAUSE_MICROSECONDS);
-        } while ($ids->count() === self::PRUNE_CHUNK && ($deadline === null || microtime(true) < $deadline));
+            $chunkSeconds = microtime(true) - $chunkStartedAt;
+        } while ($ids->count() === self::PRUNE_CHUNK
+            && ($deadline === null || microtime(true) + $chunkSeconds * 1.5 < $deadline));
 
         return $deleted;
     }
