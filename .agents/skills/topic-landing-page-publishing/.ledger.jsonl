@@ -1,0 +1,1 @@
+{"action": "create", "reason": "Plan 28 implementation discovered 8 gaps via gap-finding tests. State transitions, slug validation, copy guard rules, and theme ranking are now fixed and must not regress.", "evidence": "references/evidence-90dad1a7.md"}

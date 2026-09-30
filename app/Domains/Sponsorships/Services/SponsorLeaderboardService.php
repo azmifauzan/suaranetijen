@@ -436,7 +436,7 @@ class SponsorLeaderboardService
                 ->values()
                 ->all();
 
-            return ['is_empty' => count($mapped) === 0, 'entries' => $mapped];
+            return ['is_empty' => count($mapped) === 0, 'entries' => array_values($mapped)];
         }
 
         $mapped = $entries->values()->map(fn (SponsoredEntry $entry, int $index) => $this->presentRow(
@@ -449,7 +449,7 @@ class SponsorLeaderboardService
             $index + 1,
         ))->all();
 
-        return ['is_empty' => false, 'entries' => $mapped];
+        return ['is_empty' => false, 'entries' => array_values($mapped)];
     }
 
     /**

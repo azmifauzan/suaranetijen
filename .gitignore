@@ -28,3 +28,4 @@ yarn-error.log
 /.vscode
 /.zed
 opencode.json
+/.claude/autoharness
