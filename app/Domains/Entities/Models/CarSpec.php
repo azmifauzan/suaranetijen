@@ -2,6 +2,7 @@
 
 namespace App\Domains\Entities\Models;
 
+use App\Domains\Search\Jobs\RefreshEntitySearchDocumentJob;
 use Database\Factories\CarSpecFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -44,6 +45,13 @@ class CarSpec extends Model
 {
     /** @use HasFactory<CarSpecFactory> */
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::saved(function (self $spec): void {
+            RefreshEntitySearchDocumentJob::dispatch($spec->entity_id);
+        });
+    }
 
     /**
      * @return array<string, string>

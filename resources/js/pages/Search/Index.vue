@@ -46,6 +46,7 @@ interface SearchResultItem {
     priority_tier: string;
     priority_rank: number;
     match_detail: string | null;
+    matched_fields?: string[];
 }
 
 interface SearchMeta {
@@ -136,6 +137,13 @@ const handleFormSubmit = (e: Event) => {
 const clearSearch = () => {
     searchInput.value = '';
     performSearch('', currentCategory.value);
+};
+
+const getMatchedThemes = (item: SearchResultItem): string[] => {
+    if (!item.matched_fields || !item.matched_fields.length) return [];
+    return item.matched_fields
+        .filter((field) => field.startsWith('theme:'))
+        .map((field) => field.substring(6));
 };
 </script>
 
@@ -442,6 +450,21 @@ const clearSearch = () => {
                                 <span class="font-medium text-neutral-700">{{
                                     item.match_detail
                                 }}</span>
+                            </p>
+
+                            <!-- Sering disebut (matched themes from descriptors per docs/30) -->
+                            <p
+                                v-if="getMatchedThemes(item).length > 0"
+                                class="flex flex-wrap items-center gap-1.5 text-xs text-neutral-500"
+                            >
+                                <span>Sering disebut:</span>
+                                <span
+                                    v-for="(themeLabel, tIdx) in getMatchedThemes(item)"
+                                    :key="tIdx"
+                                    class="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800"
+                                >
+                                    {{ themeLabel }}
+                                </span>
                             </p>
                         </div>
 

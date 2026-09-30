@@ -13,6 +13,7 @@ interface Suggestion {
     slug: string;
     type_label: string;
     category: { name: string };
+    matched_fields?: string[];
 }
 
 const query = ref('');
@@ -94,6 +95,12 @@ function moveSelection(direction: number): void {
     activeIndex.value =
         (activeIndex.value + direction + suggestions.value.length) %
         suggestions.value.length;
+}
+
+function matchedTheme(item: Suggestion): string | null {
+    if (!item.matched_fields || !item.matched_fields.length) return null;
+    const themeField = item.matched_fields.find((f) => f.startsWith('theme:'));
+    return themeField ? themeField.substring(6) : null;
 }
 </script>
 
@@ -183,15 +190,21 @@ function moveSelection(direction: number): void {
                     @mousedown.prevent
                     @click="select(item)"
                 >
-                    <span
-                        ><span class="block text-sm font-bold">{{
+                    <span>
+                        <span class="block text-sm font-bold">{{
                             item.name
-                        }}</span
-                        ><span class="text-xs text-[#68796d]"
-                            >{{ item.type_label }} ·
-                            {{ item.category.name }}</span
-                        ></span
-                    ><ArrowUpRight class="size-4 text-[#087f5b]" />
+                        }}</span>
+                        <span class="text-xs text-[#68796d]">
+                            {{ item.type_label }} · {{ item.category.name }}
+                        </span>
+                        <span
+                            v-if="matchedTheme(item)"
+                            class="mt-0.5 block text-[11px] font-medium text-[#2b8a3e]"
+                        >
+                            Sering disebut: {{ matchedTheme(item) }}
+                        </span>
+                    </span>
+                    <ArrowUpRight class="size-4 text-[#087f5b]" />
                 </li>
             </ul>
         </div>

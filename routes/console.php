@@ -20,6 +20,7 @@ Schedule::command('landing-pages:scan-candidates')->weekly()->withoutOverlapping
 Schedule::command('entities:enrich-websites')->dailyAt('04:00')->withoutOverlapping();
 Schedule::command('themes:extract-pending')->everySixHours()->withoutOverlapping();
 Schedule::command('themes:summarize')->dailyAt('03:30')->withoutOverlapping();
+Schedule::command('search:rebuild-documents')->dailyAt('04:30')->withoutOverlapping();
 Schedule::job(new ExpireRawPayloadJob)->everyTwoMinutes();
 Schedule::command('model:prune', ['--model' => [UnmatchedMention::class]])->dailyAt('05:00')->withoutOverlapping();
 Schedule::command('queue:prune-failed', ['--hours' => 168])->dailyAt('05:15')->withoutOverlapping();

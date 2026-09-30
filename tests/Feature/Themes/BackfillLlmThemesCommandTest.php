@@ -105,7 +105,7 @@ it('skips opinions with no payload, too-short text, or already extracted by llm'
 });
 
 it('does nothing but count on --dry-run', function () {
-    Queue::fake();
+    Queue::fake([ExtractThemesBatchJob::class]);
     config(['themes.extractor' => 'llm']);
     $source = Source::factory()->create();
     $entity = Entity::factory()->create();

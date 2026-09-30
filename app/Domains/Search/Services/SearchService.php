@@ -14,7 +14,7 @@ use Throwable;
 class SearchService
 {
     /**
-     * Priority tier constants.
+     * Priority tier constants per docs/13 and docs/30.
      */
     public const PRIORITY_EXACT_NAME = 'exact_name';
 
@@ -25,6 +25,8 @@ class SearchService
     public const PRIORITY_TRIGRAM = 'trigram';
 
     public const PRIORITY_CATEGORY_CONTEXT = 'category_context';
+
+    public const PRIORITY_DESCRIPTOR = 'descriptor';
 
     public const PRIORITY_BROWSE = 'browse';
 
@@ -52,8 +54,6 @@ class SearchService
         $normalizedQuery = TextNormalizer::normalize($trimmedQuery);
 
         if ($normalizedQuery === '') {
-            // No search text: browse (optionally category-scoped) instead of returning nothing,
-            // so "Semua Entitas" / a homepage category card has content to land on.
             $results = $this->browseCandidates($category, $limit);
 
             return [
@@ -66,8 +66,55 @@ class SearchService
             ];
         }
 
-        $tokens = preg_split('/\s+/u', $normalizedQuery, -1, PREG_SPLIT_NO_EMPTY) ?: [];
-        $results = $this->queryCandidates($trimmedQuery, $normalizedQuery, $tokens, $category, $limit);
+        // Tokenize and filter stopwords/years (docs/30)
+        $rawTokens = preg_split('/\s+/u', $normalizedQuery, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $maxTokens = (int) config('search.max_query_tokens', 8);
+        $rawTokens = array_slice($rawTokens, 0, $maxTokens);
+
+        $stopwords = config('search.stopwords', [
+            'yang', 'dan', 'di', 'untuk', 'dengan', 'paling', 'terbaik', 'bagus', 'rekomendasi',
+        ]);
+
+        $filteredTokens = array_values(array_filter($rawTokens, function (string $token) use ($stopwords) {
+            if (in_array($token, $stopwords, true)) {
+                return false;
+            }
+            if (preg_match('/^\d{4}$/', $token)) {
+                return false;
+            }
+            if (mb_strlen($token) < 2) {
+                return false;
+            }
+
+            return true;
+        }));
+
+        // Empty after stopword removal falls back to browse mode (docs/30)
+        if ($filteredTokens === []) {
+            $results = $this->browseCandidates($category, $limit);
+
+            return [
+                'data' => $results,
+                'meta' => [
+                    'query' => $trimmedQuery,
+                    'normalized_query' => $normalizedQuery,
+                    'total' => count($results),
+                ],
+            ];
+        }
+
+        // Classify tokens into Anchors and Descriptors (docs/30)
+        [$anchors, $descriptors] = $this->classifyTokens($filteredTokens);
+
+        $results = $this->queryCandidates(
+            $trimmedQuery,
+            $normalizedQuery,
+            $filteredTokens,
+            $anchors,
+            $descriptors,
+            $category,
+            $limit
+        );
 
         if ($logQuery) {
             $this->logSearch($trimmedQuery, $normalizedQuery, count($results), $userId, $sessionId);
@@ -84,24 +131,157 @@ class SearchService
     }
 
     /**
-     * Query and rank candidate entities using the 5 priority levels from docs/13.
+     * Classify query tokens into Anchors (matches name, alias, category) and Descriptors (rest).
      *
      * @param  list<string>  $tokens
+     * @return array{0: list<string>, 1: list<string>}
+     */
+    protected function classifyTokens(array $tokens): array
+    {
+        $anchors = [];
+        $descriptors = [];
+
+        foreach ($tokens as $token) {
+            if ($this->isAnchorToken($token)) {
+                $anchors[] = $token;
+            } else {
+                $descriptors[] = $token;
+            }
+        }
+
+        return [$anchors, $descriptors];
+    }
+
+    /**
+     * Check if a token matches any active searchable entity name, alias, or category.
+     */
+    protected function isAnchorToken(string $token): bool
+    {
+        $like = $this->wordPattern($token);
+        $fuzzy = $this->allowsFuzzy($token);
+        $activeEntityIds = DB::table('entities')->where('status', 'active')->where('searchable', true)->select('id');
+
+        return DB::table('entities')
+            ->where('status', 'active')
+            ->where('searchable', true)
+            ->where(function ($q) use ($like, $token, $fuzzy) {
+                $q->whereRaw("(' ' || lower(name) || ' ') LIKE ?", [$like]);
+                if ($fuzzy) {
+                    $q->orWhereRaw('similarity(name, ?) >= 0.3', [$token]);
+                }
+            })
+            ->exists()
+            || DB::table('entity_aliases')
+                ->whereIn('entity_id', $activeEntityIds)
+                ->where(function ($q) use ($like, $token, $fuzzy) {
+                    $q->whereRaw("(' ' || normalized_alias || ' ') LIKE ?", [$like]);
+                    if ($fuzzy) {
+                        $q->orWhereRaw('similarity(normalized_alias, ?) >= 0.3', [$token]);
+                    }
+                })
+                ->exists()
+            || DB::table('categories')
+                ->where('status', 'active')
+                ->whereRaw("(' ' || lower(name) || ' ') LIKE ?", [$like])
+                ->exists();
+    }
+
+    /**
+     * Word-start pattern for tokens of 4+ characters, whole-word for shorter ones, so "hp" never
+     * anchors on the alias "hpm". Matched against ' ' || column || ' '.
+     */
+    protected function wordPattern(string $token): string
+    {
+        return $this->allowsFuzzy($token) ? '% '.$token.'%' : '% '.$token.' %';
+    }
+
+    /**
+     * Trigram similarity is meaningless for very short tokens (2-3 characters share almost no trigrams).
+     */
+    protected function allowsFuzzy(string $token): bool
+    {
+        return mb_strlen($token) >= 4;
+    }
+
+    /**
+     * Query and rank candidate entities using the 5 priority levels from docs/13
+     * plus descriptor matching and sentiment tie-breaking from docs/30.
+     *
+     * @param  list<string>  $tokens
+     * @param  list<string>  $anchors
+     * @param  list<string>  $descriptors
      * @return list<array<string, mixed>>
      */
     protected function queryCandidates(
         string $rawQuery,
         string $normalizedQuery,
         array $tokens,
+        array $anchors,
+        array $descriptors,
         ?string $categorySlug,
         int $limit
     ): array {
         $prefix = $normalizedQuery.'%';
 
+        $bindings = [
+            'exact_name' => $normalizedQuery,
+            'exact_alias' => $normalizedQuery,
+            'prefix_name' => $prefix,
+            'prefix_alias' => $prefix,
+            'sim_query1' => $normalizedQuery,
+            'sim_query2' => $normalizedQuery,
+            'best_exact' => $normalizedQuery,
+            'best_prefix' => $prefix,
+            'best_sim' => $normalizedQuery,
+            'cat_prefix' => $prefix,
+            'cat_slug' => $normalizedQuery,
+            'child_prefix' => $prefix,
+            'child_sim' => $normalizedQuery,
+            'parent_prefix' => $prefix,
+            'parent_sim' => $normalizedQuery,
+        ];
+
+        // 1. Build descriptor scoring SQL (docs/30)
+        $descriptorScoreParts = [];
+        foreach ($descriptors as $idx => $desc) {
+            $descThemeParam = 'desc_th_'.$idx;
+            $descSpecParam = 'desc_sp_'.$idx;
+            $descDescParam = 'desc_dc_'.$idx;
+            $descSumParam = 'desc_sm_'.$idx;
+
+            $boundaryToken = '% '.$desc.'%';
+            $bindings[$descThemeParam] = $boundaryToken;
+            $bindings[$descSpecParam] = $boundaryToken;
+            $bindings[$descDescParam] = $boundaryToken;
+            $bindings[$descSumParam] = $boundaryToken;
+
+            $descriptorScoreParts[] = "(
+                (CASE WHEN (' ' || lower(coalesce(d.theme_text, ''))) LIKE :{$descThemeParam} THEN
+                    1000.0 * (1.0 + 0.2 * log(1.0 + coalesce((
+                        SELECT MAX(ets.observation_count)
+                        FROM entity_theme_snapshots ets
+                        JOIN themes t ON t.id = ets.theme_id
+                        WHERE ets.entity_id = e.id
+                          AND ets.window IN ('365d', 'all')
+                          AND (' ' || lower(t.display_label)) LIKE :{$descThemeParam}
+                    ), 0.0)))
+                ELSE 0.0 END) +
+                (CASE WHEN (' ' || lower(coalesce(d.spec_text, ''))) LIKE :{$descSpecParam} THEN 500.0 ELSE 0.0 END) +
+                (CASE WHEN (' ' || lower(coalesce(d.description_text, ''))) LIKE :{$descDescParam} THEN 200.0 ELSE 0.0 END) +
+                (CASE WHEN (' ' || lower(coalesce(d.summary_text, ''))) LIKE :{$descSumParam} THEN 200.0 ELSE 0.0 END)
+            )";
+        }
+
+        $rawDescriptorSql = $descriptorScoreParts !== [] ? implode(' + ', $descriptorScoreParts) : '0.0';
+        // Bound descriptor score strictly below 4000 (context score) so it never overtakes name/alias/prefix matches
+        $clampedDescriptorSql = "(CASE WHEN ({$rawDescriptorSql}) > 3900.0 THEN 3900.0 ELSE ({$rawDescriptorSql}) END)";
+
         $sql = "
             SELECT e.id, e.category_id, e.parent_id, e.type, e.name, e.slug, e.description,
                    c.name as category_name, c.slug as category_slug,
                    p.name as parent_name, p.slug as parent_slug,
+                   d.theme_text, d.spec_text, d.description_text, d.summary_text,
+                   {$clampedDescriptorSql} as descriptor_score,
                    (CASE WHEN lower(e.name) = :exact_name THEN 100000 ELSE 0 END) as exact_name_score,
                    (CASE WHEN EXISTS (
                        SELECT 1 FROM entity_aliases ea
@@ -151,81 +331,88 @@ class SearchService
             FROM entities e
             JOIN categories c ON c.id = e.category_id
             LEFT JOIN entities p ON p.id = e.parent_id
+            LEFT JOIN entity_search_documents d ON d.entity_id = e.id
+            LEFT JOIN sentiment_snapshots ss_tie ON ss_tie.entity_id = e.id AND ss_tie.period = '365d'
             WHERE e.status = 'active' AND e.searchable = true
         ";
-
-        $bindings = [
-            'exact_name' => $normalizedQuery,
-            'exact_alias' => $normalizedQuery,
-            'prefix_name' => $prefix,
-            'prefix_alias' => $prefix,
-            'sim_query1' => $normalizedQuery,
-            'sim_query2' => $normalizedQuery,
-            'best_exact' => $normalizedQuery,
-            'best_prefix' => $prefix,
-            'best_sim' => $normalizedQuery,
-            'cat_prefix' => $prefix,
-            'cat_slug' => $normalizedQuery,
-            'child_prefix' => $prefix,
-            'child_sim' => $normalizedQuery,
-            'parent_prefix' => $prefix,
-            'parent_sim' => $normalizedQuery,
-        ];
 
         if ($categorySlug !== null && $categorySlug !== '') {
             $sql .= ' AND c.slug = :filter_category';
             $bindings['filter_category'] = $categorySlug;
         }
 
-        // Candidate filter: candidate must meet at least one matching criterion
-        $filterClauses = [
-            'lower(e.name) = :f_exact',
-            'EXISTS (SELECT 1 FROM entity_aliases ea WHERE ea.entity_id = e.id AND ea.normalized_alias = :f_exact_alias)',
-            'lower(e.name) LIKE :f_prefix',
-            'EXISTS (SELECT 1 FROM entity_aliases ea WHERE ea.entity_id = e.id AND ea.normalized_alias LIKE :f_prefix_alias)',
-            'similarity(e.name, :f_sim1) >= 0.25',
-            'EXISTS (SELECT 1 FROM entity_aliases ea WHERE ea.entity_id = e.id AND similarity(ea.normalized_alias, :f_sim2) >= 0.25)',
-            'EXISTS (SELECT 1 FROM entities child WHERE child.parent_id = e.id AND (similarity(child.name, :f_child_sim) >= 0.3 OR lower(child.name) LIKE :f_child_prefix))',
-            'EXISTS (SELECT 1 FROM entities parent_e WHERE parent_e.id = e.parent_id AND (similarity(parent_e.name, :f_parent_sim) >= 0.3 OR lower(parent_e.name) LIKE :f_parent_prefix))',
-        ];
-
-        $bindings['f_exact'] = $normalizedQuery;
-        $bindings['f_exact_alias'] = $normalizedQuery;
-        $bindings['f_prefix'] = $prefix;
-        $bindings['f_prefix_alias'] = $prefix;
-        $bindings['f_sim1'] = $normalizedQuery;
-        $bindings['f_sim2'] = $normalizedQuery;
-        $bindings['f_child_sim'] = $normalizedQuery;
-        $bindings['f_child_prefix'] = $prefix;
-        $bindings['f_parent_sim'] = $normalizedQuery;
-        $bindings['f_parent_prefix'] = $prefix;
-
-        // Add token-based matching clauses for multi-word queries (e.g. "vps biznet")
-        if (count($tokens) > 1) {
-            $tokenConditions = [];
-            foreach ($tokens as $idx => $token) {
-                $tokenLikeParam = 't_like_'.$idx;
-                $tokenSimParam = 't_sim_'.$idx;
-
-                $bindings[$tokenLikeParam] = '%'.$token.'%';
-                $bindings[$tokenSimParam] = $token;
-
-                $tokenConditions[] = "(
-                    lower(e.name) LIKE :{$tokenLikeParam}
-                    OR EXISTS (SELECT 1 FROM entity_aliases ea WHERE ea.entity_id = e.id AND ea.normalized_alias LIKE :{$tokenLikeParam})
-                    OR similarity(e.name, :{$tokenSimParam}) >= 0.3
-                    OR EXISTS (SELECT 1 FROM entities c_sub WHERE c_sub.parent_id = e.id AND (lower(c_sub.name) LIKE :{$tokenLikeParam} OR similarity(c_sub.name, :{$tokenSimParam}) >= 0.3))
-                    OR EXISTS (SELECT 1 FROM entities p_sub WHERE p_sub.id = e.parent_id AND (lower(p_sub.name) LIKE :{$tokenLikeParam} OR similarity(p_sub.name, :{$tokenSimParam}) >= 0.3))
-                    OR lower(c.name) LIKE :{$tokenLikeParam}
+        // 2. Candidate filter:
+        if ($anchors === [] && $descriptors !== []) {
+            // Case 3: Only Descriptors (e.g. "baterai awet") -> at least one descriptor matches document
+            $descFilters = [];
+            foreach ($descriptors as $idx => $desc) {
+                $param = 'df_like_'.$idx;
+                $bindings[$param] = '% '.$desc.'%';
+                $descFilters[] = "(
+                    (' ' || lower(coalesce(d.theme_text, ''))) LIKE :{$param}
+                    OR (' ' || lower(coalesce(d.spec_text, ''))) LIKE :{$param}
+                    OR (' ' || lower(coalesce(d.description_text, ''))) LIKE :{$param}
+                    OR (' ' || lower(coalesce(d.summary_text, ''))) LIKE :{$param}
                 )";
             }
-            $filterClauses[] = '('.implode(' AND ', $tokenConditions).')';
+            $sql .= ' AND ('.implode(' OR ', $descFilters).')';
+        } else {
+            // Case 1 & 2: Has Anchor(s)
+            $filterClauses = [
+                'lower(e.name) = :f_exact',
+                'EXISTS (SELECT 1 FROM entity_aliases ea WHERE ea.entity_id = e.id AND ea.normalized_alias = :f_exact_alias)',
+                'lower(e.name) LIKE :f_prefix',
+                'EXISTS (SELECT 1 FROM entity_aliases ea WHERE ea.entity_id = e.id AND ea.normalized_alias LIKE :f_prefix_alias)',
+                'similarity(e.name, :f_sim1) >= 0.25',
+                'EXISTS (SELECT 1 FROM entity_aliases ea WHERE ea.entity_id = e.id AND similarity(ea.normalized_alias, :f_sim2) >= 0.25)',
+                'EXISTS (SELECT 1 FROM entities child WHERE child.parent_id = e.id AND (similarity(child.name, :f_child_sim) >= 0.3 OR lower(child.name) LIKE :f_child_prefix))',
+                'EXISTS (SELECT 1 FROM entities parent_e WHERE parent_e.id = e.parent_id AND (similarity(parent_e.name, :f_parent_sim) >= 0.3 OR lower(parent_e.name) LIKE :f_parent_prefix))',
+            ];
+
+            $bindings['f_exact'] = $normalizedQuery;
+            $bindings['f_exact_alias'] = $normalizedQuery;
+            $bindings['f_prefix'] = $prefix;
+            $bindings['f_prefix_alias'] = $prefix;
+            $bindings['f_sim1'] = $normalizedQuery;
+            $bindings['f_sim2'] = $normalizedQuery;
+            $bindings['f_child_sim'] = $normalizedQuery;
+            $bindings['f_child_prefix'] = $prefix;
+            $bindings['f_parent_sim'] = $normalizedQuery;
+            $bindings['f_parent_prefix'] = $prefix;
+
+            // When multiple anchors exist (or 1 anchor + descriptors), all anchors must match
+            if (count($anchors) > 1 || (count($anchors) === 1 && count($descriptors) > 0)) {
+                $anchorConditions = [];
+                foreach ($anchors as $idx => $token) {
+                    $tokenLikeParam = 't_like_'.$idx;
+                    $bindings[$tokenLikeParam] = $this->wordPattern($token);
+
+                    $simName = $simChild = $simParent = '';
+                    if ($this->allowsFuzzy($token)) {
+                        $tokenSimParam = 't_sim_'.$idx;
+                        $bindings[$tokenSimParam] = $token;
+                        $simName = " OR similarity(e.name, :{$tokenSimParam}) >= 0.3";
+                        $simChild = " OR similarity(c_sub.name, :{$tokenSimParam}) >= 0.3";
+                        $simParent = " OR similarity(p_sub.name, :{$tokenSimParam}) >= 0.3";
+                    }
+
+                    $anchorConditions[] = "(
+                        (' ' || lower(e.name) || ' ') LIKE :{$tokenLikeParam}
+                        OR EXISTS (SELECT 1 FROM entity_aliases ea WHERE ea.entity_id = e.id AND (' ' || ea.normalized_alias || ' ') LIKE :{$tokenLikeParam})
+                        {$simName}
+                        OR EXISTS (SELECT 1 FROM entities c_sub WHERE c_sub.parent_id = e.id AND ((' ' || lower(c_sub.name) || ' ') LIKE :{$tokenLikeParam}{$simChild}))
+                        OR EXISTS (SELECT 1 FROM entities p_sub WHERE p_sub.id = e.parent_id AND ((' ' || lower(p_sub.name) || ' ') LIKE :{$tokenLikeParam}{$simParent}))
+                        OR (' ' || lower(c.name) || ' ') LIKE :{$tokenLikeParam}
+                    )";
+                }
+                $filterClauses[] = '('.implode(' AND ', $anchorConditions).')';
+            }
+
+            $sql .= ' AND ('.implode(' OR ', $filterClauses).')';
         }
 
-        $sql .= ' AND ('.implode(' OR ', $filterClauses).')';
-
-        // Order by combined priority score descending, then name ascending
-        $sql .= '
+        // Order by combined priority score descending, then sentiment tie-breaker, then name ascending
+        $sql .= "
             ORDER BY (
                 (CASE WHEN lower(e.name) = :ord_exact THEN 100000 ELSE 0 END) +
                 (CASE WHEN EXISTS (
@@ -262,10 +449,14 @@ class SearchService
                         OR similarity(p.name, :ord_parent_sim) >= 0.3
                     ) THEN 4000
                     ELSE 0
-                END)
-            ) DESC, e.name ASC
+                END) +
+                {$clampedDescriptorSql}
+            ) DESC,
+            (CASE WHEN ss_tie.opinion_count >= :tie_min_opinions THEN ss_tie.score ELSE 0 END) DESC,
+            (CASE WHEN ss_tie.opinion_count >= :tie_min_opinions_count THEN ss_tie.opinion_count ELSE 0 END) DESC,
+            e.name ASC
             LIMIT :query_limit
-        ';
+        ";
 
         $bindings['ord_exact'] = $normalizedQuery;
         $bindings['ord_exact_alias'] = $normalizedQuery;
@@ -279,17 +470,100 @@ class SearchService
         $bindings['ord_child_sim'] = $normalizedQuery;
         $bindings['ord_parent_prefix'] = $prefix;
         $bindings['ord_parent_sim'] = $normalizedQuery;
+        $bindings['tie_min_opinions'] = (int) config('scoring.public_min_opinions', 30);
+        $bindings['tie_min_opinions_count'] = (int) config('scoring.public_min_opinions', 30);
         $bindings['query_limit'] = $limit;
 
         $rawRows = DB::select($sql, $bindings);
         /** @var list<array<string, mixed>> $rows */
         $rows = array_map(fn (object $r): array => (array) $r, $rawRows);
         $publicData = $this->fetchPublicData(array_column($rows, 'id'));
+        $matchedFields = $this->resolveMatchedFields(array_column($rows, 'id'), $descriptors, $rows);
 
         return array_map(
-            fn (array $row): array => $this->mapRow($row, $this->resolvePriorityTier($row, $normalizedQuery), $publicData[(int) $row['id']] ?? null),
+            fn (array $row): array => $this->mapRow(
+                $row,
+                $this->resolvePriorityTier($row, $normalizedQuery),
+                $publicData[(int) $row['id']] ?? null,
+                $matchedFields[(int) $row['id']] ?? []
+            ),
             $rows
         );
+    }
+
+    /**
+     * Resolve matched fields (theme labels, specs, description, summary) for returned candidates.
+     *
+     * @param  list<int>  $entityIds
+     * @param  list<string>  $descriptors
+     * @param  list<array<string, mixed>>  $rows
+     * @return array<int, list<string>>
+     */
+    protected function resolveMatchedFields(array $entityIds, array $descriptors, array $rows): array
+    {
+        if ($entityIds === [] || $descriptors === []) {
+            return [];
+        }
+
+        $themeMatches = DB::table('entity_theme_snapshots as ets')
+            ->join('themes as t', 't.id', '=', 'ets.theme_id')
+            ->whereIn('ets.entity_id', $entityIds)
+            ->whereIn('ets.window', [Period::OneYear->value, Period::All->value])
+            ->where(function ($q) use ($descriptors) {
+                foreach ($descriptors as $desc) {
+                    $q->orWhereRaw("(' ' || lower(t.display_label)) LIKE ?", ['% '.$desc.'%']);
+                }
+            })
+            ->orderByDesc('ets.observation_count')
+            ->select(['ets.entity_id', 't.display_label'])
+            ->get()
+            ->reject(fn ($match) => EntitySearchDocumentBuilder::hasNegationMarker((string) $match->display_label))
+            ->groupBy('entity_id');
+
+        $rowsById = collect($rows)->keyBy(fn ($r) => (int) $r['id']);
+        $result = [];
+
+        foreach ($entityIds as $entityId) {
+            $fields = [];
+            $row = $rowsById->get($entityId);
+
+            // 1. Theme matches
+            if (isset($themeMatches[$entityId])) {
+                foreach ($themeMatches[$entityId]->unique('display_label')->take(3) as $match) {
+                    $fields[] = 'theme:'.$match->display_label;
+                }
+            }
+
+            // 2. Spec matches
+            $specText = ' '.strtolower((string) ($row['spec_text'] ?? ''));
+            foreach ($descriptors as $desc) {
+                if (str_contains($specText, ' '.$desc)) {
+                    $fields[] = 'spec:'.$desc;
+                }
+            }
+
+            // 3. Description matches
+            $descText = ' '.strtolower((string) ($row['description_text'] ?? ''));
+            foreach ($descriptors as $desc) {
+                if (str_contains($descText, ' '.$desc)) {
+                    $fields[] = 'description';
+                    break;
+                }
+            }
+
+            // 4. Summary matches
+            $summaryText = ' '.strtolower((string) ($row['summary_text'] ?? ''));
+            foreach ($descriptors as $desc) {
+                if (str_contains($summaryText, ' '.$desc)) {
+                    $fields[] = 'summary';
+                    break;
+                }
+            }
+
+            $result[$entityId] = array_values(array_unique($fields));
+        }
+
+        return $result;
     }
 
     /**
@@ -321,15 +595,13 @@ class SearchService
         $publicData = $this->fetchPublicData(array_column($rows, 'id'));
 
         return array_map(
-            fn (array $row): array => $this->mapRow($row, ['tier' => self::PRIORITY_BROWSE, 'rank' => 0], $publicData[(int) $row['id']] ?? null),
+            fn (array $row): array => $this->mapRow($row, ['tier' => self::PRIORITY_BROWSE, 'rank' => 0], $publicData[(int) $row['id']] ?? null, []),
             $rows
         );
     }
 
     /**
-     * Batch-fetch each entity's Sentimen Netijen (365d, fallback all-time —
-     * same resolution EntityShowController uses) and Rating Netijen, keyed
-     * by entity id, so mapRow() never does one query per result row.
+     * Batch-fetch each entity's Sentimen Netijen and Rating Netijen.
      *
      * @param  list<int>  $entityIds
      * @return array<int, array{score: float|null, opinion_count: int, rating: float|null, rating_count: int}>
@@ -373,15 +645,15 @@ class SearchService
     }
 
     /**
-     * Shape a raw entity row (from either the ranked search or the plain browse query) into the
-     * public search-result array.
+     * Shape a raw entity row into the public search-result array.
      *
      * @param  array<string, mixed>  $row
      * @param  array{tier: string, rank: int}  $priority
      * @param  array{score: float|null, opinion_count: int, rating: float|null, rating_count: int}|null  $publicData
+     * @param  list<string>  $matchedFields
      * @return array<string, mixed>
      */
-    protected function mapRow(array $row, array $priority, ?array $publicData = null): array
+    protected function mapRow(array $row, array $priority, ?array $publicData = null, array $matchedFields = []): array
     {
         return [
             'id' => (int) $row['id'],
@@ -408,11 +680,12 @@ class SearchService
             'priority_tier' => $priority['tier'],
             'priority_rank' => $priority['rank'],
             'match_detail' => isset($row['best_matching_alias']) && is_string($row['best_matching_alias']) ? $row['best_matching_alias'] : null,
+            'matched_fields' => $matchedFields,
         ];
     }
 
     /**
-     * Determine the matching priority tier per docs/13 specification.
+     * Determine the matching priority tier per docs/13 and docs/30 specification.
      *
      * @param  array<string, mixed>  $row
      * @return array{tier: string, rank: int}
@@ -433,6 +706,14 @@ class SearchService
 
         if ((float) ($row['trgm_sim'] ?? 0.0) >= 0.25) {
             return ['tier' => self::PRIORITY_TRIGRAM, 'rank' => 4];
+        }
+
+        if ((int) ($row['context_score'] ?? 0) > 0) {
+            return ['tier' => self::PRIORITY_CATEGORY_CONTEXT, 'rank' => 5];
+        }
+
+        if ((float) ($row['descriptor_score'] ?? 0.0) > 0) {
+            return ['tier' => self::PRIORITY_DESCRIPTOR, 'rank' => 6];
         }
 
         return ['tier' => self::PRIORITY_CATEGORY_CONTEXT, 'rank' => 5];

@@ -2,6 +2,7 @@
 
 namespace App\Domains\Themes\Models;
 
+use App\Domains\Search\Jobs\RefreshEntitySearchDocumentJob;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
@@ -19,6 +20,13 @@ use Illuminate\Database\Eloquent\Model;
 class EntityThemeSummary extends Model
 {
     protected $fillable = ['entity_id', 'summary', 'theme_notes', 'opinion_count', 'generated_at'];
+
+    protected static function booted(): void
+    {
+        static::saved(function (self $summary): void {
+            RefreshEntitySearchDocumentJob::dispatch($summary->entity_id);
+        });
+    }
 
     /**
      * @return array<string, string>

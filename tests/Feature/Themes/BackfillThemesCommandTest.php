@@ -91,7 +91,7 @@ it('paces llm backfill dispatch, skips short and already extracted items, and tr
 });
 
 it('does nothing but count on --dry-run', function () {
-    Queue::fake();
+    Queue::fake([ExtractThemesJob::class]);
     config(['themes.extractor' => 'llm']);
     backfillObservation('Baterainya cepat habis sejak update kemarin, kecewa banget.');
 

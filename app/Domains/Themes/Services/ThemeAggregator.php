@@ -2,6 +2,7 @@
 
 namespace App\Domains\Themes\Services;
 
+use App\Domains\Search\Jobs\RefreshEntitySearchDocumentJob;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Enums\SentimentClass;
 use App\Domains\Themes\Models\EntityThemeDaily;
@@ -176,5 +177,7 @@ class ThemeAggregator
         foreach (Period::cases() as $period) {
             $this->aggregateSnapshot($entityId, $period);
         }
+
+        RefreshEntitySearchDocumentJob::dispatch($entityId);
     }
 }

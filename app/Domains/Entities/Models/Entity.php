@@ -7,6 +7,8 @@ use App\Domains\Entities\Enums\EntityType;
 use App\Domains\Entities\Services\HomepageCategoryBlockService;
 use App\Domains\Ratings\Models\RatingSnapshot;
 use App\Domains\Ratings\Models\UserRating;
+use App\Domains\Search\Jobs\RefreshEntitySearchDocumentJob;
+use App\Domains\Search\Models\EntitySearchDocument;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
 use Database\Factories\EntityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -66,6 +68,14 @@ class Entity extends Model
         static::saved(function (self $entity): void {
             if ($entity->wasChanged(['status', 'searchable', 'category_id'])) {
                 HomepageCategoryBlockService::clearCache();
+            }
+        });
+
+        static::created(fn (self $entity) => RefreshEntitySearchDocumentJob::dispatch($entity->id));
+
+        static::updated(function (self $entity): void {
+            if ($entity->wasChanged(['description', 'status', 'searchable'])) {
+                RefreshEntitySearchDocumentJob::dispatch($entity->id);
             }
         });
     }
@@ -153,6 +163,16 @@ class Entity extends Model
     public function sentimentSnapshots(): HasMany
     {
         return $this->hasMany(SentimentSnapshot::class);
+    }
+
+    /**
+     * Get the search document for this entity (docs/30).
+     *
+     * @return HasOne<EntitySearchDocument, $this>
+     */
+    public function searchDocument(): HasOne
+    {
+        return $this->hasOne(EntitySearchDocument::class);
     }
 
     /**

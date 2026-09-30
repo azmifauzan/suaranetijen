@@ -4,6 +4,7 @@ namespace App\Domains\Entities\Models;
 
 use App\Domains\Entities\Enums\AliasType;
 use App\Domains\Entities\Services\TextNormalizer;
+use App\Domains\Search\Jobs\RefreshEntitySearchDocumentJob;
 use Database\Factories\EntityAliasFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -36,6 +37,14 @@ class EntityAlias extends Model
             if (empty($alias->normalized_alias)) {
                 $alias->normalized_alias = TextNormalizer::normalize($alias->alias);
             }
+        });
+
+        static::saved(function (self $alias): void {
+            RefreshEntitySearchDocumentJob::dispatch($alias->entity_id);
+        });
+
+        static::deleted(function (self $alias): void {
+            RefreshEntitySearchDocumentJob::dispatch($alias->entity_id);
         });
     }
 

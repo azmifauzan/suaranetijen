@@ -4,9 +4,13 @@ use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Search\Models\SearchQuery;
+use App\Domains\Search\Services\EntitySearchDocumentBuilder;
+use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sponsorships\Enums\SponsoredEntryStatus;
 use App\Domains\Sponsorships\Models\SponsoredEntry;
 use App\Domains\Sponsorships\Services\SponsorLeaderboardService;
+use App\Domains\Themes\Models\EntityThemeSnapshot;
+use App\Domains\Themes\Models\Theme;
 
 test('search page includes the sponsor leaderboard teaser, separate from search results', function () {
     $service = app(SponsorLeaderboardService::class);
@@ -138,4 +142,43 @@ test('empty-query browse is not logged to search_queries', function () {
     $this->get('/search')->assertOk();
 
     expect(SearchQuery::count())->toBe(0);
+});
+
+test('GET /search?q=... passes matched_fields for descriptor search results to Inertia', function () {
+    $category = Category::factory()->create();
+    $entity = Entity::factory()->create([
+        'name' => 'Host Nusantara',
+        'category_id' => $category->id,
+        'status' => EntityStatus::Active,
+        'searchable' => true,
+    ]);
+
+    $theme = Theme::create([
+        'slug' => 'murah',
+        'display_label' => 'Harga Murah',
+        'canonical_key' => 'murah',
+    ]);
+
+    EntityThemeSnapshot::create([
+        'entity_id' => $entity->id,
+        'theme_id' => $theme->id,
+        'window' => Period::OneYear,
+        'observation_count' => 15,
+        'positive_count' => 15,
+        'neutral_count' => 0,
+        'negative_count' => 0,
+        'rank' => 1,
+        'calculated_at' => now(),
+    ]);
+
+    app(EntitySearchDocumentBuilder::class)->buildForEntity($entity);
+
+    $this->get('/search?q=murah')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Search/Index')
+            ->has('results', 1)
+            ->where('results.0.id', $entity->id)
+            ->where('results.0.matched_fields', ['theme:Harga Murah'])
+        );
 });

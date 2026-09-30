@@ -2,6 +2,7 @@
 
 namespace App\Domains\Entities\Models;
 
+use App\Domains\Search\Jobs\RefreshEntitySearchDocumentJob;
 use Carbon\CarbonImmutable;
 use Database\Factories\PersonProfileFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -33,6 +34,13 @@ class PersonProfile extends Model
 {
     /** @use HasFactory<PersonProfileFactory> */
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::saved(function (self $profile): void {
+            RefreshEntitySearchDocumentJob::dispatch($profile->entity_id);
+        });
+    }
 
     /**
      * @return array<string, string>

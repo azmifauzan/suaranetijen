@@ -1,10 +1,14 @@
 <?php
 
+use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Ratings\Models\RatingSnapshot;
+use App\Domains\Search\Services\EntitySearchDocumentBuilder;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
+use App\Domains\Themes\Models\EntityThemeSnapshot;
+use App\Domains\Themes\Models\Theme;
 
 test('GET /api/search returns json response with data and meta', function () {
     $category = Category::factory()->create(['name' => 'ISP', 'slug' => 'isp']);
@@ -35,6 +39,7 @@ test('GET /api/search returns json response with data and meta', function () {
                     'priority_tier',
                     'priority_rank',
                     'match_detail',
+                    'matched_fields',
                 ],
             ],
             'meta' => [
@@ -179,4 +184,40 @@ test('GET /api/search respects limit parameter', function () {
 
     $response->assertOk();
     expect($response->json('data'))->toHaveCount(5);
+});
+
+test('GET /api/search returns matched_fields for descriptor query', function () {
+    $category = Category::factory()->create();
+    $entity = Entity::factory()->create([
+        'name' => 'Server Indo',
+        'category_id' => $category->id,
+        'status' => EntityStatus::Active,
+        'searchable' => true,
+    ]);
+
+    $theme = Theme::create([
+        'slug' => 'stabil',
+        'display_label' => 'Koneksi Stabil',
+        'canonical_key' => 'stabil',
+    ]);
+
+    EntityThemeSnapshot::create([
+        'entity_id' => $entity->id,
+        'theme_id' => $theme->id,
+        'window' => Period::OneYear,
+        'observation_count' => 20,
+        'positive_count' => 20,
+        'neutral_count' => 0,
+        'negative_count' => 0,
+        'rank' => 1,
+        'calculated_at' => now(),
+    ]);
+
+    app(EntitySearchDocumentBuilder::class)->buildForEntity($entity);
+
+    $response = $this->getJson('/api/search?q=stabil');
+
+    $response->assertOk();
+    expect($response->json('data.0.id'))->toBe($entity->id)
+        ->and($response->json('data.0.matched_fields'))->toBe(['theme:Koneksi Stabil']);
 });
