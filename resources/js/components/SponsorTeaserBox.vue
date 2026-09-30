@@ -36,13 +36,7 @@ const props = defineProps<{
 }>();
 
 function formatRupiah(amount: number): string {
-    if (amount >= 1_000_000) {
-        return `Rp${(amount / 1_000_000).toFixed(amount % 1_000_000 === 0 ? 0 : 1)}jt`;
-    }
-    if (amount >= 1_000) {
-        return `Rp${(amount / 1_000).toFixed(0)}rb`;
-    }
-    return `Rp${amount}`;
+    return 'Rp' + amount.toLocaleString('id-ID');
 }
 
 /** Normalize both teaser shapes into a flat entries array */
