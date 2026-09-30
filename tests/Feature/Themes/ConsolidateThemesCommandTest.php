@@ -56,8 +56,8 @@ it('merges member themes onto the highest-count member and renames it to the can
 
 it('deletes a colliding duplicate rather than violating the unique constraint', function () {
     config(['themes.extractor' => 'llm']);
-    $a = Theme::create(['slug' => 'a', 'display_label' => 'A', 'canonical_key' => 'a']);
-    $b = Theme::create(['slug' => 'b', 'display_label' => 'B', 'canonical_key' => 'b']);
+    $a = Theme::create(['slug' => 'a', 'display_label' => 'Layar bening', 'canonical_key' => 'a']);
+    $b = Theme::create(['slug' => 'b', 'display_label' => 'Layar tajam', 'canonical_key' => 'b']);
     $entity = Entity::factory()->create();
     $sharedItem = SourceItem::factory()->create();
 
@@ -69,7 +69,7 @@ it('deletes a colliding duplicate rather than violating the unique constraint', 
     themeObservationFor($entity->id, $a->id, $sharedItem->id);
 
     fakeConsolidateLlm([
-        ['canonical_label' => 'B', 'member_ids' => [$a->id, $b->id]],
+        ['canonical_label' => 'Layar tajam', 'member_ids' => [$a->id, $b->id]],
     ]);
 
     $this->artisan('themes:consolidate')->assertSuccessful();
@@ -162,9 +162,9 @@ it('runs themes:rebuild-aggregates afterward when --rebuild is passed and someth
 
 it('drops a group member that an earlier group in the same run already merged away', function () {
     config(['themes.extractor' => 'llm']);
-    $a = Theme::create(['slug' => 'a', 'display_label' => 'A', 'canonical_key' => 'a']);
-    $b = Theme::create(['slug' => 'b', 'display_label' => 'B', 'canonical_key' => 'b']);
-    $c = Theme::create(['slug' => 'c', 'display_label' => 'C', 'canonical_key' => 'c']);
+    $a = Theme::create(['slug' => 'a', 'display_label' => 'Layar bening', 'canonical_key' => 'a']);
+    $b = Theme::create(['slug' => 'b', 'display_label' => 'Layar tajam', 'canonical_key' => 'b']);
+    $c = Theme::create(['slug' => 'c', 'display_label' => 'Layar terang', 'canonical_key' => 'c']);
     $entity = Entity::factory()->create();
     themeObservationFor($entity->id, $a->id);
     foreach (range(1, 3) as $i) {
@@ -176,8 +176,8 @@ it('drops a group member that an earlier group in the same run already merged aw
     // real observed failure mode. Group 1 merges A into B and deletes A; group 2's
     // reference to A is now stale and must be dropped, not crash on a foreign key.
     fakeConsolidateLlm([
-        ['canonical_label' => 'B', 'member_ids' => [$a->id, $b->id]],
-        ['canonical_label' => 'A', 'member_ids' => [$a->id, $c->id]],
+        ['canonical_label' => 'Layar tajam', 'member_ids' => [$a->id, $b->id]],
+        ['canonical_label' => 'Layar bening', 'member_ids' => [$a->id, $c->id]],
     ]);
 
     $this->artisan('themes:consolidate')->assertSuccessful();
@@ -210,8 +210,8 @@ it('groups the themes of one entity together with --per-entity', function () {
 
 it('skips an entity whose LLM call fails and keeps going', function () {
     config(['themes.extractor' => 'llm', 'themes.min_entity_opinions' => 2]);
-    $a = Theme::create(['slug' => 'a', 'display_label' => 'A', 'canonical_key' => 'a']);
-    $b = Theme::create(['slug' => 'b', 'display_label' => 'B', 'canonical_key' => 'b']);
+    $a = Theme::create(['slug' => 'a', 'display_label' => 'Layar bening', 'canonical_key' => 'a']);
+    $b = Theme::create(['slug' => 'b', 'display_label' => 'Layar tajam', 'canonical_key' => 'b']);
     $first = Entity::factory()->create();
     $second = Entity::factory()->create();
     foreach ([$first, $second] as $entity) {
@@ -223,7 +223,7 @@ it('skips an entity whose LLM call fails and keeps going', function () {
     Http::fake(['llm.test/*' => Http::sequence()
         ->push('timeout', 500)
         ->push(['choices' => [['message' => ['content' => json_encode(['groups' => [
-            ['canonical_label' => 'A', 'member_ids' => [$a->id, $b->id]],
+            ['canonical_label' => 'Layar bening', 'member_ids' => [$a->id, $b->id]],
         ]])]]]]),
     ]);
 
@@ -276,4 +276,43 @@ it('does not merge a theme of opposite polarity even when the LLM groups it', fu
     expect(Theme::whereKey($mahal->id)->exists())->toBeTrue()
         ->and(Theme::whereKey($terjangkau->id)->exists())->toBeFalse()
         ->and(ThemeObservation::where('theme_id', $murah->id)->count())->toBe(3);
+});
+
+it('keeps only group members that share a content word with the largest member', function () {
+    config(['themes.extractor' => 'llm']);
+    $cs = Theme::create(['slug' => 'cs-lambat-merespons', 'display_label' => 'Cs lambat merespons', 'canonical_key' => 'cs-lambat-merespons']);
+    $csLain = Theme::create(['slug' => 'cs-sulit-dihubungi-merespons', 'display_label' => 'Cs sulit dihubungi merespons', 'canonical_key' => 'cs-sulit-dihubungi-merespons']);
+    $harga = Theme::create(['slug' => 'harga-kurang-seimbang', 'display_label' => 'Harga kurang seimbang', 'canonical_key' => 'harga-kurang-seimbang']);
+    $entity = Entity::factory()->create();
+    foreach ([$cs, $cs, $csLain, $harga] as $theme) {
+        themeObservationFor($entity->id, $theme->id);
+    }
+
+    fakeConsolidateLlm([
+        ['canonical_label' => 'cs lambat merespons', 'member_ids' => [$cs->id, $csLain->id, $harga->id]],
+    ]);
+
+    $this->artisan('themes:consolidate')->assertSuccessful();
+
+    expect(Theme::whereKey($harga->id)->exists())->toBeTrue()
+        ->and(Theme::whereKey($csLain->id)->exists())->toBeFalse();
+});
+
+it('uses the largest member label when the LLM canonical label is unrelated to it', function () {
+    config(['themes.extractor' => 'llm']);
+    $tanggap = Theme::create(['slug' => 'cs-cepat-tanggap', 'display_label' => 'Cs cepat tanggap', 'canonical_key' => 'cs-cepat-tanggap']);
+    $komplain = Theme::create(['slug' => 'komplain-cs-tanggap', 'display_label' => 'Komplain cs tanggap', 'canonical_key' => 'komplain-cs-tanggap']);
+    $entity = Entity::factory()->create();
+    foreach ([$tanggap, $tanggap, $komplain] as $theme) {
+        themeObservationFor($entity->id, $theme->id);
+    }
+
+    fakeConsolidateLlm([
+        ['canonical_label' => 'layanan lambat sekali', 'member_ids' => [$tanggap->id, $komplain->id]],
+    ]);
+
+    $this->artisan('themes:consolidate')->assertSuccessful();
+
+    expect($tanggap->fresh()->display_label)->toBe('Cs cepat tanggap')
+        ->and(Theme::whereKey($komplain->id)->exists())->toBeFalse();
 });

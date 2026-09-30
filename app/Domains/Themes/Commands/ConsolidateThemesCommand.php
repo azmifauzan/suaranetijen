@@ -32,6 +32,16 @@ class ConsolidateThemesCommand extends Command
     private const REQUEST_TIMEOUT_SECONDS = 120;
 
     /**
+     * Words that say nothing about WHAT a theme is about: fillers and bare judgements. Two labels that only
+     * share these ("kamera bagus" / "layar bagus") are different themes.
+     */
+    private const GENERIC_WORDS = [
+        'yang', 'dengan', 'untuk', 'tidak', 'lebih', 'sangat', 'cukup', 'masih', 'sudah', 'sering', 'jarang', 'terlalu',
+        'paling', 'kurang', 'banyak', 'sedikit', 'dari', 'pada', 'saat', 'bisa', 'agak', 'bagus', 'jelek', 'buruk', 'baik',
+        'mahal', 'murah', 'cepat', 'lambat', 'keren', 'mantap', 'besar', 'kecil', 'nyaman', 'worth', 'sekali', 'banget',
+    ];
+
+    /**
      * @var string
      */
     protected $signature = 'themes:consolidate
@@ -235,7 +245,7 @@ class ConsolidateThemesCommand extends Command
                 }
 
                 $memberIds = $this->dropOppositePolarity($memberIds, $chunk);
-                $canonicalLabel = trim((string) ($group['canonical_label'] ?? ''));
+                [$memberIds, $canonicalLabel] = $this->keepRelatedMembers($memberIds, $chunk, trim((string) ($group['canonical_label'] ?? '')));
 
                 if (count($memberIds) < 2 || $canonicalLabel === '') {
                     continue;
@@ -262,6 +272,45 @@ class ConsolidateThemesCommand extends Command
         }
 
         return $merged;
+    }
+
+    /**
+     * The LLM also chains unrelated themes into one group. Keeps only members that share a content word with
+     * the largest member, and falls back to that member's own label when the LLM's canonical label does not.
+     *
+     * @param  list<int>  $memberIds
+     * @param  Collection<int, Theme>  $chunk
+     * @return array{0: list<int>, 1: string}
+     */
+    private function keepRelatedMembers(array $memberIds, Collection $chunk, string $canonicalLabel): array
+    {
+        $anchor = $chunk->whereIn('id', $memberIds)->sortByDesc('observation_count')->first();
+
+        if ($anchor === null) {
+            return [[], $canonicalLabel];
+        }
+
+        $anchorWords = $this->contentWords($anchor->display_label);
+        $related = fn (string $label): bool => array_intersect($anchorWords, $this->contentWords($label)) !== [];
+
+        $kept = array_values(array_filter(
+            $memberIds,
+            fn (int $id): bool => $id === $anchor->id
+                || $related((string) $chunk->firstWhere('id', $id)?->display_label)
+        ));
+
+        return [$kept, $related($canonicalLabel) ? $canonicalLabel : $anchor->display_label];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function contentWords(string $label): array
+    {
+        return array_values(array_filter(
+            explode(' ', TextNormalizer::normalize($label)),
+            fn (string $word): bool => mb_strlen($word) >= 4 && ! in_array($word, self::GENERIC_WORDS, true)
+        ));
     }
 
     /**
