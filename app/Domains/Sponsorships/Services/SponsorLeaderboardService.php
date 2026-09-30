@@ -361,6 +361,98 @@ class SponsorLeaderboardService
     }
 
     /**
+     * Get top N sponsor entries whose entity belongs to a given category, for the active period.
+     * Falls back to the all-time board when the active weekly period has no entries for that
+     * category, using the same ranking rules and row shape as the main board (docs/26).
+     *
+     * @return array{is_empty: bool, entries: list<array<string, mixed>>}
+     */
+    public function getCategoryTeaser(int $categoryId, int $limit = 3): array
+    {
+        $period = $this->getActivePeriod();
+
+        $entries = SponsoredEntry::query()
+            ->where('period_id', $period->id)
+            ->where('status', SponsoredEntryStatus::Active)
+            ->where('settled_total_amount', '>', 0)
+            ->whereHas('entity', fn ($q) => $q
+                ->where('status', EntityStatus::Active)
+                ->where('searchable', true)
+                ->where('category_id', $categoryId)
+            )
+            ->with([
+                'entity' => function ($query): void {
+                    $query->with([
+                        'category',
+                        'ratingSnapshot',
+                        'sentimentSnapshots' => fn ($q) => $q->where('period', Period::OneYear->value),
+                    ]);
+                },
+            ])
+            ->orderByDesc('settled_total_amount')
+            ->orderBy('first_settled_at')
+            ->orderBy('id')
+            ->limit($limit)
+            ->get();
+
+        // Fallback to all-time board for this category when the active period is empty
+        if ($entries->isEmpty()) {
+            $rows = DB::table('sponsored_entries')
+                ->join('entities', 'entities.id', '=', 'sponsored_entries.entity_id')
+                ->where('sponsored_entries.status', SponsoredEntryStatus::Active->value)
+                ->where('entities.status', EntityStatus::Active->value)
+                ->where('entities.searchable', true)
+                ->where('entities.category_id', $categoryId)
+                ->groupBy('sponsored_entries.entity_id')
+                ->havingRaw('SUM(sponsored_entries.settled_total_amount) > 0')
+                ->selectRaw('sponsored_entries.entity_id as entity_id')
+                ->selectRaw('SUM(sponsored_entries.settled_total_amount) as total_amount')
+                ->selectRaw('MIN(sponsored_entries.first_settled_at) as first_settled_at')
+                ->selectRaw('SUM(sponsored_entries.clicks_count) as clicks_count')
+                ->selectRaw('SUM(sponsored_entries.views_count) as views_count')
+                ->orderByDesc('total_amount')
+                ->orderBy('first_settled_at')
+                ->orderBy('sponsored_entries.entity_id')
+                ->limit($limit)
+                ->get();
+
+            $entities = Entity::query()
+                ->whereIn('id', $rows->pluck('entity_id'))
+                ->with(['category', 'ratingSnapshot', 'sentimentSnapshots' => fn ($q) => $q->where('period', Period::OneYear->value)])
+                ->get()
+                ->keyBy('id');
+
+            $mapped = $rows->values()
+                ->filter(fn ($row) => $entities->has((int) $row->entity_id))
+                ->map(fn ($row, int $index) => $this->presentRow(
+                    (int) $row->entity_id,
+                    $entities->get((int) $row->entity_id),
+                    (int) $row->total_amount,
+                    $row->first_settled_at ? CarbonImmutable::parse($row->first_settled_at) : null,
+                    (int) $row->clicks_count,
+                    (int) $row->views_count,
+                    $index + 1,
+                ))
+                ->values()
+                ->all();
+
+            return ['is_empty' => count($mapped) === 0, 'entries' => $mapped];
+        }
+
+        $mapped = $entries->values()->map(fn (SponsoredEntry $entry, int $index) => $this->presentRow(
+            $entry->id,
+            $entry->entity,
+            (int) $entry->settled_total_amount,
+            $entry->first_settled_at,
+            (int) $entry->clicks_count,
+            (int) $entry->views_count,
+            $index + 1,
+        ))->all();
+
+        return ['is_empty' => false, 'entries' => $mapped];
+    }
+
+    /**
      * Calculate the minimum contribution amount needed to overtake a target position or entry.
      */
     public function calculateAmountToOvertake(SponsorPeriod $period, int $targetRank, ?int $currentEntityId = null): int

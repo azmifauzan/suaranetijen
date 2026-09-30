@@ -15,13 +15,13 @@ import {
     terms,
 } from '@/routes';
 import { index as searchPage } from '@/routes/search';
-import { index as leaderboardPage } from '@/routes/leaderboard';
+import { index as rankingIndex } from '@/routes/rankings';
 
 const page = usePage();
 const menuOpen = ref(false);
 const navigation = [
     { label: 'Jelajahi', href: searchPage() },
-    { label: 'Leaderboard', href: leaderboardPage() },
+    { label: 'Ranking', href: rankingIndex() },
     { label: 'Cara kerja', href: methodology() },
     { label: 'Tentang kami', href: about() },
 ];

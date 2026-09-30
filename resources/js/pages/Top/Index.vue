@@ -31,6 +31,10 @@ interface RankedEntityData {
         type: string;
         type_label: string;
     };
+    category: {
+        name: string;
+        slug: string;
+    };
     score: number;
     opinion_count: number;
     distribution: DistributionData;
@@ -51,15 +55,18 @@ interface SponsorEntry {
 }
 
 interface SponsorTeaser {
+    period_key: string;
+    period_name: string;
+    total_settled_amount: number;
     is_empty: boolean;
-    entries: SponsorEntry[];
+    top_entry: SponsorEntry | null;
+    top_entries: SponsorEntry[];
 }
 
 const props = defineProps<{
-    category: CategoryData;
     period: string;
     rankings: RankedEntityData[];
-    otherCategories: CategoryData[];
+    categories: CategoryData[];
     sponsorTeaser: SponsorTeaser;
 }>();
 
@@ -71,79 +78,61 @@ const periods = [
 ];
 
 function switchPeriod(p: string) {
-    router.get(
-        showRanking.url(props.category.slug),
-        { period: p },
-        { preserveScroll: true },
-    );
+    router.get(rankingIndex.url(), { period: p }, { preserveScroll: true });
 }
 </script>
 
 <template>
     <PublicLayout>
         <PublicSeo
-            :title="`${category.name} dengan Sentimen Netizen Tertinggi`"
-            :description="`Ranking ${category.name} dengan sentimen netizen tertinggi berdasarkan opini publik yang dianalisis SuaraNetijen.`"
-            :canonical-path="`/top/${category.slug}`"
+            title="Ranking Sentimen Netijen Tertinggi"
+            description="Daftar entitas di semua kategori yang diurutkan berdasarkan agregat opini publik netizen (minimal 100 opini dianalisis)."
+            canonical-path="/top"
         />
 
-        <!-- Main Content -->
         <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
             <!-- Breadcrumbs -->
             <nav class="mb-4 flex items-center gap-2 text-xs text-neutral-500">
                 <Link :href="home()" class="hover:underline">Beranda</Link>
                 <span>/</span>
-                <Link :href="rankingIndex.url()" class="hover:underline">Ranking</Link>
-                <span>/</span>
-                <span class="font-medium text-neutral-800">{{ category.name }}</span>
+                <span class="font-medium text-neutral-800">Ranking</span>
             </nav>
 
             <!-- Page Title -->
             <div class="mb-6">
                 <h1 class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl">
-                    {{ category.name }} dengan Sentimen Netijen Tertinggi
+                    Sentimen Netijen Tertinggi
                 </h1>
                 <p class="mt-2 text-sm text-neutral-600">
-                    Daftar entitas dalam kategori {{ category.name }} yang diurutkan berdasarkan
-                    agregat opini publik dari netizen (minimal 100 opini dianalisis).
+                    Ranking semua kategori berdasarkan agregat opini publik dari netizen (minimal 100
+                    opini dianalisis).
                 </p>
             </div>
 
-            <!-- Sponsor Teaser Box — only shown when category has sponsors or is empty-invite -->
+            <!-- Sponsor Teaser Box -->
             <div class="mb-6">
-                <SponsorTeaserBox
-                    :teaser="sponsorTeaser"
-                    :label="`Sponsor ${category.name}`"
-                />
+                <SponsorTeaserBox :teaser="sponsorTeaser" label="Papan Sponsor" />
             </div>
 
             <!-- Controls: Category Pills & Period Selector -->
-
             <div
                 class="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-4"
             >
                 <!-- Category Pills -->
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="text-xs font-semibold text-neutral-500">Kategori:</span>
-                    <!-- "Semua" links to global /top ranking -->
-                    <Link
-                        :href="rankingIndex.url()"
-                        class="rounded-full bg-neutral-200/80 px-3 py-1 text-xs text-neutral-700 hover:bg-neutral-300"
-                    >
-                        Semua
-                    </Link>
                     <span
                         class="rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white"
                     >
-                        {{ category.name }}
+                        Semua
                     </span>
                     <Link
-                        v-for="other in otherCategories"
-                        :key="other.id"
-                        :href="showRanking.url(other.slug)"
+                        v-for="cat in categories"
+                        :key="cat.id"
+                        :href="showRanking.url(cat.slug)"
                         class="rounded-full bg-neutral-200/80 px-3 py-1 text-xs text-neutral-700 hover:bg-neutral-300"
                     >
-                        {{ other.name }}
+                        {{ cat.name }}
                     </Link>
                 </div>
 
@@ -153,14 +142,12 @@ function switchPeriod(p: string) {
                         v-for="p in periods"
                         :key="p.key"
                         type="button"
-                        @click="switchPeriod(p.key)"
                         class="rounded-md px-3 py-1 text-xs font-medium transition-colors"
                         :class="{
-                            'bg-white text-neutral-900 shadow-sm':
-                                period === p.key,
-                            'text-neutral-600 hover:text-neutral-900':
-                                period !== p.key,
+                            'bg-white text-neutral-900 shadow-sm': period === p.key,
+                            'text-neutral-600 hover:text-neutral-900': period !== p.key,
                         }"
+                        @click="switchPeriod(p.key)"
                     >
                         {{ p.label }}
                     </button>
@@ -190,16 +177,15 @@ function switchPeriod(p: string) {
                     </svg>
                 </div>
                 <h3 class="mt-4 text-base font-semibold text-neutral-900">
-                    Belum Ada Ranking untuk Kategori Ini
+                    Belum Ada Ranking
                 </h3>
                 <p class="mt-1 text-sm text-neutral-500">
-                    Belum ada entitas di kategori {{ category.name }} yang
-                    memenuhi batas minimal 100 opini netizen untuk ranking
-                    publik.
+                    Belum ada entitas yang memenuhi batas minimal 100 opini netizen untuk
+                    ranking publik.
                 </p>
             </div>
 
-            <!-- Rankings List / Stacked Cards -->
+            <!-- Rankings List -->
             <div v-else class="space-y-3">
                 <div
                     v-for="item in rankings"
@@ -207,20 +193,14 @@ function switchPeriod(p: string) {
                     class="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:border-emerald-500/50 sm:flex-row sm:items-center sm:justify-between sm:p-5"
                 >
                     <!-- Left: Rank & Entity Details -->
-                    <div
-                        class="flex items-start gap-3 sm:items-center sm:gap-4"
-                    >
+                    <div class="flex items-start gap-3 sm:items-center sm:gap-4">
                         <div
                             class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-black"
                             :class="{
-                                'bg-amber-400/20 text-amber-600':
-                                    item.rank === 1,
-                                'bg-neutral-300/40 text-neutral-600':
-                                    item.rank === 2,
-                                'bg-amber-700/20 text-amber-800':
-                                    item.rank === 3,
-                                'bg-neutral-100 text-neutral-500':
-                                    item.rank > 3,
+                                'bg-amber-400/20 text-amber-600': item.rank === 1,
+                                'bg-neutral-300/40 text-neutral-600': item.rank === 2,
+                                'bg-amber-700/20 text-amber-800': item.rank === 3,
+                                'bg-neutral-100 text-neutral-500': item.rank > 3,
                             }"
                         >
                             {{ item.rank }}
@@ -239,10 +219,16 @@ function switchPeriod(p: string) {
                                 >
                                     {{ item.entity.type_label }}
                                 </span>
+                                <!-- Category badge -->
+                                <Link
+                                    :href="showRanking.url(item.category.slug)"
+                                    class="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 hover:bg-emerald-100"
+                                >
+                                    {{ item.category.name }}
+                                </Link>
                             </div>
                             <div class="mt-1 text-xs text-neutral-500">
-                                {{ item.opinion_count.toLocaleString() }} opini
-                                dianalisis
+                                {{ item.opinion_count.toLocaleString() }} opini dianalisis
                             </div>
                         </div>
                     </div>
@@ -253,39 +239,23 @@ function switchPeriod(p: string) {
                     >
                         <!-- Distribution Bar -->
                         <div class="w-36">
-                            <div
-                                class="flex h-2 overflow-hidden rounded-full bg-neutral-100"
-                            >
+                            <div class="flex h-2 overflow-hidden rounded-full bg-neutral-100">
                                 <div
                                     class="bg-emerald-500"
-                                    :style="{
-                                        width: `${item.distribution.positive_pct}%`,
-                                    }"
+                                    :style="{ width: `${item.distribution.positive_pct}%` }"
                                 />
                                 <div
                                     class="bg-neutral-400"
-                                    :style="{
-                                        width: `${item.distribution.neutral_pct}%`,
-                                    }"
+                                    :style="{ width: `${item.distribution.neutral_pct}%` }"
                                 />
                                 <div
                                     class="bg-rose-500"
-                                    :style="{
-                                        width: `${item.distribution.negative_pct}%`,
-                                    }"
+                                    :style="{ width: `${item.distribution.negative_pct}%` }"
                                 />
                             </div>
-                            <div
-                                class="mt-1 flex justify-between text-[10px] text-neutral-400"
-                            >
-                                <span
-                                    >{{ item.distribution.positive_pct }}%
-                                    pos</span
-                                >
-                                <span
-                                    >{{ item.distribution.negative_pct }}%
-                                    neg</span
-                                >
+                            <div class="mt-1 flex justify-between text-[10px] text-neutral-400">
+                                <span>{{ item.distribution.positive_pct }}% pos</span>
+                                <span>{{ item.distribution.negative_pct }}% neg</span>
                             </div>
                         </div>
 
@@ -294,23 +264,18 @@ function switchPeriod(p: string) {
                             <div
                                 class="inline-flex items-center rounded-lg px-3 py-1.5 text-lg font-black"
                                 :class="{
-                                    'bg-emerald-100 text-emerald-800':
-                                        item.score >= 70,
+                                    'bg-emerald-100 text-emerald-800': item.score >= 70,
                                     'bg-amber-100 text-amber-800':
                                         item.score >= 50 && item.score < 70,
-                                    'bg-rose-100 text-rose-800':
-                                        item.score < 50,
+                                    'bg-rose-100 text-rose-800': item.score < 50,
                                 }"
                             >
                                 {{ item.score }}
-                                <span
-                                    class="ml-1 text-[11px] font-normal text-neutral-500"
+                                <span class="ml-1 text-[11px] font-normal text-neutral-500"
                                     >/100</span
                                 >
                             </div>
-                            <span class="mt-0.5 text-[10px] text-neutral-400"
-                                >Sentimen Netijen</span
-                            >
+                            <span class="mt-0.5 text-[10px] text-neutral-400">Sentimen Netijen</span>
                         </div>
                     </div>
                 </div>

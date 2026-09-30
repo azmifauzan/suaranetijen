@@ -107,6 +107,7 @@ Route::get('/api/search', [SearchController::class, 'index'])->name('api.search'
 
 Route::get('/e/{slug}', [EntityShowController::class, 'show'])->name('entities.show');
 Route::get('/category/{slug}', [CategoryShowController::class, 'show'])->name('categories.show');
+Route::get('/top', [TopRankingController::class, 'index'])->name('rankings.index');
 Route::get('/top/{slug}', [TopRankingController::class, 'show'])->name('rankings.show');
 Route::get('/api/categories/{slug}/ranking', [CategoryRankingController::class, 'index'])->name('api.categories.ranking');
 
