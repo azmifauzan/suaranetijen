@@ -206,7 +206,7 @@ Vue components must have a single root element.
 
 # SuaraNetijen
 
-`docs/` holds 25 numbered documents produced during brainstorming. They are the **source of truth**
+`docs/` holds 30 numbered documents produced during brainstorming. They are the **source of truth**
 for product, schema, and architecture decisions, and they describe a target that is not built yet.
 Read the relevant document before designing anything new; do not rewrite `docs/` to match code.
 
@@ -461,7 +461,8 @@ Current implementation boundary:
 | Redis queue, cache, locks, rate limits | default runtime drivers; verified locally |
 | Horizon supervisors | four documented supervisor groups configured and started locally |
 | `pg_trgm` search | implemented and verified against real PostgreSQL |
-| FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap |
+| FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap; planned in `docs/30` as trigram-indexed token matching over a per-entity search document (no `indonesian` FTS config exists), with an ADR-004 amendment |
+| SEO topic pages, homepage revamp (`docs/28`, `docs/29`) | planned 30 Sep 2026, not implemented; execution order `docs/28` → `docs/30` → `docs/29`. Raw `/search?q=` stays `noindex` — never index user queries directly |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
 | Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter`, `SerayaMotorAdapter`, `IndoForumAdapter`, `BlueskyAdapter` implemented and verified against fixtures |
@@ -507,6 +508,11 @@ overrides them.
 | `docs/23-seed-entity-strategy.md` | ~200 seed entity plan |
 | `docs/24-current-reference-baseline.md` | Externally validated facts (2 Sep 2026) |
 | `docs/25-top-suara-netijen.md` | Theme Index / Top Suara Netijen: pipeline, data model, ranking, scope |
+| `docs/26-paid-sponsor-leaderboard-plan.md` | Papan Sponsor paid leaderboard: model, payment relay, moderation |
+| `docs/27-codex-subscription-llm-provider-plan.md` | Proposed: Codex subscription as an LLM provider (not implemented) |
+| `docs/28-topic-landing-pages.md` | Plan: SEO topic pages `/topik/{slug}` from curated keyword candidates + LLM draft |
+| `docs/29-homepage-seo-revamp.md` | Plan: homepage blocks per parent category, popular topics, WebSite/Organization JSON-LD |
+| `docs/30-search-relevance.md` | Plan: soft-match search over description, themes, specs, summaries (amends ADR-004) |
 
 Config examples: `examples/score-config.yaml`, `examples/source-registry.yaml`,
 `examples/queue-topology.yaml`, `examples/.env.example`.
