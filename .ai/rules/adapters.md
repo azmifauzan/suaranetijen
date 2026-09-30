@@ -2,6 +2,7 @@
 paths:
   - 'app/Domains/Sources/Adapters/**'
   - app/Domains/Sources/Adapters/AbstractHttpSourceAdapter.php
+  - app/Domains/Sources/Adapters/KaskusAdapter.php
 ---
 
 # Adapters
@@ -25,3 +26,6 @@ Every FlareSolverr session is a resident Chromium. Measured on staging (27-29 Se
 - The session is destroyed then created every `session_ttl_minutes` (15); the "session missing" recovery only creates it.
 - After a "tab crashed" the session is destroyed and the container refuses requests for `crash_cooldown_seconds` (60), bouncing jobs instead of feeding a retry storm.
 More Horizon crawl processes do not add throughput for FlareSolverr-routed sources. Raise the container's memory before raising max_concurrent.
+
+## KASKUS listing pages ignore ?page=N: cursor paging finds nothing new
+Measured 30 Sep 2026 through FlareSolverr: pages 1, 300, 412, 414 and 900 of /komunitas/306/fashion all return the identical 5 thread links (first id 6a9977f9c7dbcf11e00970e6), the HTML has a "load more" control, and one of the titles is unrelated to the forum, so those links are probably a trending widget while the real thread list loads client-side. The `page_N` cursor of the category sources (kaskus_fashion/otomotif/isp/bisnis/kuliner) therefore walks pages that do not exist (kaskus_fashion was on page 412 with no new document since 24 Sep). discoverExplicitListing() wraps to page 1 on an empty page, which only helps when a page really is empty. Discovering the forum's actual threads needs Kaskus's own JSON endpoint or a browser "load more" click, an operator decision (unofficial API), not a selector tweak. Do not assume a deeper `?page=` exists.

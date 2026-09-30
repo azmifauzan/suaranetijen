@@ -4,6 +4,6 @@ Before planning or editing, find the row whose globs match the file's path and r
 
 | Applies to | Rule file |
 | --- | --- |
-| app/Domains/Sources/Adapters/**, app/Domains/Sources/Adapters/AbstractHttpSourceAdapter.php | .ai/rules/adapters.md |
+| app/Domains/Sources/Adapters/**, app/Domains/Sources/Adapters/AbstractHttpSourceAdapter.php, app/Domains/Sources/Adapters/KaskusAdapter.php | .ai/rules/adapters.md |
 | config/horizon.php | .ai/rules/config.md |
 | resources/js/** | .ai/rules/js.md |
