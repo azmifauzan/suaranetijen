@@ -245,6 +245,35 @@ it('keeps a KASKUS source with an explicit listing_url scoped to that subforum, 
         ->and($batch->nextCursor->metadata['page'])->toBe(2);
 });
 
+it('wraps an explicit KASKUS listing back to page 1 once a page has no threads, instead of paging past the end forever', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://www.kaskus.co.id/komunitas/306/fashion?page=412' => Http::response('<html><body>tidak ada thread</body></html>'),
+    ]);
+
+    $batch = (new KaskusAdapter)->discover(new CrawlCursor('kaskus_fashion', metadata: [
+        'listing_url' => 'https://www.kaskus.co.id/komunitas/306/fashion',
+        'page' => 412,
+    ]));
+
+    expect($batch->documents)->toBe([])
+        ->and($batch->hasMore)->toBeFalse()
+        ->and($batch->nextCursor->cursorValue)->toBe('page_1')
+        ->and($batch->nextCursor->metadata['page'])->toBe(1)
+        ->and($batch->nextCursor->metadata['listing_url'])->toBe('https://www.kaskus.co.id/komunitas/306/fashion');
+});
+
+it('keeps an empty first page of an explicit KASKUS listing on page 1 rather than skipping ahead', function () {
+    Http::preventStrayRequests();
+    Http::fake(['https://www.kaskus.co.id/komunitas/306/fashion' => Http::response('<html></html>')]);
+
+    $batch = (new KaskusAdapter)->discover(new CrawlCursor('kaskus_fashion', metadata: [
+        'listing_url' => 'https://www.kaskus.co.id/komunitas/306/fashion',
+    ]));
+
+    expect($batch->nextCursor->metadata['page'])->toBe(1);
+});
+
 it('runs the LowEndTalk adapter only across Reviews, Providers, and Outages', function () {
     Http::preventStrayRequests();
     Http::fake(function (Request $request) {

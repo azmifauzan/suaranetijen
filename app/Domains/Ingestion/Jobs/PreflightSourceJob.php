@@ -24,6 +24,12 @@ class PreflightSourceJob implements ShouldQueue
 
     public int $maxExceptions = 1;
 
+    /**
+     * Above the discovery supervisor's 60s: a slot wait (up to 20s) plus a FlareSolverr request
+     * (up to 45s) otherwise gets the job killed, leaving the source's health state stale.
+     */
+    public int $timeout = 90;
+
     public function __construct(
         public Source $source
     ) {

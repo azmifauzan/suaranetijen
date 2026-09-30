@@ -111,3 +111,13 @@ it('gives a preflight several attempts so it can wait for a slot', function () {
     expect($job->tries)->toBeGreaterThan(1)
         ->and($job->maxExceptions)->toBe(1);
 });
+
+it('allows a preflight the time to wait for a slot and still run a full FlareSolverr request', function () {
+    // The discovery supervisor kills jobs at 60s; waiting up to slot_wait_seconds (20s) for a slot
+    // plus a request of up to max_timeout_ms (45s) does not fit in that (two preflights timed out).
+    $job = new PreflightSourceJob(preflightSource(FakeSourceAdapter::class));
+
+    $needed = (int) config('services.flaresolverr.slot_wait_seconds') + (int) ceil((int) config('services.flaresolverr.max_timeout_ms') / 1000);
+
+    expect($job->timeout)->toBeGreaterThan($needed);
+});

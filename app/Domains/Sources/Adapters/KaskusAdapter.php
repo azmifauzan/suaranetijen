@@ -99,7 +99,7 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
 
     /**
      * Single fixed listing/subforum (e.g. a scoped Source config) — paginates
-     * the same URL forever, same behaviour as LowEndTalk's category scoping.
+     * the same URL, wrapping back to page 1 when a page has no threads.
      */
     private function discoverExplicitListing(CrawlCursor $cursor, string $listingUrl): DiscoveryBatch
     {
@@ -113,15 +113,20 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
             '~/thread/~i'
         );
 
+        // A page with no threads is past the end of the subforum (or an empty render): wrap back
+        // to page 1, where the newest threads are, instead of paging further out forever.
+        // kaskus_fashion sat on page 412 for days finding nothing.
+        $nextPage = $documents === [] ? 1 : $page + 1;
+
         return new DiscoveryBatch(
             documents: $documents,
             nextCursor: new CrawlCursor(
                 sourceKey: $cursor->sourceKey,
                 cursorKey: $cursor->cursorKey,
-                cursorValue: 'page_'.($page + 1),
+                cursorValue: 'page_'.$nextPage,
                 lastExternalId: $documents !== [] ? end($documents)->externalId : $cursor->lastExternalId,
                 lastCrawledAt: now()->toImmutable(),
-                metadata: [...$cursor->metadata, 'page' => $page + 1, 'listing_url' => $listingUrl]
+                metadata: [...$cursor->metadata, 'page' => $nextPage, 'listing_url' => $listingUrl]
             ),
             hasMore: $documents !== []
         );
