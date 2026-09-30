@@ -2,7 +2,9 @@
 
 namespace App\Domains\Themes\Commands;
 
+use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Services\LlmClient;
+use App\Domains\Entities\Services\TextNormalizer;
 use App\Domains\Themes\Models\Theme;
 use App\Domains\Themes\Models\ThemeObservation;
 use Illuminate\Console\Command;
@@ -35,6 +37,7 @@ class ConsolidateThemesCommand extends Command
     protected $signature = 'themes:consolidate
         {--limit= : Max existing LLM themes to consider, highest observation count first (default: config(themes.consolidate_limit); 0 = all)}
         {--per-entity : Group the themes of each entity together instead of the global top-N, so synonyms of one entity never land in different chunks}
+        {--by-name : No LLM: per entity, merge themes whose labels match once the entity name, its aliases and model-variant words (fe, plus, ultra...) are dropped ("harga s24 fe murah" -> "harga murah")}
         {--rebuild : Also run themes:rebuild-aggregates afterward so merged counts show up immediately}
         {--dry-run : Show what would be merged without writing anything}';
 
@@ -58,7 +61,11 @@ class ConsolidateThemesCommand extends Command
         $merged = 0;
         $considered = 0;
 
-        foreach ($this->themeSets($limit) as $themes) {
+        if ($this->option('by-name')) {
+            [$merged, $considered] = $this->consolidateByName($dryRun);
+        }
+
+        foreach ($this->option('by-name') ? [] : $this->themeSets($limit) as $themes) {
             if ($themes->count() < 2) {
                 continue;
             }
@@ -86,6 +93,73 @@ class ConsolidateThemesCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Deterministic pass, no LLM: within one entity, themes whose labels are equal once the entity's own
+     * name/alias words and model-variant words are removed are the same theme ("harga s24 fe murah" and
+     * "harga murah"). Needs a key of at least 2 words so a lone leftover word never merges unrelated themes.
+     *
+     * @return array{0: int, 1: int} merged and considered theme counts
+     */
+    private function consolidateByName(bool $dryRun): array
+    {
+        $merged = 0;
+        $considered = 0;
+        $variantWords = array_map('strval', (array) config('entity_matching.model_variant_suffixes', []));
+
+        $entityIds = ThemeObservation::query()
+            ->where('extractor', 'llm')
+            ->groupBy('entity_id')
+            ->havingRaw('count(*) >= ?', [(int) config('themes.min_entity_opinions', 30)])
+            ->pluck('entity_id');
+
+        foreach (Entity::query()->with('aliases')->whereIn('id', $entityIds)->get() as $entity) {
+            $entityWords = collect([$entity->name, ...$entity->aliases->pluck('alias')->all()])
+                ->flatMap(fn (string $text): array => explode(' ', TextNormalizer::normalize($text)))
+                ->merge($variantWords)
+                ->filter()
+                ->unique()
+                ->all();
+
+            $themes = $this->llmThemes(fn ($q) => $q->where('entity_id', $entity->id))
+                ->orderByDesc('observation_count')->orderBy('id')
+                ->get(['id', 'slug', 'display_label']);
+            $considered += $themes->count();
+
+            $groups = $themes->groupBy(function (Theme $theme) use ($entityWords): string {
+                $words = array_diff(explode(' ', TextNormalizer::normalize($theme->display_label)), $entityWords);
+
+                return count($words) >= 2 ? implode(' ', $words) : 'skip:'.$theme->id;
+            });
+
+            foreach ($groups as $key => $members) {
+                if ($members->count() < 2) {
+                    continue;
+                }
+
+                $memberIds = array_values(array_map('intval', $members->pluck('id')->all()));
+
+                if ($dryRun) {
+                    $this->line("{$entity->name}: would merge [".implode(',', $memberIds)."] -> \"{$key}\"");
+                    $merged += count($memberIds) - 1;
+
+                    continue;
+                }
+
+                $exact = $members->first(fn (Theme $theme): bool => TextNormalizer::normalize($theme->display_label) === $key);
+                $canonicalId = $exact !== null ? $exact->id : $this->resolveCanonical($themes, $memberIds, (string) $key);
+
+                foreach ($memberIds as $memberId) {
+                    if ($memberId !== $canonicalId) {
+                        $this->mergeThemeInto($memberId, $canonicalId);
+                        $merged++;
+                    }
+                }
+            }
+        }
+
+        return [$merged, $considered];
     }
 
     /**

@@ -231,3 +231,26 @@ it('skips an entity whose LLM call fails and keeps going', function () {
 
     expect(Theme::whereKey($b->id)->exists())->toBeFalse();
 });
+
+it('merges themes that only differ by the entity name and variant words with --by-name, without calling the LLM', function () {
+    config(['themes.extractor' => 'llm', 'themes.min_entity_opinions' => 2]);
+    Http::preventStrayRequests();
+    $entity = Entity::factory()->create(['name' => 'Samsung Galaxy S24']);
+    $murah = Theme::create(['slug' => 'harga-murah', 'display_label' => 'Harga murah', 'canonical_key' => 'harga-murah']);
+    $murahFe = Theme::create(['slug' => 'harga-s24-fe-murah', 'display_label' => 'Harga samsung s24 fe murah', 'canonical_key' => 'harga-samsung-s24-fe-murah']);
+    $mahal = Theme::create(['slug' => 'harga-mahal', 'display_label' => 'Harga mahal', 'canonical_key' => 'harga-mahal']);
+    $lone = Theme::create(['slug' => 'baterai-s24', 'display_label' => 'Baterai s24', 'canonical_key' => 'baterai-s24']);
+    $loneOther = Theme::create(['slug' => 'baterai-fe', 'display_label' => 'Baterai fe', 'canonical_key' => 'baterai-fe']);
+    foreach ([$murah, $murahFe, $mahal, $lone, $loneOther] as $theme) {
+        themeObservationFor($entity->id, $theme->id);
+    }
+
+    $this->artisan('themes:consolidate --by-name')->assertSuccessful();
+
+    expect(Theme::whereKey($murahFe->id)->exists())->toBeFalse()
+        ->and(ThemeObservation::where('entity_id', $entity->id)->where('theme_id', $murah->id)->count())->toBe(2)
+        ->and(Theme::whereKey($mahal->id)->exists())->toBeTrue()
+        ->and(Theme::whereKey($lone->id)->exists())->toBeTrue()
+        ->and(Theme::whereKey($loneOther->id)->exists())->toBeTrue();
+    Http::assertNothingSent();
+});
