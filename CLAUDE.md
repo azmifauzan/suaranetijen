@@ -916,7 +916,9 @@ Current implementation boundary:
 | Per-container resource limits (crawler/FlareSolverr) | `cpus`/`mem_limit` added to every `suaranetijen-*`/`flaresolverr` container on staging + all three worker hosts, sized per host's spare capacity; shared Postgres on staging given a `cpus: '8'` cap and `1g` memory limit; `DOCKER-USER` iptables rules now persisted across reboot via a systemd unit |
 | `pg_trgm` search | implemented and verified against real PostgreSQL |
 | FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap; planned in `docs/30` as trigram-indexed token matching over a per-entity search document (no `indonesian` FTS config exists), with an ADR-004 amendment |
-| SEO topic pages, homepage revamp (`docs/28`, `docs/29`) | planned 30 Sep 2026, not implemented; execution order `docs/28` → `docs/30` → `docs/29`. Raw `/search?q=` stays `noindex` — never index user queries directly |
+| SEO topic pages (`docs/28`) | implemented and reviewed 30 Sep 2026 (`/topik`, `/topik/{slug}`, `/admin/topics`, `landing-pages:scan-candidates` weekly); not yet deployed or verified live. Raw `/search?q=` stays `noindex` — never index user queries directly |
+| Homepage SEO revamp (`docs/29`) | implemented and reviewed 30 Sep 2026 (per-root-category blocks, popular topics, `HomePageController`); not yet deployed |
+| Search relevance over description/themes/specs (`docs/30`) | planned, not implemented |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
 | Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `SerayaMotorAdapter` also had a dormant forum-rotation bug (fixed alongside FlareSolverr) — confirmed live producing real data (0→1,956 `source_items` over two cycles); `IndoForumAdapter`'s bot-detection (non-Cloudflare, FlareSolverr doesn't recognize it) makes it unreliable but not blocked — confirmed live at 0→68 `source_items` via the ~25% pass-through rate; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
@@ -1652,6 +1654,26 @@ Replaced keyword dictionary theme matching with grounded LLM extraction and per-
 - **Extractor-scoped Aggregation & Rebuild**: `ThemeAggregator` aggregates counts and snapshots matching only the active extractor. Added Artisan command `themes:rebuild-aggregates` to clean stale aggregates when switching extractors.
 - **Ringkasan Suara Netijen**: `EntityThemeSummarizer` generates grounded 2-4 sentence qualitative summaries and per-theme contextual notes for the default 365-day window. Copy validation strictly guards against percentages, superlatives, and usernames/links. Scheduled daily via `themes:summarize`.
 - **Frontend & Public UI**: `resources/js/pages/Entities/Show.vue` renders the Ringkasan card with automated summary disclaimer and displays contextual explanatory notes alongside each top theme.
+
+## Topic landing pages and homepage revamp (30 September 2026)
+
+Implemented from `docs/28` and `docs/29`, then reviewed; not yet deployed to staging. Details and the
+full list of review findings live in those two docs; only the traps worth knowing are repeated here.
+
+- Topic pages (`/topik/{slug}`) are curated, never raw user queries: candidates come from
+  `search_queries` (unique sessions, not raw counts) and category x theme pairs, drafted by the LLM
+  through `LlmClient`, and only public after an admin publishes. Tokoh Publik is excluded everywhere,
+  including queries that mention a person entity's name or alias.
+- `PublicCopyGuard` (extracted from `EntityThemeSummarizer`) is the one copy rule (no "terbaik",
+  percentages, handles, URLs) and runs on every topic save, not only on publish.
+- A published topic is never touched by regenerate; slug is `a-z0-9-` only and locked after publish.
+- **Root categories can be empty of direct entities** (Automotive, Consumer Brands, Digital Services,
+  Technology). `getRanking()` and `CategoryShowController` now include children, and a category with no
+  active entity at all is `noindex` and left out of the sitemap (rule in `.ai/rules/sentiment.md`).
+- Homepage caches (`homepage:category_blocks`, `homepage:popular_topics`, 15 min) are cleared by model
+  events on `Entity` and `SearchLandingPage` (rule in `.ai/rules/services.md`).
+- PHPStan still reports 2 pre-existing errors in `SponsorLeaderboardService::getCategoryTeaser()`
+  (commit `c5c9140`), unrelated to this work.
 
 ## Document map
 

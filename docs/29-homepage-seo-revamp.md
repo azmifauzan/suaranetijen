@@ -1,6 +1,6 @@
 # 29 - Homepage SEO Revamp
 
-Status: rencana, belum diimplementasikan (30 September 2026). Sub-proyek 2 dari rangkaian
+Status: task 1-3 diimplementasikan dan direview (30 September 2026); task 4 (verifikasi live) belum. Sub-proyek 2 dari rangkaian
 `docs/28` (topik) → `docs/29` (homepage) → `docs/30` (relevansi search).
 
 ## Tujuan
@@ -119,3 +119,30 @@ Setiap task: test dulu, implementasi, `vendor/bin/pint --dirty --format agent`, 
 4. Semua skor eligible di satu induk sama. Harapan: urutan deterministik (opini lalu nama).
 5. Homepage tanpa sponsor dan tanpa topik (situs baru). Harapan: halaman tetap utuh, tanpa
    bagian kosong yang terlihat rusak.
+
+## Catatan implementasi dan review (30 September 2026)
+
+`HomePageController` menggantikan closure di `routes/web.php`; `HomepageCategoryBlockService` menyusun
+top 3 per kategori induk dengan satu query window function, di-cache 15 menit; `Welcome.vue` memakai
+komponen `CategoryBlock.vue`. Review menemukan:
+
+1. **Halaman kosong (bug terbesar).** Empat dari sepuluh kategori induk (Automotive, Consumer Brands,
+   Digital Services, Technology) tidak punya entitas langsung, sehingga link "Lihat peringkat" mengarah
+   ke `/top/{induk}` yang kosong. `SentimentRankingService::getRanking()` kini menyertakan kategori anak.
+2. **Cache tidak pernah dibersihkan.** `clearCache()` ada tetapi tidak dipanggil, jadi topik yang
+   di-unpublish tetap ditautkan dari homepage sampai 15 menit (404). Kini dibersihkan lewat event model
+   pada `Entity` (status/searchable/category_id) dan `SearchLandingPage`.
+3. Chip topik menampilkan `candidate_signal` sebagai angka, padahal itu metrik internal (sesi unik atau
+   jumlah entitas, tergantung sumber) yang terbaca sebagai popularitas. Angka dan field-nya dihapus;
+   `candidate_signal` tetap dipakai hanya untuk urutan.
+4. Fallback `siteUrl` di JSON-LD bertuliskan `suaranetijen.com`. Diganti `suaranetijen.id`.
+5. Prop `categories` (query per kategori daun) tidak lagi dipakai halaman; dihapus.
+6. `HomepageFeaturedCategoriesTest` menguji grid lama. Diadaptasi (bukan dihapus) menjadi: kategori
+   induk tampil sebagai satu blok dengan anak di dalamnya.
+
+Masih terbuka:
+- Ditutup: `/category/{induk}` kosong untuk kategori tanpa entitas langsung. `CategoryShowController`
+  kini menyertakan kategori anak (daftar entitas, total, pencarian, topik terkait); kategori tanpa
+  entitas sama sekali `noindex` dan keluar dari sitemap (`/category/*` dan `/top/*`).
+- `top_leaderboard` dan `sponsorTeaser` mengirim payload yang sama dua kali (sudah ada sebelumnya).
+- Task 4 (Rich Results Test, Lighthouse mobile, request indexing).

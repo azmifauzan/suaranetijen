@@ -1,7 +1,7 @@
 # 28 - Topic Landing Pages (SEO)
 
-Status: rencana, belum diimplementasikan (30 September 2026). Menggantikan draft
-`28-advanced-search-plan.md`.
+Status: task 1-8 diimplementasikan dan direview (30 September 2026); task 9 (verifikasi live di staging)
+belum. Menggantikan draft `28-advanced-search-plan.md`.
 
 ## Tujuan
 
@@ -234,3 +234,32 @@ Setiap task: test dulu (Pest, `Http::fake` untuk LLM, tanpa jaringan), lalu impl
    publik.
 5. Tema digabung oleh `themes:consolidate` sehingga id lama hilang. Harapan: pivot cascade, admin
    melihat topik dengan 0 tema, halaman jatuh ke `noindex`.
+
+## Catatan implementasi dan review (30 September 2026)
+
+Implementasi memakai rencana di atas tanpa perubahan desain. Review menemukan dan memperbaiki delapan gap
+yang tidak tercakup test awal:
+
+1. Regenerate pada topik published mengubahnya menjadi draft (atau `rejected` bila LLM menjawab
+   `is_relevant=false`). `TopicDraftWriter` sekarang tidak menyentuh topik published, dan admin mendapat
+   error validasi.
+2. Publish bisa dijalankan pada topik `rejected` atau yang sudah published. Sekarang hanya dari
+   kandidat/draft.
+3. Slug tanpa validasi format. Sekarang wajib `^[a-z0-9]+(-[a-z0-9]+)*$`.
+4. Copy guard hanya berjalan saat publish, sehingga topik live bisa diedit menjadi superlatif. Guard
+   sekarang berjalan di setiap `store` dan `update`.
+5. Query yang menyebut nama atau alias entitas `Person` dilewati secara deterministik (sebelumnya hanya
+   mengandalkan prompt LLM).
+6. Tema preset kandidat `category_theme` bisa terbuang karena daftar tema untuk LLM diambil tanpa urutan.
+   Tema preset kini selalu di depan, sisanya diurutkan menurut jumlah mention.
+7. Hub `/topik` selalu masuk sitemap dan `index` walau kosong. Kini `noindex` dan keluar dari sitemap
+   sampai ada topik yang layak diindeks.
+8. Error tipe PHPStan dan `vue-tsc` di kode baru.
+
+Masih terbuka:
+- Task 9 (scan di staging, Rich Results Test, submit sitemap).
+- Blok "Topik terkait" di kategori, `/top`, dan halaman entitas menampilkan semua topik published,
+  termasuk yang `noindex`. Tidak berbahaya (`follow`), hanya kurang efisien.
+- Tema berpolaritas negatif ("harga mahal") bisa menjadi kandidat `category_theme`.
+- Batas panggilan LLM per scan belum menghitung tombol Regenerate.
+- `/category/{slug}` untuk kategori induk tanpa entitas langsung kosong: sudah ditutup di `docs/29`.
