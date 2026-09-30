@@ -461,10 +461,10 @@ Current implementation boundary:
 | Redis queue, cache, locks, rate limits | default runtime drivers; verified locally |
 | Horizon supervisors | four documented supervisor groups configured and started locally |
 | `pg_trgm` search | implemented and verified against real PostgreSQL |
-| FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap; planned in `docs/30` as trigram-indexed token matching over a per-entity search document (no `indonesian` FTS config exists), with an ADR-004 amendment |
+| FTS on name/category/description (`docs/13`, ADR-004) | implemented as trigram-indexed word matching over `entity_search_documents` instead of `tsvector` (Postgres has no `indonesian` config); ADR-004 amended 30 Sep 2026 |
 | SEO topic pages (`docs/28`) | implemented and reviewed 30 Sep 2026 (`/topik`, `/topik/{slug}`, `/admin/topics`, `landing-pages:scan-candidates` weekly); not yet deployed or verified live. Raw `/search?q=` stays `noindex` — never index user queries directly |
 | Homepage SEO revamp (`docs/29`) | implemented and reviewed 30 Sep 2026 (per-root-category blocks, popular topics, `HomePageController`); not yet deployed |
-| Search relevance over description/themes/specs (`docs/30`) | planned, not implemented |
+| Search relevance over description/themes/specs (`docs/30`) | implemented and reviewed 30 Sep 2026 (`entity_search_documents`, soft descriptor matching, `search:rebuild-documents` daily); verified on local Postgres for PRD criteria 1-2, not yet on staging with real theme data |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
 | Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter`, `SerayaMotorAdapter`, `IndoForumAdapter`, `BlueskyAdapter` implemented and verified against fixtures |

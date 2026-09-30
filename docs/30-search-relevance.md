@@ -1,6 +1,7 @@
 # 30 - Search Relevance: Pencarian Seluruh Data
 
-Status: rencana, belum diimplementasikan (30 September 2026). Sub-proyek 3 dari rangkaian
+Status: task 1-5 dan ADR diimplementasikan dan direview (30 September 2026); verifikasi di staging
+(rebuild dokumen, 10 query nyata) belum. Sub-proyek 3 dari rangkaian
 `docs/28` → `docs/29` → `docs/30`.
 
 ## Tujuan
@@ -158,3 +159,35 @@ ranking juga diverifikasi terhadap Postgres live, karena shim trigram SQLite buk
    atau paling lambat pada rebuild harian.
 5. Query panjang (10+ token) dari bot. Harapan: token dibatasi (misalnya 8 pertama) supaya SQL
    tidak membengkak.
+
+## Catatan implementasi dan review (30 September 2026)
+
+Implementasi mengikuti desain: tabel `entity_search_documents`, `RefreshEntitySearchDocumentJob`,
+`search:rebuild-documents` (harian 04:30), klasifikasi anchor/descriptor, skor descriptor di bawah skor
+konteks, `matched_fields`, dan amandemen ADR-004. Review menemukan enam gap:
+
+1. **Anchor terlalu longgar (bug nyata di Postgres).** Kata dianggap anchor bila cocok sebagai substring
+   atau similarity >= 0.3, sehingga "hp" menjadi anchor karena alias `hpm` dan "hp snapdragon"
+   mengembalikan Honda. Kini kata <= 3 karakter cocok sebagai kata utuh, >= 4 karakter sebagai awal
+   kata, dan similarity hanya untuk >= 4 karakter. Berlaku sama untuk deteksi dan filter kandidat.
+2. Alias milik entitas disabled/non-searchable ikut menjadikan sebuah kata anchor (hasil: 0 hasil).
+   Kini alias dibatasi ke entitas aktif dan searchable.
+3. Tie-break sentimen memakai skor mentah, sehingga skor 100 dari satu opini mengalahkan skor 60 dari
+   100 opini. Kini hanya skor yang memenuhi ambang publik (`scoring.public_min_opinions`).
+4. `matched_fields` menampilkan tema bernegasi ("Tidak Murah") sebagai alasan cocok, padahal dokumen
+   pencarian membuangnya. Kini konsisten (`EntitySearchDocumentBuilder::hasNegationMarker()`).
+5. Tema yang ditampilkan tidak dibatasi. Kini maksimal 3 per hasil.
+6. `Entity::saved` mengantre job pada setiap simpan. Kini hanya saat dibuat, atau saat `description`,
+   `status`, atau `searchable` berubah.
+
+Diverifikasi di Postgres lokal (497 entitas): `samsng a57` → Samsung Galaxy A57, `vps biznet` → VPS
+Biznet Gio (PRD kriteria 1 dan 2), latensi 9-40 ms per query. Data tema lokal kosong, jadi pencocokan
+tema hanya teruji lewat test; ranking berdasarkan tema perlu dicek di staging.
+
+Masih terbuka:
+- Task 6: rebuild dokumen di staging dan uji manual 10 query nyata dari `search_queries` yang dulu 0
+  hasil.
+- Query descriptor-only dengan kata umum ("hp") cocok ke deskripsi mana pun yang memuatnya, jadi bisa
+  berisik. Belum ada pembobotan berdasarkan IDF.
+- Skor descriptor dihitung dua kali (SELECT dan ORDER BY) dengan subquery per baris. Cukup cepat untuk
+  ratusan entitas; perlu diukur bila entitas mencapai ribuan.

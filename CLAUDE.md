@@ -915,10 +915,10 @@ Current implementation boundary:
 | Horizon supervisors | four documented supervisor groups configured and started locally and on staging; `supervisor-analysis` raised 1→3 and `supervisor-crawl` raised 2→6 on the main staging host after live backlog findings; distributed across three worker hosts (`worker1` heavy, `worker2` light, `worker3` light) (5–21 Sep 2026); sized to each host's actual spare capacity — confirmed all four nodes coexist in one `horizon:supervisors` listing over the same Redis, each running its own `APP_ENV` |
 | Per-container resource limits (crawler/FlareSolverr) | `cpus`/`mem_limit` added to every `suaranetijen-*`/`flaresolverr` container on staging + all three worker hosts, sized per host's spare capacity; shared Postgres on staging given a `cpus: '8'` cap and `1g` memory limit; `DOCKER-USER` iptables rules now persisted across reboot via a systemd unit |
 | `pg_trgm` search | implemented and verified against real PostgreSQL |
-| FTS on name/category/description (`docs/13`, ADR-004) | not implemented — tracked gap; planned in `docs/30` as trigram-indexed token matching over a per-entity search document (no `indonesian` FTS config exists), with an ADR-004 amendment |
+| FTS on name/category/description (`docs/13`, ADR-004) | implemented as trigram-indexed word matching over `entity_search_documents` instead of `tsvector` (Postgres has no `indonesian` config); ADR-004 amended 30 Sep 2026 |
 | SEO topic pages (`docs/28`) | implemented and reviewed 30 Sep 2026 (`/topik`, `/topik/{slug}`, `/admin/topics`, `landing-pages:scan-candidates` weekly); not yet deployed or verified live. Raw `/search?q=` stays `noindex` — never index user queries directly |
 | Homepage SEO revamp (`docs/29`) | implemented and reviewed 30 Sep 2026 (per-root-category blocks, popular topics, `HomePageController`); not yet deployed |
-| Search relevance over description/themes/specs (`docs/30`) | planned, not implemented |
+| Search relevance over description/themes/specs (`docs/30`) | implemented and reviewed 30 Sep 2026 (`entity_search_documents`, soft descriptor matching, `search:rebuild-documents` daily); verified on local Postgres for PRD criteria 1-2, not yet on staging with real theme data |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
 | Wave-1 adapters (Epic 5) | `DiskusiWebHostingAdapter` live and producing on staging; `SerayaMotorAdapter` also had a dormant forum-rotation bug (fixed alongside FlareSolverr) — confirmed live producing real data (0→1,956 `source_items` over two cycles); `IndoForumAdapter`'s bot-detection (non-Cloudflare, FlareSolverr doesn't recognize it) makes it unreliable but not blocked — confirmed live at 0→68 `source_items` via the ~25% pass-through rate; `BlueskyAdapter` disabled — Jetstream is WebSocket-only, adapter needs a rewrite (see staging deployment notes) |
@@ -1672,6 +1672,10 @@ full list of review findings live in those two docs; only the traps worth knowin
   active entity at all is `noindex` and left out of the sitemap (rule in `.ai/rules/sentiment.md`).
 - Homepage caches (`homepage:category_blocks`, `homepage:popular_topics`, 15 min) are cleared by model
   events on `Entity` and `SearchLandingPage` (rule in `.ai/rules/services.md`).
+- Search relevance (`docs/30`): anchors (query words that name an entity/alias/category) are
+  word-bounded and only fuzzy from 4 characters; sentiment breaks ties only when publicly eligible.
+  Ranking changes must be checked on the live Postgres, not just the SQLite shim (rule in
+  `.ai/rules/`).
 - PHPStan still reports 2 pre-existing errors in `SponsorLeaderboardService::getCategoryTeaser()`
   (commit `c5c9140`), unrelated to this work.
 

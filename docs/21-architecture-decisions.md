@@ -16,6 +16,17 @@
 **Decision:** pg_trgm + FTS, no dedicated search engine.  
 **Why:** ~200 seed entities and moderate growth do not justify extra service.
 
+**Amended 30 September 2026 (Plan 30 - Search Relevance):**  
+GIN trigram word-boundary token matching (`entity_search_documents` with `' ' || kolom LIKE '% token%'`)
+replaces `tsvector` FTS.  
+**Why:** PostgreSQL lacks a native Indonesian text search dictionary/stemmer. With the `simple` configuration,
+`tsvector` only tokenizes without stemming, offering no semantic advantage over token matching. Trigram index
+matching supports word-boundary token matching, runs identically in SQLite test suites (via existing trigram shims),
+requires no diverging SQL paths between production and test environments, and enables soft descriptor matching
+across entity descriptions, 365d theme snapshot labels, reference specs, and netizen summaries without a dedicated
+search engine.
+
+
 ## ADR-005 - Derived sentiment is core asset
 **Decision:** raw third-party content temporary; observations/aggregates persistent.  
 **Why:** matches product value and reduces storage/privacy coupling.
