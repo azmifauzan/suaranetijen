@@ -234,6 +234,7 @@ class ConsolidateThemesCommand extends Command
                     $memberIds = array_values(array_map('intval', Theme::query()->whereIn('id', $memberIds)->pluck('id')->all()));
                 }
 
+                $memberIds = $this->dropOppositePolarity($memberIds, $chunk);
                 $canonicalLabel = trim((string) ($group['canonical_label'] ?? ''));
 
                 if (count($memberIds) < 2 || $canonicalLabel === '') {
@@ -261,6 +262,51 @@ class ConsolidateThemesCommand extends Command
         }
 
         return $merged;
+    }
+
+    /**
+     * The LLM sometimes groups opposites ("harga murah" with "harga mahal"). Keeps only the members whose
+     * dominant sentiment does not oppose the largest member's; a mixed or neutral member fits either side.
+     *
+     * @param  list<int>  $memberIds
+     * @param  Collection<int, Theme>  $chunk
+     * @return list<int>
+     */
+    private function dropOppositePolarity(array $memberIds, Collection $chunk): array
+    {
+        if ($memberIds === []) {
+            return [];
+        }
+
+        $side = [];
+        $rows = ThemeObservation::query()->toBase()
+            ->where('extractor', 'llm')
+            ->whereIn('theme_id', $memberIds)
+            ->selectRaw('theme_id, sentiment, count(*) as c')
+            ->groupBy('theme_id', 'sentiment')
+            ->get()
+            ->groupBy('theme_id');
+
+        foreach ($rows as $themeId => $themeRows) {
+            $counts = $themeRows->pluck('c', 'sentiment');
+            $total = (int) $counts->sum();
+            $score = $total > 0 ? (((int) ($counts['positive'] ?? 0)) - ((int) ($counts['negative'] ?? 0))) / $total : 0;
+            $side[(int) $themeId] = abs($score) > 0.3 ? ($score > 0 ? 1 : -1) : 0;
+        }
+
+        $anchorSide = 0;
+        foreach ($chunk->whereIn('id', $memberIds)->sortByDesc('observation_count') as $theme) {
+            if (($side[$theme->id] ?? 0) !== 0) {
+                $anchorSide = $side[$theme->id];
+
+                break;
+            }
+        }
+
+        return array_values(array_filter(
+            $memberIds,
+            fn (int $id): bool => $anchorSide === 0 || ($side[$id] ?? 0) === 0 || $side[$id] === $anchorSide
+        ));
     }
 
     /**

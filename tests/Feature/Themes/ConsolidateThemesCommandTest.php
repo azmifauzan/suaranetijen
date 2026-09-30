@@ -254,3 +254,26 @@ it('merges themes that only differ by the entity name and variant words with --b
         ->and(Theme::whereKey($loneOther->id)->exists())->toBeTrue();
     Http::assertNothingSent();
 });
+
+it('does not merge a theme of opposite polarity even when the LLM groups it', function () {
+    config(['themes.extractor' => 'llm']);
+    $murah = Theme::create(['slug' => 'harga-murah', 'display_label' => 'Harga murah', 'canonical_key' => 'harga-murah']);
+    $terjangkau = Theme::create(['slug' => 'harga-terjangkau', 'display_label' => 'Harga terjangkau', 'canonical_key' => 'harga-terjangkau']);
+    $mahal = Theme::create(['slug' => 'harga-mahal', 'display_label' => 'Harga mahal', 'canonical_key' => 'harga-mahal']);
+    $entity = Entity::factory()->create();
+    foreach ([$murah, $terjangkau] as $theme) {
+        themeObservationFor($entity->id, $theme->id)->update(['sentiment' => SentimentClass::Positive]);
+    }
+    themeObservationFor($entity->id, $murah->id)->update(['sentiment' => SentimentClass::Positive]);
+    themeObservationFor($entity->id, $mahal->id);
+
+    fakeConsolidateLlm([
+        ['canonical_label' => 'harga murah', 'member_ids' => [$murah->id, $terjangkau->id, $mahal->id]],
+    ]);
+
+    $this->artisan('themes:consolidate')->assertSuccessful();
+
+    expect(Theme::whereKey($mahal->id)->exists())->toBeTrue()
+        ->and(Theme::whereKey($terjangkau->id)->exists())->toBeFalse()
+        ->and(ThemeObservation::where('theme_id', $murah->id)->count())->toBe(3);
+});
