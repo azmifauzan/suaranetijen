@@ -69,6 +69,7 @@ const props = defineProps<{
     filteredEntities: FilteredItem[] | null;
     otherCategories: OtherCategory[];
     searchQuery: string | null;
+    relatedTopics?: Array<{ id: number; slug: string; title: string; keyword: string }>;
 }>();
 
 const query = ref(props.searchQuery || '');
@@ -96,7 +97,7 @@ function handleSearch() {
             :title="`${category.name}: Sentimen Netizen dan Review`"
             :description="`Lihat sentimen publik, opini netizen, dan entitas dalam kategori ${category.name} di SuaraNetijen.`"
             :canonical-path="`/category/${category.slug}`"
-            :robots="searchQuery ? 'noindex, follow' : 'index, follow'"
+            :robots="searchQuery || category.total_entities === 0 ? 'noindex, follow' : 'index, follow'"
         />
 
         <!-- Main Content -->
@@ -375,6 +376,28 @@ function handleSearch() {
                     </div>
                 </div>
             </template>
+
+            <!-- Related Topics (docs/28) -->
+            <div v-if="relatedTopics && relatedTopics.length > 0" class="mt-12 rounded-2xl border border-[#e5e9e2] bg-[#f9faf7] p-6">
+                <div class="text-xs font-semibold tracking-wider text-emerald-600 uppercase">
+                    Topik Terkait Kategori Ini
+                </div>
+                <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                    <Link
+                        v-for="topic in relatedTopics"
+                        :key="topic.id"
+                        :href="`/topik/${topic.slug}`"
+                        class="block rounded-xl border border-white bg-white p-4 transition hover:border-[#185b3b]/30 hover:shadow-xs"
+                    >
+                        <div class="font-bold text-[#18392d] hover:text-[#087f5b]">
+                            {{ topic.title }}
+                        </div>
+                        <div class="mt-1 text-xs text-neutral-500">
+                            Topik: {{ topic.keyword }}
+                        </div>
+                    </Link>
+                </div>
+            </div>
 
             <!-- Other Categories -->
             <div class="mt-12 border-t border-neutral-200 pt-8">

@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Domains/Sources/Commands',
         __DIR__.'/../app/Domains/Admin/Commands',
         __DIR__.'/../app/Domains/Themes/Commands',
+        __DIR__.'/../app/Domains/Search/Commands',
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         // Trust only RFC1918 private ranges: the app always sits behind an

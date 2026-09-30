@@ -85,6 +85,35 @@ class Category extends Model
     }
 
     /**
+     * Check whether this category or its parent is Tokoh Publik.
+     */
+    public function isPublicFigureCategory(): bool
+    {
+        if ($this->slug === 'tokoh-publik') {
+            return true;
+        }
+
+        return $this->parent?->slug === 'tokoh-publik';
+    }
+
+    /**
+     * Scope query to exclude Tokoh Publik and its subcategories.
+     *
+     * @param  Builder<$this>  $query
+     * @return Builder<$this>
+     */
+    public function scopeExcludePublicFigure(Builder $query): Builder
+    {
+        return $query->where('slug', '!=', 'tokoh-publik')
+            ->where(function (Builder $q) {
+                $q->whereNull('parent_id')
+                    ->orWhereDoesntHave('parent', function (Builder $pq) {
+                        $pq->where('slug', 'tokoh-publik');
+                    });
+            });
+    }
+
+    /**
      * Create a new factory instance for the model.
      */
     protected static function newFactory(): CategoryFactory

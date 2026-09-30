@@ -5,6 +5,7 @@ namespace App\Domains\Entities\Controllers;
 use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Search\Models\SearchLandingPage;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Domains\Sentiment\Services\ScoreCalculator;
@@ -33,6 +34,12 @@ class CategoryShowController extends Controller
 
         $searchQuery = $request->query('q');
 
+        // A root category has no entities of its own (Automotive, Technology, ...): include its children.
+        $categoryIds = Category::query()
+            ->where('id', $category->id)
+            ->orWhere('parent_id', $category->id)
+            ->pluck('id');
+
         // Top Sentimen entities in this category (meeting public threshold)
         $topRankings = $this->rankingService->getRanking(
             categoryId: $category->id,
@@ -53,7 +60,7 @@ class CategoryShowController extends Controller
         // Most Discussed entities
         $mostDiscussed = SentimentSnapshot::query()
             ->join('entities', 'entities.id', '=', 'sentiment_snapshots.entity_id')
-            ->where('entities.category_id', $category->id)
+            ->whereIn('entities.category_id', $categoryIds)
             ->where('entities.status', EntityStatus::Active)
             ->where('sentiment_snapshots.period', Period::OneYear->value)
             ->where('sentiment_snapshots.opinion_count', '>', 0)
@@ -75,7 +82,7 @@ class CategoryShowController extends Controller
         // Recently Updated entities
         $recentlyUpdated = SentimentSnapshot::query()
             ->join('entities', 'entities.id', '=', 'sentiment_snapshots.entity_id')
-            ->where('entities.category_id', $category->id)
+            ->whereIn('entities.category_id', $categoryIds)
             ->where('entities.status', EntityStatus::Active)
             ->where('sentiment_snapshots.period', Period::OneYear->value)
             ->orderByDesc('sentiment_snapshots.updated_at')
@@ -98,7 +105,7 @@ class CategoryShowController extends Controller
         $filteredEntities = null;
         if (is_string($searchQuery) && trim($searchQuery) !== '') {
             $filteredEntities = Entity::query()
-                ->where('category_id', $category->id)
+                ->whereIn('category_id', $categoryIds)
                 ->active()
                 ->where('name', 'ilike', '%'.trim($searchQuery).'%')
                 ->limit(20)
@@ -112,7 +119,7 @@ class CategoryShowController extends Controller
             ->get(['id', 'name', 'slug']);
 
         $totalEntities = Entity::query()
-            ->where('category_id', $category->id)
+            ->whereIn('category_id', $categoryIds)
             ->active()
             ->count();
 
@@ -138,6 +145,19 @@ class CategoryShowController extends Controller
             'filteredEntities' => $filteredEntities,
             'otherCategories' => $otherCategories,
             'searchQuery' => $searchQuery,
+            'relatedTopics' => SearchLandingPage::query()
+                ->published()
+                ->whereIn('category_id', $categoryIds)
+                ->latest('published_at')
+                ->limit(6)
+                ->get(['id', 'slug', 'keyword', 'title'])
+                ->map(fn ($t) => [
+                    'id' => $t->id,
+                    'slug' => $t->slug,
+                    'title' => $t->title ?: $t->keyword,
+                    'keyword' => $t->keyword,
+                ])
+                ->values(),
         ]);
     }
 }

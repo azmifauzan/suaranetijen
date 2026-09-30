@@ -2,89 +2,24 @@
 
 use App\Domains\Entities\Controllers\CategoryShowController;
 use App\Domains\Entities\Controllers\EntityShowController;
-use App\Domains\Entities\Enums\EntityStatus;
-use App\Domains\Entities\Models\Category;
 use App\Domains\Ratings\Controllers\Api\RatingController;
 use App\Domains\Search\Controllers\Api\SearchController;
 use App\Domains\Search\Controllers\SearchPageController;
-use App\Domains\Search\Services\SearchSuggestionService;
+use App\Domains\Search\Controllers\TopicIndexController;
+use App\Domains\Search\Controllers\TopicShowController;
 use App\Domains\Sentiment\Controllers\Api\CategoryRankingController;
 use App\Domains\Sentiment\Controllers\TopRankingController;
-use App\Domains\Sentiment\Enums\Period;
-use App\Domains\Sentiment\Models\SentimentSnapshot;
-use App\Domains\Sentiment\Services\ScoreCalculator;
 use App\Domains\Sponsorships\Controllers\Api\SponsorLeaderboardController;
 use App\Domains\Sponsorships\Controllers\Api\SponsorshipOrderController;
 use App\Domains\Sponsorships\Controllers\Api\SponsorUrlPreviewController;
 use App\Domains\Sponsorships\Controllers\Api\SumopodRelayWebhookController;
 use App\Domains\Sponsorships\Controllers\SponsorBoardPageController;
-use App\Domains\Sponsorships\Services\SponsorLeaderboardService;
+use App\Http\Controllers\HomePageController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\StaticPageController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-Route::get('/', function (SearchSuggestionService $searchSuggestionService, SponsorLeaderboardService $sponsorLeaderboardService) {
-    $minOpinions = (int) config('scoring.public_min_opinions', 30);
-
-    $topEntities = SentimentSnapshot::query()
-        ->join('entities', 'entities.id', '=', 'sentiment_snapshots.entity_id')
-        ->where('entities.status', EntityStatus::Active)
-        ->where('entities.searchable', true)
-        ->where('sentiment_snapshots.period', Period::OneYear->value)
-        ->where('sentiment_snapshots.opinion_count', '>=', $minOpinions)
-        ->where('sentiment_snapshots.score', '>=', 70)
-        ->orderByDesc('sentiment_snapshots.score')
-        ->orderByDesc('sentiment_snapshots.opinion_count')
-        ->select('sentiment_snapshots.*')
-        ->with('entity.category')
-        ->limit(6)
-        ->get()
-        ->map(fn (SentimentSnapshot $snap) => [
-            'id' => $snap->entity->id,
-            'name' => $snap->entity->name,
-            'slug' => $snap->entity->slug,
-            'type_label' => $snap->entity->type->label(),
-            'category_name' => $snap->entity->category->name,
-            'score' => (float) $snap->score,
-            'opinion_count' => (int) $snap->opinion_count,
-        ]);
-
-    $recentEntities = SentimentSnapshot::query()
-        ->join('entities', 'entities.id', '=', 'sentiment_snapshots.entity_id')
-        ->where('entities.status', EntityStatus::Active)
-        ->where('entities.searchable', true)
-        ->where('sentiment_snapshots.period', Period::OneYear->value)
-        ->where('sentiment_snapshots.opinion_count', '>', 0)
-        ->orderByDesc('sentiment_snapshots.updated_at')
-        ->select('sentiment_snapshots.*')
-        ->with('entity.category')
-        ->limit(6)
-        ->get()
-        ->map(fn (SentimentSnapshot $snap) => [
-            'id' => $snap->entity->id,
-            'name' => $snap->entity->name,
-            'slug' => $snap->entity->slug,
-            'type_label' => $snap->entity->type->label(),
-            'category_name' => $snap->entity->category->name,
-            'score' => ScoreCalculator::isPublicScoreEligible((int) $snap->opinion_count) ? (float) $snap->score : null,
-            'opinion_count' => (int) $snap->opinion_count,
-            'updated_at' => $snap->updated_at?->diffForHumans(),
-        ]);
-
-    return Inertia::render('Welcome', [
-        'categories' => Category::active()
-            ->whereDoesntHave('children')
-            ->withCount('entities')
-            ->orderBy('name')
-            ->get(['id', 'name', 'slug']),
-        'searchSuggestions' => $searchSuggestionService->getSuggestions(),
-        'topEntities' => $topEntities,
-        'recentEntities' => $recentEntities,
-        'topLeaderboard' => $sponsorLeaderboardService->getHomepageTeaser(10),
-        'sponsorTeaser' => $sponsorLeaderboardService->getHomepageTeaser(10),
-    ]);
-})->name('home');
+Route::get('/', HomePageController::class)->name('home');
 
 Route::get('/leaderboard', [SponsorBoardPageController::class, 'index'])->name('leaderboard.index');
 Route::get('/sponsor', fn () => redirect()->route('leaderboard.index', [], 301))->name('sponsor.index');
@@ -110,6 +45,10 @@ Route::get('/category/{slug}', [CategoryShowController::class, 'show'])->name('c
 Route::get('/top', [TopRankingController::class, 'index'])->name('rankings.index');
 Route::get('/top/{slug}', [TopRankingController::class, 'show'])->name('rankings.show');
 Route::get('/api/categories/{slug}/ranking', [CategoryRankingController::class, 'index'])->name('api.categories.ranking');
+
+// Topic Landing Pages (docs/28)
+Route::get('/topik', [TopicIndexController::class, 'index'])->name('topics.index');
+Route::get('/topik/{slug}', [TopicShowController::class, 'show'])->name('topics.show');
 
 // Static and trust pages (docs/04, docs/17)
 Route::get('/methodology', [StaticPageController::class, 'methodology'])->name('methodology');

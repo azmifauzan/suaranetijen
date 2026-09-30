@@ -3,6 +3,7 @@
 namespace App\Domains\Sentiment\Controllers;
 
 use App\Domains\Entities\Models\Category;
+use App\Domains\Search\Models\SearchLandingPage;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Services\SentimentRankingService;
 use App\Domains\Sponsorships\Services\SponsorLeaderboardService;
@@ -97,6 +98,20 @@ class TopRankingController extends Controller
 
         $sponsorTeaser = $this->sponsorLeaderboardService->getCategoryTeaser($category->id, 3);
 
+        $relatedTopics = SearchLandingPage::query()
+            ->published()
+            ->where('category_id', $category->id)
+            ->latest('published_at')
+            ->limit(6)
+            ->get(['id', 'slug', 'keyword', 'title'])
+            ->map(fn ($t) => [
+                'id' => $t->id,
+                'slug' => $t->slug,
+                'title' => $t->title ?: $t->keyword,
+                'keyword' => $t->keyword,
+            ])
+            ->values();
+
         return Inertia::render('Top/Show', [
             'category' => [
                 'id' => $category->id,
@@ -106,6 +121,7 @@ class TopRankingController extends Controller
             'period' => $period->value,
             'otherCategories' => $otherCategories,
             'sponsorTeaser' => $sponsorTeaser,
+            'relatedTopics' => $relatedTopics,
             'rankings' => $rankings->map(function ($item) {
                 $pos = $item['positive_count'];
                 $neu = $item['neutral_count'];

@@ -4,6 +4,7 @@ namespace App\Domains\Entities\Models;
 
 use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Enums\EntityType;
+use App\Domains\Entities\Services\HomepageCategoryBlockService;
 use App\Domains\Ratings\Models\RatingSnapshot;
 use App\Domains\Ratings\Models\UserRating;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
@@ -59,6 +60,15 @@ class Entity extends Model
 {
     /** @use HasFactory<EntityFactory> */
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::saved(function (self $entity): void {
+            if ($entity->wasChanged(['status', 'searchable', 'category_id'])) {
+                HomepageCategoryBlockService::clearCache();
+            }
+        });
+    }
 
     /**
      * Get the attributes that should be cast.

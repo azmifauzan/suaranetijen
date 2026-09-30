@@ -16,6 +16,7 @@ Schedule::command('backup:database')->dailyAt('02:00')->withoutOverlapping();
 Schedule::command('backup:database', ['--verify' => true])->monthlyOn(1, '03:00')->withoutOverlapping();
 Schedule::command('monitor:metrics')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('entities:scan-candidates')->weekly()->withoutOverlapping();
+Schedule::command('landing-pages:scan-candidates')->weekly()->withoutOverlapping();
 Schedule::command('entities:enrich-websites')->dailyAt('04:00')->withoutOverlapping();
 Schedule::command('themes:extract-pending')->everySixHours()->withoutOverlapping();
 Schedule::command('themes:summarize')->dailyAt('03:30')->withoutOverlapping();

@@ -3,7 +3,7 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 import { index as searchPage } from '@/routes/search';
 import { index as sponsorPage } from '@/routes/sponsor';
 import { show as showEntity } from '@/routes/entities';
-import { ArrowRight, Trophy } from '@lucide/vue';
+import { ArrowRight, Compass, Trophy } from '@lucide/vue';
 import { Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
@@ -13,6 +13,14 @@ interface CategoryItem {
     id: number;
     name: string;
     slug: string;
+}
+
+interface MatchingTopicItem {
+    id: number;
+    slug: string;
+    title: string;
+    keyword: string;
+    meta_description?: string | null;
 }
 
 interface ParentItem {
@@ -73,6 +81,7 @@ const props = defineProps<{
     meta: SearchMeta;
     categories: CategoryItem[];
     selectedCategory: string | null;
+    matchingTopic?: MatchingTopicItem | null;
     sponsorTeaser?: SponsorTeaser | null;
 }>();
 
@@ -271,6 +280,33 @@ const clearSearch = () => {
                     <p class="mt-1 text-sm text-neutral-500">
                         Ditemukan {{ meta.total }} entitas publik
                     </p>
+                </div>
+            </div>
+
+            <!-- Topic Landing Page Card (docs/28) -->
+            <div
+                v-if="matchingTopic"
+                class="mb-6 rounded-2xl border border-[#bceccb] bg-[#f4fbf6] p-4 sm:p-5 shadow-xs"
+            >
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <div class="flex items-center gap-1.5 text-xs font-semibold text-[#185b3b]">
+                            <Compass class="size-4" />
+                            <span>Topik Terkait Tersedia</span>
+                        </div>
+                        <h2 class="mt-1 text-base font-bold text-[#18392d] sm:text-lg">
+                            Lihat daftar: {{ matchingTopic.title }}
+                        </h2>
+                        <p v-if="matchingTopic.meta_description" class="mt-1 text-xs text-[#4a554e]">
+                            {{ matchingTopic.meta_description }}
+                        </p>
+                    </div>
+                    <Link
+                        :href="`/topik/${matchingTopic.slug}`"
+                        class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#087f5b] px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#076c4d]"
+                    >
+                        Buka Halaman Topik →
+                    </Link>
                 </div>
             </div>
 

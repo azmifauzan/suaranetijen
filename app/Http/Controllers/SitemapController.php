@@ -5,8 +5,12 @@ namespace App\Http\Controllers;
 use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Search\Models\SearchLandingPage;
+use App\Domains\Search\Services\TopicEntityList;
 use App\Domains\Sentiment\Enums\Period;
+use App\Domains\Themes\Models\EntityThemeSnapshot;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 
 class SitemapController extends Controller
 {
@@ -63,7 +67,13 @@ class SitemapController extends Controller
         ];
 
         // 2. Active Categories & Top Lists
-        $categories = Category::query()->active()->get(['id', 'slug', 'updated_at']);
+        // Only categories that hold at least one active entity (own or in a child category): an empty page is thin.
+        $categories = Category::query()
+            ->active()
+            ->where(fn ($query) => $query
+                ->whereHas('entities', fn ($q) => $q->where('status', EntityStatus::Active))
+                ->orWhereHas('children.entities', fn ($q) => $q->where('status', EntityStatus::Active)))
+            ->get(['id', 'slug', 'updated_at']);
         foreach ($categories as $category) {
             $lastmod = $category->updated_at?->toIso8601String();
 
@@ -121,6 +131,41 @@ class SitemapController extends Controller
                 'changefreq' => 'daily',
                 'priority' => '0.7',
             ];
+        }
+
+        // 4. Topic Landing Pages (docs/28). The hub is listed only once it has a topic to show.
+        $topicEntityList = app(TopicEntityList::class);
+        $topicUrls = [];
+
+        $publishedTopics = SearchLandingPage::query()
+            ->published()
+            ->with(['themes', 'category.parent'])
+            ->get();
+
+        foreach ($publishedTopics as $topic) {
+            if ($topicEntityList->isIndexable($topic)) {
+                $latestCalculatedAt = EntityThemeSnapshot::query()
+                    ->whereIn('theme_id', $topic->themes->pluck('id'))
+                    ->max('calculated_at');
+
+                $lastmod = ($latestCalculatedAt ? Carbon::parse($latestCalculatedAt) : $topic->updated_at)?->toIso8601String();
+
+                $topicUrls[] = [
+                    'loc' => "{$baseUrl}/topik/{$topic->slug}",
+                    'lastmod' => $lastmod,
+                    'changefreq' => 'daily',
+                    'priority' => '0.7',
+                ];
+            }
+        }
+
+        if ($topicUrls !== []) {
+            $urls[] = [
+                'loc' => "{$baseUrl}/topik",
+                'changefreq' => 'daily',
+                'priority' => '0.8',
+            ];
+            array_push($urls, ...$topicUrls);
         }
 
         // Build XML

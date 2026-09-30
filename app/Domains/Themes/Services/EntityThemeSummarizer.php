@@ -58,7 +58,7 @@ class EntityThemeSummarizer
         $response = $this->client->chat($this->messages($entity, $data['top_themes']), $this->schema());
 
         $summary = trim((string) ($response['summary'] ?? ''));
-        if (! $this->isAllowedCopy($summary, self::MAX_SUMMARY_CHARS)) {
+        if (! PublicCopyGuard::isAllowed($summary, self::MAX_SUMMARY_CHARS)) {
             Log::warning('themes.summary_rejected', ['entity_id' => $entity->id]);
 
             return $existing;
@@ -68,7 +68,7 @@ class EntityThemeSummarizer
         foreach ((array) ($response['theme_notes'] ?? []) as $note) {
             $themeId = (int) (is_array($note) ? ($note['theme_id'] ?? 0) : 0);
             $text = trim((string) (is_array($note) ? ($note['note'] ?? '') : ''));
-            if (in_array($themeId, $themeIds, true) && $this->isAllowedCopy($text, self::MAX_NOTE_CHARS)) {
+            if (in_array($themeId, $themeIds, true) && PublicCopyGuard::isAllowed($text, self::MAX_NOTE_CHARS)) {
                 $notes[$themeId] = $text;
             }
         }
@@ -82,17 +82,6 @@ class EntityThemeSummarizer
                 'generated_at' => now(),
             ]
         );
-    }
-
-    /**
-     * docs/25 copy rules + CLAUDE.md SEO rules: no percentages, no superlatives, no handles/links.
-     */
-    private function isAllowedCopy(string $text, int $maxChars): bool
-    {
-        return $text !== ''
-            && mb_strlen($text) <= $maxChars
-            && ! str_contains($text, '%')
-            && ! preg_match('/\b(terbaik|terburuk|persen|percent)\b|@\w|https?:\/\//iu', $text);
     }
 
     /**

@@ -3,6 +3,8 @@
 namespace App\Domains\Search\Controllers;
 
 use App\Domains\Entities\Models\Category;
+use App\Domains\Entities\Services\TextNormalizer;
+use App\Domains\Search\Models\SearchLandingPage;
 use App\Domains\Search\Services\SearchService;
 use App\Domains\Sponsorships\Services\SponsorLeaderboardService;
 use App\Http\Controllers\Controller;
@@ -41,12 +43,33 @@ class SearchPageController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'slug']);
 
+        $normalizedQuery = TextNormalizer::normalize($query);
+        $matchingTopic = null;
+
+        if ($normalizedQuery !== '') {
+            $topic = SearchLandingPage::query()
+                ->published()
+                ->where('normalized_keyword', $normalizedQuery)
+                ->first();
+
+            if ($topic) {
+                $matchingTopic = [
+                    'id' => $topic->id,
+                    'slug' => $topic->slug,
+                    'title' => $topic->title ?: $topic->keyword,
+                    'keyword' => $topic->keyword,
+                    'meta_description' => $topic->meta_description,
+                ];
+            }
+        }
+
         return Inertia::render('Search/Index', [
             'query' => $query,
             'results' => $searchResults['data'],
             'meta' => $searchResults['meta'],
             'categories' => $categories,
             'selectedCategory' => $categorySlug,
+            'matchingTopic' => $matchingTopic,
             // Sponsor visibility (docs/26): same teaser as the homepage, never affecting
             // result ordering or relevance — a separate, clearly labelled band only.
             'sponsorTeaser' => $this->sponsorLeaderboardService->getHomepageTeaser(3),

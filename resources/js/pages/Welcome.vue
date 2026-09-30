@@ -1,57 +1,29 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     ArrowRight,
     ArrowUpRight,
     AudioLines,
-    CarFront,
-    ChevronRight,
-    CircleHelp,
-    Coffee,
-    Compass,
     Eye,
-    Globe,
-    Heart,
-    Laptop,
     MessageCircle,
     MousePointerClick,
     ShieldCheck,
-    ShoppingBag,
-    Smartphone,
-    Sparkles,
     Star,
+    TrendingUp,
     Trophy,
-    Wifi,
 } from '@lucide/vue';
 import { computed } from 'vue';
+import CategoryBlock, { type CategoryBlockItem } from '@/components/CategoryBlock.vue';
 import EntitySearch from '@/components/EntitySearch.vue';
-import PublicEntityCard from '@/components/PublicEntityCard.vue';
 import PublicSeo from '@/components/PublicSeo.vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { getDirectWebsiteUrl, getFaviconUrl, trackSponsorClick } from '@/lib/sponsor';
 import { methodology, sources } from '@/routes';
-import { show as showCategory } from '@/routes/categories';
 import { show as showEntity } from '@/routes/entities';
 import { index as leaderboardPage } from '@/routes/leaderboard';
+import { index as rankingIndex } from '@/routes/rankings';
 import { index as searchPage } from '@/routes/search';
-
-interface CategoryItem {
-    id: number;
-    name: string;
-    slug: string;
-    entities_count?: number;
-}
-
-interface EntityItem {
-    id: number;
-    name: string;
-    slug: string;
-    type_label: string;
-    category_name: string;
-    score: number | null;
-    opinion_count: number;
-    updated_at?: string;
-}
+import { index as topicIndex, show as showTopic } from '@/routes/topics';
 
 interface SearchSuggestion {
     query: string;
@@ -89,23 +61,52 @@ interface SponsorTeaser {
     top_entries: SponsorTeaserItem[];
 }
 
+export interface PopularTopicItem {
+    id: number;
+    slug: string;
+    title: string;
+    keyword: string;
+}
+
 const props = withDefaults(
     defineProps<{
-        categories: CategoryItem[];
+        categoryBlocks?: CategoryBlockItem[];
+        popularTopics?: PopularTopicItem[];
         searchSuggestions?: SearchSuggestion[];
-        topEntities?: EntityItem[];
-        recentEntities?: EntityItem[];
         sponsorTeaser?: SponsorTeaser | null;
     }>(),
     {
+        categoryBlocks: () => [],
+        popularTopics: () => [],
         searchSuggestions: () => [],
-        topEntities: () => [],
-        recentEntities: () => [],
         sponsorTeaser: null,
     },
 );
 
-const featuredCategories = computed(() => props.categories.slice(0, 8));
+const page = usePage();
+const seo = computed(() => (page.props.seo as { site_name?: string; site_url?: string } | undefined) ?? {});
+const siteName = computed(() => seo.value.site_name || 'SuaraNetijen');
+const siteUrl = computed(() => (seo.value.site_url || 'https://suaranetijen.id').replace(/\/$/, ''));
+
+const jsonLd = computed(() =>
+    JSON.stringify({
+        '@context': 'https://schema.org',
+        '@graph': [
+            {
+                '@type': 'WebSite',
+                name: siteName.value,
+                url: siteUrl.value,
+            },
+            {
+                '@type': 'Organization',
+                name: siteName.value,
+                url: siteUrl.value,
+                logo: `${siteUrl.value}/logo.svg`,
+            },
+        ],
+    }),
+);
+
 const fallbackSuggestions: SearchSuggestion[] = [
     { query: 'IndiHome', source: 'fallback' },
     { query: 'Tokopedia', source: 'fallback' },
@@ -117,22 +118,6 @@ const displayedSuggestions = computed(() =>
         ? props.searchSuggestions
         : fallbackSuggestions,
 );
-const categoryIcons = [
-    { pattern: /phone|ponsel|gadget/i, icon: Smartphone },
-    { pattern: /hosting|cloud|software|teknologi|laptop/i, icon: Laptop },
-    { pattern: /internet|telekom|provider/i, icon: Wifi },
-    { pattern: /otomotif|mobil|motor/i, icon: CarFront },
-    { pattern: /belanja|commerce|marketplace|retail/i, icon: ShoppingBag },
-    { pattern: /makanan|minuman|kuliner/i, icon: Coffee },
-    { pattern: /kesehatan|kecantikan/i, icon: Heart },
-    { pattern: /travel|wisata|perjalanan/i, icon: Globe },
-];
-
-function categoryIcon(name: string) {
-    return (
-        categoryIcons.find(({ pattern }) => pattern.test(name))?.icon ?? Compass
-    );
-}
 
 function suggestionTitle(source: SearchSuggestion['source']): string {
     if (source === 'trending') return 'Paling banyak dicari';
@@ -149,11 +134,19 @@ function formatRupiah(amount: number): string {
 <template>
     <PublicLayout>
         <PublicSeo
-            title="Sentimen Publik Brand, Produk, Tokoh dan Layanan Indonesia"
-            description="Cari tahu opini netizen tentang brand, produk, tokoh dan layanan di Indonesia lewat sentimen publik dan rating pengguna, plus papan peringkat sponsor untuk mendukung favoritmu di SuaraNetijen."
+            title="Sentimen Netizen Brand, Produk, dan Layanan di Indonesia"
+            description="Indeks sentimen netizen independen tentang brand, produk, dan layanan di Indonesia. Temukan reputasi publik, opini netizen, dan rating objektif sebelum menentukan pilihan."
             canonical-path="/"
         />
+
+        <Head>
+            <component :is="'script'" type="application/ld+json">
+                {{ jsonLd }}
+            </component>
+        </Head>
+
         <main>
+            <!-- 1. Hero Section -->
             <section class="relative border-b border-[#e0e9dd] bg-[#eff7eb]">
                 <div
                     class="pointer-events-none absolute inset-0 overflow-hidden"
@@ -189,17 +182,14 @@ function formatRupiah(amount: number): string {
                         INDEKS SENTIMEN PUBLIK INDONESIA
                     </div>
                     <h1
-                        class="text-[34px] leading-[1.08] font-bold tracking-[-1.5px] text-[#193e2d] sm:text-5xl sm:tracking-[-2px] lg:text-5xl"
+                        class="text-[30px] leading-[1.12] font-bold tracking-[-1.5px] text-[#193e2d] sm:text-5xl sm:tracking-[-2px] lg:text-5xl"
                     >
-                        Sudah tahu belum,<br class="sm:hidden" /> <span class="text-[#087f5b]"
-                            >Apa kata Netizen?</span
-                        >
+                        Sentimen netizen tentang brand, produk, dan layanan di Indonesia
                     </h1>
                     <p
                         class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[#61725f] sm:text-base lg:whitespace-nowrap"
                     >
-                        Mau pilih brand, produk, tokoh atau layanan?<br class="sm:hidden" />
-                        Cari dulu, lihat apa kata netijen.
+                        Mau pilih brand, produk, atau layanan? Cari dulu, lihat apa kata netizen.
                     </p>
                     <div class="mx-auto mt-5 max-w-4xl"><EntitySearch /></div>
 
@@ -224,7 +214,7 @@ function formatRupiah(amount: number): string {
                         </Link>
                     </div>
 
-                    <!-- Top 3 Leaderboard Podium below search box (Compact & Antislop) -->
+                    <!-- Top 3 Leaderboard Podium below search box -->
                     <div
                         v-if="sponsorTeaser && !sponsorTeaser.is_empty && sponsorTeaser.top_entries && sponsorTeaser.top_entries.length > 0"
                         class="mx-auto mt-4 max-w-4xl text-left"
@@ -307,7 +297,6 @@ function formatRupiah(amount: number): string {
 
                                 <!-- Right: Stats (Mobile & Desktop) + Total Sponsor + Actions -->
                                 <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-t border-[#edf1ec] pt-1.5 sm:border-0 sm:pt-0 sm:justify-end">
-                                    <!-- Key Stats (ALWAYS VISIBLE on Mobile and Desktop) -->
                                     <div class="flex items-center gap-2 text-[11px] text-[#55695a]">
                                         <span
                                             v-if="typeof entry.sentiment_score === 'number'"
@@ -341,14 +330,12 @@ function formatRupiah(amount: number): string {
                                         </template>
                                     </div>
 
-                                    <!-- Total Sponsor -->
                                     <div class="text-right">
                                         <span class="text-xs font-black text-[#92400e] sm:text-sm">
                                             {{ formatRupiah(entry.settled_total_amount) }}
                                         </span>
                                     </div>
 
-                                    <!-- Actions -->
                                     <div class="flex items-center gap-1.5">
                                         <a
                                             :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'homepage_spotlight' })"
@@ -387,28 +374,32 @@ function formatRupiah(amount: number): string {
                 </div>
             </section>
 
+            <!-- Value props banner -->
             <div class="border-b border-[#e6e9e1] bg-white">
                 <div
                     class="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-5 py-3 text-xs text-[#66746b] sm:px-8 sm:text-sm"
                 >
-                    <span class="flex items-center gap-2"
-                        ><MessageCircle class="size-4 text-[#087f5b]" /> Opini
-                        dari percakapan publik</span
-                    ><Link
+                    <span class="flex items-center gap-2">
+                        <MessageCircle class="size-4 text-[#087f5b]" />
+                        Opini dari percakapan publik
+                    </span>
+                    <Link
                         :href="methodology()"
                         class="flex items-center gap-2 hover:text-[#087f5b]"
-                        ><ShieldCheck class="size-4 text-[#087f5b]" />
-                        Metodologi terbuka</Link
-                    ><span class="flex items-center gap-2"
-                        ><Star class="size-4 text-[#087f5b]" /> Sentimen &
-                        rating terpisah</span
                     >
+                        <ShieldCheck class="size-4 text-[#087f5b]" />
+                        Metodologi terbuka
+                    </Link>
+                    <span class="flex items-center gap-2">
+                        <Star class="size-4 text-[#087f5b]" />
+                        Sentimen & rating terpisah
+                    </span>
                 </div>
             </div>
 
-            <!-- Dedicated Top 10 Leaderboard Section (#4 - #10) (above categories) -->
+            <!-- 2. Dedicated Top 10 Leaderboard Section (#4 - #10) -->
             <section
-                class="border-y border-[#d7e6d2] bg-[#f9fcf6]"
+                class="border-b border-[#d7e6d2] bg-[#f9fcf6]"
                 aria-labelledby="top-leaderboard-heading"
             >
                 <div class="mx-auto max-w-6xl px-5 pt-6 pb-6 sm:px-8 sm:pt-8 sm:pb-8">
@@ -446,7 +437,6 @@ function formatRupiah(amount: number): string {
                             :key="entry.id"
                             class="flex flex-col gap-2 rounded-xl border border-[#e2e7df] bg-white px-3 py-2 transition hover:border-[#b8cfbe] sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                         >
-                            <!-- Left: Rank, Favicon, Name, Category, Description -->
                             <div class="flex min-w-0 flex-1 items-start gap-2.5">
                                 <span
                                     class="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-[#f1f5f0] text-xs font-black text-[#4d5e52] border border-[#e2e7df]"
@@ -482,9 +472,7 @@ function formatRupiah(amount: number): string {
                                 </div>
                             </div>
 
-                            <!-- Right: Stats (Mobile & Desktop) + Total Sponsor + Actions -->
                             <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-t border-[#edf1ec] pt-1.5 sm:border-0 sm:pt-0 sm:justify-end">
-                                <!-- Stats -->
                                 <div class="flex items-center gap-2 text-[11px] text-[#55695a]">
                                     <span
                                         v-if="typeof entry.sentiment_score === 'number'"
@@ -518,37 +506,35 @@ function formatRupiah(amount: number): string {
                                     </template>
                                 </div>
 
-                                <!-- Total Sponsor -->
                                 <div class="text-right">
                                     <span class="text-xs font-black text-[#92400e] sm:text-sm">
                                         {{ formatRupiah(entry.settled_total_amount) }}
                                     </span>
                                 </div>
 
-                                <!-- Actions -->
                                 <div class="flex items-center gap-1.5">
                                     <a
-                                         :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'homepage_table' })"
-                                         :ping="`/api/sponsor/click/${entry.slug}`"
-                                         target="_blank"
-                                         rel="noopener"
-                                         class="inline-flex min-h-8 items-center justify-center rounded-lg bg-[#eaf7ee] px-2.5 py-1 text-xs font-bold text-[#145736] transition hover:bg-[#d6f0dd]"
-                                         @click="trackSponsorClick(entry.slug, { placement: 'homepage_table', url: entry.website_url || undefined })"
-                                     >
-                                         Buka Situs
-                                     </a>
-                                     <Link
-                                         :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1}#formSection`"
-                                         class="inline-flex min-h-8 items-center justify-center rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-1 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
-                                     >
-                                         Rebut #{{ entry.rank }}
-                                     </Link>
-                                 </div>
+                                        :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'homepage_table' })"
+                                        :ping="`/api/sponsor/click/${entry.slug}`"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="inline-flex min-h-8 items-center justify-center rounded-lg bg-[#eaf7ee] px-2.5 py-1 text-xs font-bold text-[#145736] transition hover:bg-[#d6f0dd]"
+                                        @click="trackSponsorClick(entry.slug, { placement: 'homepage_table', url: entry.website_url || undefined })"
+                                    >
+                                        Buka Situs
+                                    </a>
+                                    <Link
+                                        :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1}#formSection`"
+                                        class="inline-flex min-h-8 items-center justify-center rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-1 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
+                                    >
+                                        Rebut #{{ entry.rank }}
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Spot #4 - #10 Open State (when <= 3 entries exist on the board) -->
+                    <!-- Spot #4 - #10 Open State -->
                     <div
                         v-else-if="sponsorTeaser && !sponsorTeaser.is_empty"
                         class="rounded-xl border border-dashed border-[#dfcca9] bg-white p-5 text-center sm:p-6"
@@ -592,266 +578,161 @@ function formatRupiah(amount: number): string {
                 </div>
             </section>
 
+            <!-- 3. Jelajahi Per Kategori (11 Root Category Blocks per docs/29) -->
             <section
-                class="border-y border-[#e5e9e0] bg-[#f3f5ef]"
+                v-if="categoryBlocks.length > 0"
+                class="border-b border-[#e5e9e0] bg-[#f3f5ef]"
                 aria-labelledby="categories-heading"
             >
-                <div class="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
-                    <div class="mb-7 flex items-end justify-between gap-5">
-                    <div>
-                        <p
-                            class="mb-2 text-xs font-semibold tracking-[2px] text-[#71826d] uppercase"
-                        >
-                            Mulai dari yang kamu cari
-                        </p>
-                        <h2
-                            id="categories-heading"
-                            class="text-2xl font-bold tracking-tight sm:text-3xl"
-                        >
-                            Banyak pilihan. Biar lebih yakin.
-                        </h2>
-                    </div>
-                    <Link
-                        :href="searchPage()"
-                        class="hidden items-center gap-2 text-sm font-semibold text-[#087f5b] hover:underline sm:flex"
-                        >Semua kategori <ArrowRight class="size-4"
-                    /></Link>
-                    </div>
-                <div
-                    v-if="featuredCategories.length"
-                    class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
-                >
-                    <Link
-                        v-for="(category, index) in featuredCategories"
-                        :key="category.id"
-                        :href="showCategory(category.slug)"
-                        class="group flex items-center gap-3 rounded-xl border border-[#e0e5dc] bg-white p-4 transition hover:border-[#9cbea0] hover:shadow-sm"
-                        ><span
-                            class="flex size-11 shrink-0 items-center justify-center rounded-xl"
-                            :class="
-                                [
-                                    'bg-[#eff4e8] text-[#698347]',
-                                    'bg-[#edf3fc] text-[#6885b1]',
-                                    'bg-[#fcf0e6] text-[#b98c60]',
-                                    'bg-[#f4eef9] text-[#a18ab5]',
-                                ][index % 4]
-                            "
-                            ><component
-                                :is="categoryIcon(category.name)"
-                                class="size-5" /></span
-                        ><span class="min-w-0 flex-1"
-                            ><span class="block text-sm font-semibold">{{
-                                category.name
-                            }}</span
-                            ><span
-                                v-if="category.entities_count !== undefined"
-                                class="mt-1 block text-xs text-[#7d887d]"
-                                >{{ category.entities_count }} brand, produk &
-                                layanan</span
-                            ></span
-                        ><ChevronRight
-                            class="size-4 shrink-0 text-[#99a692] transition group-hover:translate-x-0.5"
-                    /></Link>
-                </div>
-                <p
-                    v-else
-                    class="rounded-xl border border-dashed border-[#d1ddcd] p-6 text-sm text-[#66746b]"
-                >
-                    Kategori sedang disiapkan. Gunakan pencarian untuk menemukan
-                    yang kamu cari.
-                </p>
-                    <Link
-                        :href="searchPage()"
-                        class="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#087f5b] sm:hidden"
-                        >Semua kategori <ArrowRight class="size-4"
-                    /></Link>
-                </div>
-            </section>
-
-            <section
-                class="bg-white"
-                aria-labelledby="sentiment-heading"
-            >
-                <div class="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-14">
-                    <div
-                        class="mb-7 flex flex-wrap items-end justify-between gap-4"
-                    >
+                <div class="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
+                    <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
                         <div>
-                            <p
-                                class="mb-2 flex items-center gap-2 text-xs font-semibold tracking-[2px] text-[#71826d] uppercase"
-                            >
-                                <Sparkles class="size-4" /> Dari suara yang
-                                terkumpul
+                            <p class="mb-1 text-xs font-bold tracking-wider text-[#69796c] uppercase">
+                                Indeks Kategori
                             </p>
                             <h2
-                                id="sentiment-heading"
-                                class="text-2xl font-bold tracking-tight sm:text-3xl"
+                                id="categories-heading"
+                                class="text-2xl font-bold tracking-tight text-[#18392d] sm:text-3xl"
                             >
-                                Sentimen positif, jadi bahan pertimbangan.
+                                Jelajahi per kategori
                             </h2>
-                            <p class="mt-3 text-sm leading-6 text-[#73806e]">
-                                Gambaran opini publik dalam 12 bulan terakhir.
-                                Keputusan tetap di tanganmu.
-                            </p>
                         </div>
                         <Link
-                            :href="methodology()"
-                            class="flex items-center gap-1.5 text-xs font-medium text-[#627a5f] hover:underline"
-                            ><CircleHelp class="size-4" /> Bagaimana skor
-                            dihitung?</Link
+                            :href="rankingIndex()"
+                            class="inline-flex items-center gap-1.5 text-xs font-bold text-[#087f5b] hover:underline"
                         >
+                            Semua peringkat sentimen
+                            <ArrowRight class="size-3.5" />
+                        </Link>
                     </div>
-                    <div
-                        v-if="topEntities.length"
-                        class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-                    >
-                        <PublicEntityCard
-                            v-for="entity in topEntities"
-                            :key="entity.id"
-                            :entity="entity"
-                        />
-                    </div>
-                    <div
-                        v-else
-                        class="flex flex-col items-center rounded-2xl border border-dashed border-[#cbdac5] bg-white/65 px-6 py-10 text-center"
-                    >
-                        <span
-                            class="flex size-14 items-center justify-center rounded-full bg-[#e8f2e2]"
-                            ><MessageCircle class="size-6 text-[#62815b]"
-                        /></span>
-                        <h3 class="mt-4 text-lg font-semibold">
-                            Setiap suara butuh cukup cerita.
-                        </h3>
-                        <p
-                            class="mt-2 max-w-md text-sm leading-6 text-[#73806e]"
-                        >
-                            Belum ada entitas dengan data yang cukup untuk
-                            ditampilkan di sini. Kamu tetap bisa menjelajahi
-                            brand, produk, dan layanan.
-                        </p>
-                        <Link
-                            :href="searchPage()"
-                            class="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#087f5b]"
-                            >Mulai jelajahi <ArrowRight class="size-4"
-                        /></Link>
-                    </div>
-                </div>
-            </section>
 
-            <section
-                class="border-t border-[#e5e9e0] bg-[#f3f5ef]"
-                aria-labelledby="how-heading"
-            >
-                <div class="mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-18">
-                    <div
-                        class="grid items-start gap-10 lg:grid-cols-[0.85fr_1.5fr] lg:gap-16"
-                    >
-                    <div>
-                        <p
-                            class="mb-3 text-xs font-semibold tracking-[2px] text-[#71826d] uppercase"
-                        >
-                            Kenalan dengan SuaraNetijen
-                        </p>
-                        <h2
-                            id="how-heading"
-                            class="text-3xl leading-tight font-bold tracking-tight"
-                        >
-                            Ramai di internet.<br />Lebih jelas di sini.
-                        </h2>
-                        <p class="mt-4 text-sm leading-7 text-[#748070]">
-                            Kami merangkum percakapan publik menjadi gambaran
-                            yang mudah dipahami. Biar kamu punya lebih banyak
-                            perspektif sebelum memilih.
-                        </p>
-                        <Link
-                            :href="methodology()"
-                            class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[#087f5b]"
-                            >Lihat cara kerjanya <ArrowUpRight class="size-4"
-                        /></Link>
-                    </div>
-                    <div class="grid gap-6 sm:grid-cols-3">
-                        <div>
-                            <div
-                                class="mb-5 flex size-12 items-center justify-center rounded-2xl bg-[#eaf4e4]"
-                            >
-                                <AudioLines class="size-6 text-[#628652]" />
-                            </div>
-                            <h3 class="font-bold">Sentimen Netijen</h3>
-                            <p class="mt-2 text-sm leading-6 text-[#748070]">
-                                Skor 0–100 dari opini positif, netral, dan
-                                negatif. Lengkap dengan jumlah opini yang
-                                dianalisis.
-                            </p>
-                        </div>
-                        <div>
-                            <div
-                                class="mb-5 flex size-12 items-center justify-center rounded-2xl bg-[#edf0fb]"
-                            >
-                                <MessageCircle class="size-6 text-[#8089b2]" />
-                            </div>
-                            <h3 class="font-bold">Top Suara Netijen</h3>
-                            <p class="mt-2 text-sm leading-6 text-[#748070]">
-                                Apa yang sering disukai dan dikeluhkan? Lihat
-                                tema yang paling banyak dibicarakan.
-                            </p>
-                        </div>
-                        <div>
-                            <div
-                                class="mb-5 flex size-12 items-center justify-center rounded-2xl bg-[#fbf0df]"
-                            >
-                                <Star class="size-6 text-[#b3935a]" />
-                            </div>
-                            <h3 class="font-bold">Rating Netijen</h3>
-                            <p class="mt-2 text-sm leading-6 text-[#748070]">
-                                Rating 1–5 dari pengguna SuaraNetijen. Dihitung
-                                terpisah dari sentimen percakapan publik.
-                            </p>
-                        </div>
-                    </div>
-                    </div>
-                </div>
-            </section>
-
-            <section
-                v-if="recentEntities.length"
-                class="bg-[#f3f5ef]"
-                aria-labelledby="recent-heading"
-            >
-                <div class="mx-auto max-w-6xl px-5 pb-14 sm:px-8">
-                    <div
-                        class="mb-6 flex flex-wrap items-end justify-between gap-3"
-                    >
-                    <div>
-                        <h2
-                            id="recent-heading"
-                            class="text-2xl font-bold tracking-tight"
-                        >
-                            Baru diperbarui
-                        </h2>
-                        <p class="mt-2 text-sm text-[#748070]">
-                            Intip perkembangan percakapan terbaru.
-                        </p>
-                    </div>
-                    <Link
-                        :href="searchPage()"
-                        class="flex items-center gap-2 text-sm font-semibold text-[#087f5b]"
-                        >Jelajahi lainnya <ArrowRight class="size-4"
-                    /></Link>
-                    </div>
-                    <div
-                        class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-                    >
-                        <PublicEntityCard
-                            v-for="entity in recentEntities"
-                            :key="entity.id"
-                            :entity="entity"
+                    <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+                        <CategoryBlock
+                            v-for="block in categoryBlocks"
+                            :key="block.id"
+                            :block="block"
                         />
                     </div>
                 </div>
             </section>
 
+            <!-- 4. Yang Sering Dibicarakan Netizen (Max 12 Published Indexable Topics) -->
+            <section
+                v-if="popularTopics && popularTopics.length > 0"
+                class="border-b border-[#e5e9e0] bg-white"
+                aria-labelledby="topics-heading"
+            >
+                <div class="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
+                    <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+                        <div>
+                            <p class="mb-1 flex items-center gap-1.5 text-xs font-bold tracking-wider text-[#69796c] uppercase">
+                                <TrendingUp class="size-3.5 text-[#087f5b]" />
+                                Topik Hangat
+                            </p>
+                            <h2
+                                id="topics-heading"
+                                class="text-2xl font-bold tracking-tight text-[#18392d] sm:text-3xl"
+                            >
+                                Yang sering dibicarakan netizen
+                            </h2>
+                        </div>
+                        <Link
+                            :href="topicIndex()"
+                            class="inline-flex items-center gap-1.5 text-xs font-bold text-[#087f5b] hover:underline"
+                        >
+                            Lihat semua topik
+                            <ArrowRight class="size-3.5" />
+                        </Link>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <Link
+                            v-for="topic in popularTopics"
+                            :key="topic.id"
+                            :href="showTopic(topic.slug)"
+                            class="group inline-flex items-center gap-2 rounded-xl border border-[#dfe5dc] bg-[#f9fbf8] px-3.5 py-2 text-xs font-semibold text-[#1f3b28] transition hover:border-[#8ab591] hover:bg-white hover:text-[#087f5b] hover:shadow-xs"
+                        >
+                            <span>{{ topic.title }}</span>
+                        </Link>
+
+                        <Link
+                            :href="topicIndex()"
+                            class="inline-flex items-center gap-1 rounded-xl border border-dashed border-[#b8cbbd] px-3.5 py-2 text-xs font-bold text-[#087f5b] transition hover:border-[#087f5b] hover:bg-[#f0f8f2]"
+                        >
+                            Lihat Semua Topik
+                            <ArrowRight class="size-3.5" />
+                        </Link>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. Tiga Metrik SuaraNetijen (Diringkas per docs/29) -->
+            <section
+                class="border-b border-[#e5e9e0] bg-[#f3f5ef]"
+                aria-labelledby="metrics-heading"
+            >
+                <div class="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
+                    <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+                        <div>
+                            <p class="mb-1 text-xs font-bold tracking-wider text-[#69796c] uppercase">
+                                Metodologi SuaraNetijen
+                            </p>
+                            <h2
+                                id="metrics-heading"
+                                class="text-2xl font-bold tracking-tight text-[#18392d] sm:text-3xl"
+                            >
+                                Tiga metrik objektif, tanpa kompromi
+                            </h2>
+                            <p class="mt-1 max-w-xl text-xs text-[#55695a] sm:text-sm">
+                                Setiap angka dan kesimpulan berdiri di atas metrik terpisah yang tidak pernah digabung.
+                            </p>
+                        </div>
+                        <Link
+                            :href="methodology()"
+                            class="inline-flex items-center gap-1.5 text-xs font-bold text-[#087f5b] hover:underline"
+                        >
+                            Pelajari metodologi selengkapnya
+                            <ArrowUpRight class="size-3.5" />
+                        </Link>
+                    </div>
+
+                    <div class="grid gap-4 sm:grid-cols-3">
+                        <div class="rounded-2xl border border-[#dfe5dc] bg-white p-5 sm:p-6">
+                            <div class="mb-4 flex size-11 items-center justify-center rounded-xl bg-[#eaf4e4]">
+                                <AudioLines class="size-5 text-[#3b662d]" />
+                            </div>
+                            <h3 class="text-base font-bold text-[#18392d]">Sentimen Netijen</h3>
+                            <p class="mt-2 text-xs leading-5 text-[#5e7061] sm:text-sm">
+                                Skor 0–100 hasil agregasi opini positif, netral, dan negatif dari percakapan publik di forum dan media sosial.
+                            </p>
+                        </div>
+
+                        <div class="rounded-2xl border border-[#dfe5dc] bg-white p-5 sm:p-6">
+                            <div class="mb-4 flex size-11 items-center justify-center rounded-xl bg-[#edf0fb]">
+                                <MessageCircle class="size-5 text-[#4b588c]" />
+                            </div>
+                            <h3 class="text-base font-bold text-[#18392d]">Top Suara Netijen</h3>
+                            <p class="mt-2 text-xs leading-5 text-[#5e7061] sm:text-sm">
+                                Tema dan topik yang paling sering disukai atau dikeluhkan netizen, diukur dari frekuensi kemunculan opini.
+                            </p>
+                        </div>
+
+                        <div class="rounded-2xl border border-[#dfe5dc] bg-white p-5 sm:p-6">
+                            <div class="mb-4 flex size-11 items-center justify-center rounded-xl bg-[#fbf0df]">
+                                <Star class="size-5 text-[#946c24]" />
+                            </div>
+                            <h3 class="text-base font-bold text-[#18392d]">Rating Netijen</h3>
+                            <p class="mt-2 text-xs leading-5 text-[#5e7061] sm:text-sm">
+                                Rating bintang 1–5 dari pengguna langsung di SuaraNetijen, dihitung independen dari crawling percakapan publik.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. CTA Sumber Data -->
             <section class="bg-[#f3f5ef]">
-                <div class="mx-auto max-w-6xl px-5 pb-14 sm:px-8">
+                <div class="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
                     <div
                         class="flex flex-col justify-between gap-6 rounded-2xl border border-[#dbe7d2] bg-[#eaf3df] p-7 sm:flex-row sm:items-center sm:p-9"
                     >
@@ -860,7 +741,7 @@ function formatRupiah(amount: number): string {
                                 class="mt-1 hidden size-9 shrink-0 text-[#6d8c56] sm:block"
                             />
                             <div>
-                                <h2 class="text-xl font-bold tracking-tight">
+                                <h2 class="text-xl font-bold tracking-tight text-[#18392d]">
                                     Ada data di balik setiap suara.
                                 </h2>
                                 <p
@@ -875,8 +756,10 @@ function formatRupiah(amount: number): string {
                         <Link
                             :href="sources()"
                             class="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[#b8cba9] bg-white/60 px-5 py-3 text-sm font-semibold transition hover:bg-white"
-                            >Kenali sumber data <ArrowUpRight class="size-4"
-                        /></Link>
+                        >
+                            Kenali sumber data
+                            <ArrowUpRight class="size-4" />
+                        </Link>
                     </div>
                 </div>
             </section>

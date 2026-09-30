@@ -45,9 +45,9 @@ beforeEach(() => {
     page.props.auth.user = null;
 });
 
-it('keeps search accessible and shows an honest empty state before opinions exist', async () => {
+it('keeps search accessible and shows clean state before category blocks exist', async () => {
     const html = await renderToString(
-        createSSRApp(Welcome, { categories: [] }),
+        createSSRApp(Welcome, { categoryBlocks: [], popularTopics: [] }),
     );
 
     expect(html).toContain('role="search"');
@@ -55,11 +55,10 @@ it('keeps search accessible and shows an honest empty state before opinions exis
     expect(html).toContain('Cari brand, produk, atau layanan');
     expect(html).toContain('Sebelum pilih, cek kata netizen.');
     expect(html).toContain(
-        '<title>Sentimen Publik Brand, Produk, dan Layanan Indonesia | SuaraNetijen</title>',
+        '<title>Sentimen Netizen Brand, Produk, dan Layanan di Indonesia | SuaraNetijen</title>',
     );
     expect(html).toContain('name="description"');
     expect(html).toContain('opini netizen');
-    expect(html).toContain('Belum ada entitas dengan data yang cukup');
     expect(html).not.toContain('Baru diperbarui');
     expect(html).toContain('href="/register"');
 });
@@ -67,34 +66,49 @@ it('keeps search accessible and shows an honest empty state before opinions exis
 it('connects category discovery and real entity summaries to their detail pages', async () => {
     const html = await renderToString(
         createSSRApp(Welcome, {
-            categories: [
+            categoryBlocks: [
                 {
                     id: 1,
-                    name: 'Internet',
-                    slug: 'internet',
-                    entities_count: 2,
+                    name: 'Technology',
+                    slug: 'technology',
+                    is_public_figure: false,
+                    top_entities: [
+                        {
+                            id: 1,
+                            name: 'Contoh Internet',
+                            slug: 'contoh-internet',
+                            score: 78,
+                            opinion_count: 150,
+                            category_name: 'Internet',
+                            category_slug: 'internet',
+                        },
+                    ],
+                    child_categories: [
+                        {
+                            id: 2,
+                            name: 'Internet',
+                            slug: 'internet',
+                        },
+                    ],
+                    topics: [
+                        {
+                            id: 1,
+                            slug: 'vps-murah',
+                            title: 'VPS Murah',
+                            keyword: 'vps murah',
+                        },
+                    ],
+                    category_url: '/category/technology',
+                    top_ranking_url: '/top/technology',
                 },
             ],
-            topEntities: [
+            popularTopics: [
                 {
                     id: 1,
-                    name: 'Contoh Internet',
-                    slug: 'contoh-internet',
-                    type_label: 'Layanan',
-                    category_name: 'Internet',
-                    score: 78,
-                    opinion_count: 150,
-                },
-            ],
-            recentEntities: [
-                {
-                    id: 2,
-                    name: 'Layanan Baru',
-                    slug: 'layanan-baru',
-                    type_label: 'Layanan',
-                    category_name: 'Internet',
-                    score: null,
-                    opinion_count: 12,
+                    slug: 'vps-murah',
+                    title: 'VPS Murah',
+                    keyword: 'vps murah',
+                    candidate_signal: 25,
                 },
             ],
         }),
@@ -102,9 +116,9 @@ it('connects category discovery and real entity summaries to their detail pages'
 
     expect(html).toContain('href="/category/internet"');
     expect(html).toContain('href="/e/contoh-internet"');
-    expect(html).toContain('150 opini dianalisis');
-    expect(html).toContain('Baru diperbarui');
-    expect(html).toContain('Belum cukup opini');
+    expect(html).toContain('150 opini');
+    expect(html).toContain('href="/topik/vps-murah"');
+    expect(html).not.toContain('Baru diperbarui');
     expect(html).toContain('href="/search?q=IndiHome"');
 });
 

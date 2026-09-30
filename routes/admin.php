@@ -7,6 +7,7 @@ use App\Domains\Entities\Controllers\AdminEntityAliasController;
 use App\Domains\Entities\Controllers\AdminEntityCandidatesController;
 use App\Domains\Entities\Controllers\AdminEntityController;
 use App\Domains\Entities\Controllers\AdminLlmSettingsController;
+use App\Domains\Search\Controllers\AdminTopicsController;
 use App\Domains\Sources\Controllers\AdminSourceController;
 use App\Domains\Sponsorships\Controllers\AdminSponsorshipController;
 use Illuminate\Support\Facades\Route;
@@ -55,4 +56,16 @@ Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')
     Route::get('/sponsorship', [AdminSponsorshipController::class, 'index'])->name('sponsorship.index');
     Route::post('/sponsorship/entries/{entry}/toggle-status', [AdminSponsorshipController::class, 'toggleEntryStatus'])->name('sponsorship.entries.toggle-status');
     Route::post('/sponsorship/entries/{entry}/remove', [AdminSponsorshipController::class, 'removeEntry'])->name('sponsorship.entries.remove');
+
+    // Topic Landing Pages management (docs/28)
+    Route::get('/topics', [AdminTopicsController::class, 'index'])->name('topics.index');
+    Route::get('/topics/create', [AdminTopicsController::class, 'create'])->name('topics.create');
+    Route::post('/topics', [AdminTopicsController::class, 'store'])->name('topics.store');
+    Route::get('/topics/{topic}/edit', [AdminTopicsController::class, 'edit'])->name('topics.edit');
+    Route::put('/topics/{topic}', [AdminTopicsController::class, 'update'])->name('topics.update');
+    Route::post('/topics/{topic}/publish', [AdminTopicsController::class, 'publish'])->name('topics.publish');
+    Route::post('/topics/{topic}/unpublish', [AdminTopicsController::class, 'unpublish'])->name('topics.unpublish');
+    Route::post('/topics/{topic}/reject', [AdminTopicsController::class, 'reject'])->name('topics.reject');
+    Route::post('/topics/{topic}/regenerate', [AdminTopicsController::class, 'regenerate'])->name('topics.regenerate');
+    Route::get('/topics-theme-search', [AdminTopicsController::class, 'searchThemes'])->name('topics.themes-search');
 });

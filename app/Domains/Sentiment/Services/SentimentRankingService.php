@@ -3,6 +3,7 @@
 namespace App\Domains\Sentiment\Services;
 
 use App\Domains\Entities\Enums\EntityStatus;
+use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
@@ -48,7 +49,11 @@ class SentimentRankingService
             ->where('entities.rankable', true);
 
         if ($categoryId !== null) {
-            $query->where('entities.category_id', $categoryId);
+            // A root category has no entities of its own: rank across its children too.
+            $query->whereIn('entities.category_id', Category::query()
+                ->where('id', $categoryId)
+                ->orWhere('parent_id', $categoryId)
+                ->select('id'));
         }
 
         // docs/11: 1. score desc, 2. opinion_count desc, 3. name asc

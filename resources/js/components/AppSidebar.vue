@@ -5,6 +5,7 @@ import {
     AlertTriangle,
     BookOpen,
     Bot,
+    Compass,
     FolderGit2,
     FolderTree,
     HelpCircle,
@@ -66,6 +67,11 @@ const adminNavItems: NavItem[] = [
         title: 'Entity Candidates',
         href: admin.entityCandidates.index(),
         icon: Sparkles,
+    },
+    {
+        title: 'Topik Landing Pages',
+        href: admin.topics.index(),
+        icon: Compass,
     },
     { title: 'LLM Settings', href: admin.llmSettings.edit(), icon: Bot },
 ];

@@ -4,6 +4,7 @@ namespace App\Domains\Entities\Controllers;
 
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Ratings\Models\UserRating;
+use App\Domains\Search\Models\SearchLandingPage;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentDaily;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
@@ -203,6 +204,30 @@ class EntityShowController extends Controller
                 'type_label' => $e->type->label(),
             ]),
             'specs' => $this->buildSpecs($entity),
+            'includedTopics' => SearchLandingPage::query()
+                ->published()
+                ->where(function ($q) use ($entity) {
+                    $q->where('category_id', $entity->category_id);
+                    if ($entity->category->parent_id) {
+                        $q->orWhere('category_id', $entity->category->parent_id);
+                    }
+                })
+                ->whereHas('themes', function ($tq) use ($entity) {
+                    $tq->whereHas('snapshots', function ($sq) use ($entity) {
+                        $sq->where('entity_id', $entity->id)
+                            ->where('observation_count', '>', 0);
+                    });
+                })
+                ->latest('published_at')
+                ->limit(4)
+                ->get(['id', 'slug', 'keyword', 'title'])
+                ->map(fn ($t) => [
+                    'id' => $t->id,
+                    'slug' => $t->slug,
+                    'title' => $t->title ?: $t->keyword,
+                    'keyword' => $t->keyword,
+                ])
+                ->values(),
         ]);
     }
 

@@ -255,3 +255,15 @@ test('getCategoryTeaser falls back to all-time when active period has no categor
     expect($result['entries'])->toHaveCount(1);
     expect($result['entries'][0]['entity_id'])->toBe($e->id);
 });
+
+test('ranking of a root category includes entities from its child categories', function () {
+    $root = Category::factory()->create(['slug' => 'induk-otomotif', 'parent_id' => null]);
+    $child = Category::factory()->create(['parent_id' => $root->id]);
+    $entity = Entity::factory()->create(['category_id' => $child->id, 'status' => EntityStatus::Active, 'rankable' => true]);
+    SentimentSnapshot::factory()->create(['entity_id' => $entity->id, 'period' => Period::OneYear->value, 'score' => 80.0, 'opinion_count' => 500]);
+
+    $this->get('/top/induk-otomotif')->assertInertia(fn ($page) => $page
+        ->component('Top/Show')
+        ->has('rankings', 1)
+    );
+});

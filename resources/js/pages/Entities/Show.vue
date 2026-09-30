@@ -159,6 +159,7 @@ const props = defineProps<{
     relatedEntities: RelatedEntity[];
     trend?: TrendPoint[];
     specs: SpecsData | null;
+    includedTopics?: Array<{ id: number; slug: string; title: string; keyword: string }>;
 }>();
 
 const ratingData = ref<RatingData>({ ...props.rating });
@@ -1122,6 +1123,31 @@ async function removeRating(): Promise<void> {
                         >
                             {{ rel.type_label }}
                         </span>
+                    </Link>
+                </div>
+            </div>
+
+            <!-- Masuk Dalam Topik (docs/28) -->
+            <div
+                v-if="includedTopics && includedTopics.length > 0"
+                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
+            >
+                <h3 class="text-sm font-bold text-neutral-900">
+                    Masuk dalam Topik Pembahasan Netizen
+                </h3>
+                <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+                    <Link
+                        v-for="topic in includedTopics"
+                        :key="topic.id"
+                        :href="`/topik/${topic.slug}`"
+                        class="block rounded-xl border border-neutral-100 bg-neutral-50 p-3.5 transition hover:border-[#185b3b]/30 hover:bg-[#edf8f0]/30 hover:shadow-xs"
+                    >
+                        <div class="text-xs font-bold text-[#18392d] hover:text-[#087f5b]">
+                            {{ topic.title }}
+                        </div>
+                        <div class="mt-1 text-[11px] text-neutral-500">
+                            Topik: {{ topic.keyword }}
+                        </div>
                     </Link>
                 </div>
             </div>
