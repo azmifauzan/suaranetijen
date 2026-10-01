@@ -164,6 +164,8 @@ class CandidateScannerService
                 'entities.category_id',
                 'entity_theme_snapshots.theme_id',
                 DB::raw('COUNT(DISTINCT entities.id) as entity_count'),
+                DB::raw('SUM(entity_theme_snapshots.positive_count) as positive_total'),
+                DB::raw('SUM(entity_theme_snapshots.negative_count) as negative_total'),
             ])
             ->havingRaw('COUNT(DISTINCT entities.id) >= ?', [$minEntities])
             ->get();
@@ -181,6 +183,13 @@ class CandidateScannerService
             $theme = $themes->get($row->theme_id);
 
             if (! $cat || ! $theme) {
+                continue;
+            }
+
+            // A page listing brands under a complaint ("cs lambat merespons") is a reputation and
+            // UU ITE risk. Admins may still create one by hand; the scanner never proposes it.
+            if ((int) $row->negative_total > (int) $row->positive_total
+                || EntitySearchDocumentBuilder::hasNegationMarker($theme->display_label)) {
                 continue;
             }
 

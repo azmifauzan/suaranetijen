@@ -260,6 +260,12 @@ Masih terbuka:
 - Task 9 (scan di staging, Rich Results Test, submit sitemap).
 - Blok "Topik terkait" di kategori, `/top`, dan halaman entitas menampilkan semua topik published,
   termasuk yang `noindex`. Tidak berbahaya (`follow`), hanya kurang efisien.
-- Tema berpolaritas negatif ("harga mahal") bisa menjadi kandidat `category_theme`.
 - Batas panggilan LLM per scan belum menghitung tombol Regenerate.
 - `/category/{slug}` untuk kategori induk tanpa entitas langsung kosong: sudah ditutup di `docs/29`.
+
+Ditutup 1 Oktober 2026: pemindai tidak lagi membuat kandidat `category_theme` dari tema keluhan. Tema
+dilewati bila jumlah opini negatifnya lebih besar daripada yang positif (jumlah per kategori dan tema,
+window 365d) atau labelnya mengandung penanda negasi. Alasannya: scan pertama di staging menghasilkan
+draft seperti "Bank dan E-Wallet Lambat Merespons Keluhan Nasabah", yaitu halaman yang mendaftar brand
+di bawah judul keluhan (risiko reputasi dan UU ITE). Admin tetap bisa membuat topik semacam itu secara
+manual di `/admin/topics`.

@@ -1666,6 +1666,8 @@ full list of review findings live in those two docs; only the traps worth knowin
   including queries that mention a person entity's name or alias.
 - `PublicCopyGuard` (extracted from `EntityThemeSummarizer`) is the one copy rule (no "terbaik",
   percentages, handles, URLs) and runs on every topic save, not only on publish.
+- The scanner never proposes a complaint theme (more negative than positive opinions, or a negated
+  label) as a category x theme topic; admins can still create one manually.
 - A published topic is never touched by regenerate; slug is `a-z0-9-` only and locked after publish.
 - **Root categories can be empty of direct entities** (Automotive, Consumer Brands, Digital Services,
   Technology). `getRanking()` and `CategoryShowController` now include children, and a category with no

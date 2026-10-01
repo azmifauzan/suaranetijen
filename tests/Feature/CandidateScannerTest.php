@@ -185,3 +185,33 @@ test('it skips queries that mention a public figure name or alias', function () 
     expect($count)->toBe(1)
         ->and(SearchLandingPage::pluck('normalized_keyword')->all())->toBe(['vps cepat']);
 });
+
+test('it never turns a complaint theme into a category-theme candidate', function () {
+    config()->set('landing_pages.category_theme_min_entities', 2);
+    config()->set('landing_pages.category_theme_min_observations', 2);
+
+    $category = Category::factory()->create(['name' => 'Bank']);
+    $positive = Theme::create(['slug' => 'cs-cepat', 'display_label' => 'Cs cepat', 'canonical_key' => 'cs-cepat']);
+    $complaint = Theme::create(['slug' => 'cs-lambat', 'display_label' => 'Cs lambat merespons', 'canonical_key' => 'cs-lambat']);
+    $negated = Theme::create(['slug' => 'tidak-aman', 'display_label' => 'Tidak aman', 'canonical_key' => 'tidak-aman']);
+
+    foreach (range(1, 3) as $i) {
+        $e = Entity::factory()->create(['category_id' => $category->id, 'status' => EntityStatus::Active, 'searchable' => true]);
+        foreach ([[$positive, 8, 0], [$complaint, 1, 9], [$negated, 6, 0]] as [$theme, $pos, $neg]) {
+            EntityThemeSnapshot::create([
+                'entity_id' => $e->id,
+                'theme_id' => $theme->id,
+                'window' => Period::OneYear,
+                'observation_count' => $pos + $neg,
+                'positive_count' => $pos,
+                'neutral_count' => 0,
+                'negative_count' => $neg,
+                'rank' => 1,
+                'calculated_at' => now(),
+            ]);
+        }
+    }
+
+    expect((new CandidateScannerService)->scanCategoryThemes())->toBe(1)
+        ->and(SearchLandingPage::pluck('keyword')->all())->toBe(['Bank Cs cepat']);
+});
