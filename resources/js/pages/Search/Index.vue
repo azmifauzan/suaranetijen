@@ -20,7 +20,6 @@ interface MatchingTopicItem {
     slug: string;
     title: string;
     keyword: string;
-    meta_description?: string | null;
 }
 
 interface ParentItem {
@@ -172,9 +171,9 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                 >
                     Sebelum pilih, cek kata netizen.
                 </p>
-                <h2 class="mb-5 text-2xl font-bold tracking-tight sm:text-3xl">
+                <p class="mb-5 text-2xl font-bold tracking-tight sm:text-3xl">
                     Temukan yang ingin kamu kenali.
-                </h2>
+                </p>
                 <form role="search" @submit="handleFormSubmit" class="relative">
                     <div class="relative flex items-center">
                         <svg
@@ -205,7 +204,7 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                                 v-if="searchInput"
                                 type="button"
                                 @click="clearSearch"
-                                class="rounded-lg p-2 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
+                                class="flex size-11 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
                                 aria-label="Hapus pencarian"
                             >
                                 <svg
@@ -224,7 +223,7 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                             </button>
                             <button
                                 type="submit"
-                                class="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
+                                class="min-h-11 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700"
                             >
                                 Cari
                             </button>
@@ -239,8 +238,9 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                     <button
                         type="button"
                         @click="handleCategoryChange(null)"
+                        :aria-pressed="currentCategory === null"
                         :class="[
-                            'rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors',
+                            'inline-flex min-h-11 items-center rounded-full px-3.5 py-2.5 text-xs font-medium whitespace-nowrap transition-colors',
                             currentCategory === null
                                 ? 'bg-emerald-600 text-white'
                                 : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200',
@@ -253,8 +253,9 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                         :key="cat.id"
                         type="button"
                         @click="handleCategoryChange(cat.slug)"
+                        :aria-pressed="currentCategory === cat.slug"
                         :class="[
-                            'rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors',
+                            'inline-flex min-h-11 items-center rounded-full px-3.5 py-2.5 text-xs font-medium whitespace-nowrap transition-colors',
                             currentCategory === cat.slug
                                 ? 'bg-emerald-600 text-white'
                                 : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200',
@@ -305,13 +306,10 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                         <h2 class="mt-1 text-base font-bold text-[#18392d] sm:text-lg">
                             Lihat daftar: {{ matchingTopic.title }}
                         </h2>
-                        <p v-if="matchingTopic.meta_description" class="mt-1 text-xs text-[#4a554e]">
-                            {{ matchingTopic.meta_description }}
-                        </p>
                     </div>
                     <Link
                         :href="`/topik/${matchingTopic.slug}`"
-                        class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#087f5b] px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#076c4d]"
+                        class="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#087f5b] px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-[#076c4d]"
                     >
                         Buka Halaman Topik →
                     </Link>
@@ -348,7 +346,7 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                     </div>
                     <Link
                         :href="sponsorPage()"
-                        class="flex items-center gap-1 font-bold text-[#b45309] hover:underline"
+                        class="inline-flex min-h-11 items-center gap-1 font-bold text-[#b45309] hover:underline"
                     >
                         Lihat papan <ArrowRight class="size-3.5" />
                     </Link>
@@ -361,7 +359,7 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                         v-for="entry in sponsorTeaser.top_entries.slice(0, 3)"
                         :key="entry.id"
                         :href="showEntity(entry.slug)"
-                        class="flex items-center justify-between rounded-xl border border-[#f0dfc8] bg-white/80 px-3 py-2 text-xs transition hover:border-[#d97706] hover:bg-white"
+                        class="flex min-h-11 items-center justify-between rounded-xl border border-[#f0dfc8] bg-white/80 px-3 py-2.5 text-xs transition hover:border-[#d97706] hover:bg-white"
                     >
                         <div class="truncate mr-2">
                             <span class="font-bold text-[#92400e]">#{{ entry.rank }}</span>
@@ -577,7 +575,7 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                             searchInput = 'samsng a57';
                             performSearch('samsng a57');
                         "
-                        class="rounded-lg bg-neutral-100 px-2.5 py-1 text-neutral-700 hover:bg-neutral-200"
+                        class="min-h-11 rounded-lg bg-neutral-100 px-3 py-2.5 text-neutral-700 hover:bg-neutral-200"
                     >
                         samsng a57
                     </button>
@@ -587,7 +585,7 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                             searchInput = 'vps biznet';
                             performSearch('vps biznet');
                         "
-                        class="rounded-lg bg-neutral-100 px-2.5 py-1 text-neutral-700 hover:bg-neutral-200"
+                        class="min-h-11 rounded-lg bg-neutral-100 px-3 py-2.5 text-neutral-700 hover:bg-neutral-200"
                     >
                         vps biznet
                     </button>
@@ -597,7 +595,7 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                             searchInput = 'indihome';
                             performSearch('indihome');
                         "
-                        class="rounded-lg bg-neutral-100 px-2.5 py-1 text-neutral-700 hover:bg-neutral-200"
+                        class="min-h-11 rounded-lg bg-neutral-100 px-3 py-2.5 text-neutral-700 hover:bg-neutral-200"
                     >
                         indihome
                     </button>

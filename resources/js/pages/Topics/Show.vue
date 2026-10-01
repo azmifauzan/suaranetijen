@@ -39,8 +39,6 @@ const props = defineProps<{
         slug: string;
         keyword: string;
         title: string;
-        meta_description: string;
-        intro?: string | null;
         updated_at: string;
         category?: {
             id: number;
@@ -60,6 +58,9 @@ const siteUrl = computed(() => {
     const raw = (page.props.seo as { site_url?: string } | undefined)?.site_url;
     return (raw || '').replace(/\/$/, '');
 });
+const pageDescription = computed(
+    () => `Opini netizen tentang ${props.topic.keyword.slice(0, 70)}. Daftar entitas diurutkan berdasarkan frekuensi tema.`,
+);
 
 const breadcrumbJsonLd = computed(() => ({
     '@context': 'https://schema.org',
@@ -100,7 +101,7 @@ const itemListJsonLd = computed(() => ({
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: props.topic.title,
-    description: props.topic.meta_description,
+    description: pageDescription.value,
     itemListElement: props.entities.map((item, index) => ({
         '@type': 'ListItem',
         position: index + 1,
@@ -114,7 +115,7 @@ const itemListJsonLd = computed(() => ({
     <PublicLayout>
         <PublicSeo
             :title="topic.title"
-            :description="topic.meta_description"
+            :description="pageDescription"
             :canonical-path="`/topik/${topic.slug}`"
             :robots="isIndexable ? 'index, follow' : 'noindex, follow'"
         />
@@ -170,13 +171,6 @@ const itemListJsonLd = computed(() => ({
                 >
                     {{ topic.title }}
                 </h1>
-
-                <div
-                    v-if="topic.intro"
-                    class="prose prose-neutral mt-4 max-w-none text-base leading-relaxed text-[#4a554e]"
-                >
-                    <p class="whitespace-pre-line">{{ topic.intro }}</p>
-                </div>
 
                 <div class="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[#f0f3eb] pt-4 text-xs text-neutral-500">
                     <div class="flex flex-wrap items-center gap-1.5">

@@ -42,8 +42,11 @@ defineProps<{
                     SuaraNetijen adalah indeks sentimen publik independen untuk
                     brand, produk, dan layanan di Indonesia. Kami mengumpulkan
                     opini publik dari forum diskusi, komunitas, dan media
-                    terbuka, kemudian mengklasifikasikan sentimennya secara
-                    objektif tanpa intervensi komersial.
+                    terbuka. Model mengelompokkan opini relevan sebagai
+                    positif, netral, atau negatif. Klasifikasi dapat keliru,
+                    terutama pada sarkasme atau typo berat; opini ambigu bisa
+                    tidak diklasifikasikan. Nilai sponsor tidak masuk ke
+                    formula skor.
                 </p>
 
                 <div class="mt-8 space-y-8 text-neutral-700">
@@ -74,7 +77,7 @@ defineProps<{
                             </div>
                             <div class="rounded-xl bg-neutral-50 p-4">
                                 <div
-                                    class="text-xs font-bold text-amber-600 uppercase"
+                                    class="text-xs font-bold text-amber-800 uppercase"
                                 >
                                     Rating Netijen
                                 </div>
@@ -82,7 +85,7 @@ defineProps<{
                                     1.0 - 5.0 ★
                                 </div>
                                 <div class="mt-1 text-xs text-neutral-500">
-                                    Star rating terverifikasi dari pengguna
+                                    Penilaian bintang yang diberikan pengguna
                                     SuaraNetijen.
                                 </div>
                             </div>
@@ -145,8 +148,8 @@ defineProps<{
                                 >
                                 Entitas dengan opini di bawah ambang batas ini
                                 menampilkan status "Belum Cukup Opini" dan tidak
-                                diindeks di mesin pencari (noindex) untuk
-                                mencegah kesimpulan prematur dari sampel kecil.
+                                menampilkan skor publik, untuk menghindari
+                                kesimpulan dari sampel kecil.
                             </li>
                             <li>
                                 <strong
@@ -155,15 +158,16 @@ defineProps<{
                                     untuk Ranking Kategori:</strong
                                 >
                                 Untuk masuk ke daftar peringkat (Top List),
-                                entitas harus memiliki minimal 100 opini yang
+                                entitas harus memiliki minimal
+                                {{ scoring.ranking_min_opinions }} opini yang
                                 dianalisis dalam periode terkait.
                             </li>
                             <li>
                                 <strong>Urutan Ranking:</strong>
                                 Skor tertinggi (DESC), kemudian jumlah opini
                                 terbanyak (DESC), lalu nama alfabetis (ASC).
-                                Tidak ada bias popularitas maupun promosi
-                                berbayar.
+                                Tidak ada bonus popularitas; sponsor ditampilkan
+                                pada papan terpisah.
                             </li>
                         </ul>
                     </section>

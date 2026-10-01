@@ -127,16 +127,6 @@ interface RelatedEntity {
     type_label: string;
 }
 
-interface SpecsItem {
-    label: string;
-    value: string;
-}
-
-interface SpecsData {
-    title: string;
-    items: SpecsItem[];
-}
-
 interface TrendPoint {
     date: string;
     label: string;
@@ -158,7 +148,6 @@ const props = defineProps<{
     themes: ThemesData;
     relatedEntities: RelatedEntity[];
     trend?: TrendPoint[];
-    specs: SpecsData | null;
     includedTopics?: Array<{ id: number; slug: string; title: string; keyword: string }>;
 }>();
 
@@ -384,8 +373,9 @@ async function removeRating(): Promise<void> {
                             v-for="p in availablePeriods"
                             :key="p"
                             type="button"
+                            :aria-pressed="period === p"
                             @click="switchPeriod(p)"
-                            class="rounded-md px-3 py-1 text-xs font-medium transition-colors"
+                            class="min-h-11 rounded-md px-3 py-2.5 text-xs font-medium transition-colors"
                             :class="{
                                 'bg-white text-neutral-900 shadow-sm':
                                     period === p,
@@ -427,7 +417,7 @@ async function removeRating(): Promise<void> {
                             :ping="`/api/sponsor/click/${entity.slug}`"
                             target="_blank"
                             rel="noopener"
-                            class="inline-flex items-center gap-1.5 rounded-lg border border-[#c2d6c6] bg-[#f0f7f2] px-3.5 py-1.5 text-xs font-semibold text-[#185b3b] transition hover:bg-[#e2f2e5]"
+                            class="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[#c2d6c6] bg-[#f0f7f2] px-3.5 py-2.5 text-xs font-semibold text-[#185b3b] transition hover:bg-[#e2f2e5]"
                             @click="
                                 trackSponsorClick(entity.slug, {
                                     placement: 'entity_profile',
@@ -503,27 +493,6 @@ async function removeRating(): Promise<void> {
                         </span>
                     </div>
                 </div>
-            </div>
-
-            <!-- Spesifikasi Card: manually curated reference data, kept separate from
-                 the Sentimen/Rating cards below since it is not derived from sentiment
-                 (docs/03, ADR-008 clarification) -->
-            <div
-                v-if="specs"
-                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
-            >
-                <h2 class="border-b border-neutral-100 pb-4 text-lg font-bold text-neutral-900">
-                    {{ specs.title }}
-                </h2>
-                <dl class="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-                    <div v-for="item in specs.items" :key="item.label" class="flex justify-between border-b border-neutral-50 pb-2 text-sm sm:justify-start sm:gap-2">
-                        <dt class="text-neutral-500">{{ item.label }}</dt>
-                        <dd class="font-medium text-neutral-900">{{ item.value }}</dd>
-                    </div>
-                </dl>
-                <p class="mt-3 text-[11px] text-neutral-400">
-                    Data referensi diisi manual, bukan bagian dari Sentimen Netijen.
-                </p>
             </div>
 
             <!-- Sentimen Netijen Card -->
@@ -632,7 +601,7 @@ async function removeRating(): Promise<void> {
                                         }}%
                                     </div>
                                     <div
-                                        class="text-[10px] text-emerald-600/80"
+                                        class="text-[10px] text-emerald-800"
                                     >
                                         Positif ({{ sentiment.positive_count }})
                                     </div>
@@ -653,7 +622,7 @@ async function removeRating(): Promise<void> {
                                             sentiment.distribution.negative_pct
                                         }}%
                                     </div>
-                                    <div class="text-[10px] text-rose-600/80">
+                                    <div class="text-[10px] text-rose-800">
                                         Negatif ({{ sentiment.negative_count }})
                                     </div>
                                 </div>
@@ -988,7 +957,7 @@ async function removeRating(): Promise<void> {
                                     v-for="star in 5"
                                     :key="star"
                                     type="button"
-                                    class="flex h-10 w-10 items-center justify-center rounded-lg transition-colors focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                    class="flex size-11 items-center justify-center rounded-lg transition-colors focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                                     :aria-label="`Beri rating ${star} dari 5`"
                                     :aria-pressed="star === ratingForm.rating"
                                     @click="ratingForm.rating = star"
@@ -1007,7 +976,7 @@ async function removeRating(): Promise<void> {
                         <div class="flex flex-wrap gap-2">
                             <button
                                 type="button"
-                                class="min-h-10 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                class="min-h-11 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                                 :disabled="
                                     ratingForm.processing ||
                                     ratingForm.rating < 1
@@ -1023,7 +992,7 @@ async function removeRating(): Promise<void> {
                             <button
                                 v-if="ratingData.user_rating !== null"
                                 type="button"
-                                class="min-h-10 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                class="min-h-11 rounded-lg border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
                                 :disabled="ratingForm.processing"
                                 @click="removeRating"
                             >

@@ -58,7 +58,6 @@ class SearchPageController extends Controller
                     'slug' => $topic->slug,
                     'title' => $topic->title ?: $topic->keyword,
                     'keyword' => $topic->keyword,
-                    'meta_description' => $topic->meta_description,
                 ];
             }
         }

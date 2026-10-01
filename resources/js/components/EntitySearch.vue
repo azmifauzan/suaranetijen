@@ -140,7 +140,7 @@ function matchedTheme(item: Suggestion): string | null {
                     activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined
                 "
                 placeholder="Cari brand, produk, atau layanan..."
-                class="h-12 w-full min-w-0 bg-transparent px-1 text-sm text-[#18392d] outline-none placeholder:text-[#7e8b81] sm:px-2 sm:text-base"
+                class="h-12 w-full min-w-0 bg-transparent px-1 text-sm text-[#18392d] outline-none placeholder:text-neutral-500 sm:px-2 sm:text-base"
                 @focus="updateSuggestions"
                 @keydown.down.prevent="moveSelection(1)"
                 @keydown.up.prevent="moveSelection(-1)"

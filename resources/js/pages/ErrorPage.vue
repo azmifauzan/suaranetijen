@@ -71,7 +71,7 @@ const content = computed(() => {
                     {{ content.title }}
                 </h1>
                 <p
-                    class="mx-auto mt-4 max-w-md text-base leading-7 text-[#68746b]"
+                    class="mx-auto mt-4 max-w-md text-base leading-7 text-neutral-500"
                 >
                     {{ content.description }}
                 </p>

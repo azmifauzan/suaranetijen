@@ -135,7 +135,7 @@ function formatRupiah(amount: number): string {
     <PublicLayout>
         <PublicSeo
             title="Sentimen Netizen Brand, Produk, dan Layanan di Indonesia"
-            description="Indeks sentimen netizen independen tentang brand, produk, dan layanan di Indonesia. Temukan reputasi publik, opini netizen, dan rating objektif sebelum menentukan pilihan."
+            description="Indeks sentimen netizen tentang brand, produk, dan layanan di Indonesia. Lihat opini publik dan rating pengguna yang ditampilkan terpisah."
             canonical-path="/"
         />
 
@@ -207,7 +207,7 @@ function formatRupiah(amount: number): string {
                                 })
                             "
                             :title="suggestionTitle(suggestion.source)"
-                            class="flex items-center gap-1 rounded-full border border-[#d8e4d1] bg-white/65 px-3 py-1.5 transition hover:border-[#81ad83] hover:bg-white"
+                            class="flex min-h-11 items-center gap-1 rounded-full border border-[#d8e4d1] bg-white/65 px-3 py-2.5 transition hover:border-[#81ad83] hover:bg-white"
                         >
                             {{ suggestion.query }}
                             <ArrowUpRight class="size-3" />
@@ -223,19 +223,23 @@ function formatRupiah(amount: number): string {
                             <div class="flex items-center gap-2">
                                 <span class="inline-flex items-center gap-1.5 rounded-full border border-[#dfd3be] bg-[#fffcf5] px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-[#92400e] uppercase">
                                     <Trophy class="size-3 text-[#d97706]" />
-                                    Top 3 Leaderboard
+                                    Papan Sponsor · #1–#3
                                 </span>
-                                <span class="hidden text-[11px] text-[#6e8072] sm:inline">
+                                <span class="hidden text-[11px] text-neutral-500 sm:inline">
                                     Periode {{ sponsorTeaser.period_name || 'Minggu Ini' }}
                                 </span>
                             </div>
                             <Link
                                 :href="leaderboardPage()"
-                                class="inline-flex items-center text-[11px] font-bold text-[#92400e] hover:text-[#d97706]"
+                                class="inline-flex min-h-11 items-center text-[11px] font-bold text-[#92400e] hover:text-[#d97706]"
                             >
-                                Buka Leaderboard
+                                Buka Papan Sponsor
                             </Link>
                         </div>
+
+                        <p class="mb-2 px-1 text-[11px] text-neutral-500">
+                            Urutan berdasarkan nominal sponsor terkonfirmasi, bukan skor Sentimen Netijen.
+                        </p>
 
                         <div class="space-y-1.5">
                             <div
@@ -305,7 +309,7 @@ function formatRupiah(amount: number): string {
                                         >
                                             Sentimen {{ entry.sentiment_score.toLocaleString('id-ID', { maximumFractionDigits: 1 }) }}
                                         </span>
-                                        <span v-else class="text-[#718274]">Tanpa skor</span>
+                                        <span v-else class="text-neutral-500">Tanpa skor</span>
 
                                         <span>•</span>
 
@@ -342,14 +346,14 @@ function formatRupiah(amount: number): string {
                                             :ping="`/api/sponsor/click/${entry.slug}`"
                                             target="_blank"
                                             rel="noopener"
-                                            class="inline-flex min-h-8 items-center justify-center rounded-lg bg-[#eaf7ee] px-2.5 py-1 text-xs font-bold text-[#145736] transition hover:bg-[#d6f0dd]"
+                                            class="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#eaf7ee] px-2.5 py-2.5 text-xs font-bold text-[#145736] transition hover:bg-[#d6f0dd]"
                                             @click="trackSponsorClick(entry.slug, { placement: 'homepage_spotlight', url: entry.website_url || undefined })"
                                         >
                                             Buka Situs
                                         </a>
                                         <Link
                                             :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1}#formSection`"
-                                            class="inline-flex min-h-8 items-center justify-center rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-1 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
+                                            class="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-2.5 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
                                         >
                                             Rebut #{{ entry.rank }}
                                         </Link>
@@ -363,7 +367,7 @@ function formatRupiah(amount: number): string {
                     <div v-else class="mt-4">
                         <Link
                             :href="leaderboardPage()"
-                            class="inline-flex items-center gap-2 rounded-full border border-[#edd5b1] bg-white/80 px-3.5 py-1.5 text-xs text-[#8a5d1a] shadow-xs transition hover:border-[#d97706] hover:bg-white"
+                            class="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#edd5b1] bg-white/80 px-3.5 py-2.5 text-xs text-[#8a5d1a] shadow-xs transition hover:border-[#d97706] hover:bg-white"
                         >
                             <Trophy class="size-3.5 text-[#d97706]" />
                             <span class="font-bold">Leaderboard: Belum ada sponsor periode ini</span>
@@ -385,7 +389,7 @@ function formatRupiah(amount: number): string {
                     </span>
                     <Link
                         :href="methodology()"
-                        class="flex items-center gap-2 hover:text-[#087f5b]"
+                        class="inline-flex min-h-11 items-center gap-2 py-2.5 hover:text-[#087f5b]"
                     >
                         <ShieldCheck class="size-4 text-[#087f5b]" />
                         Metodologi terbuka
@@ -424,14 +428,14 @@ function formatRupiah(amount: number): string {
                             v-for="topic in popularTopics"
                             :key="topic.id"
                             :href="showTopic(topic.slug)"
-                            class="group inline-flex items-center gap-2 rounded-xl border border-[#dfe5dc] bg-[#f9fbf8] px-3.5 py-2 text-xs font-semibold text-[#1f3b28] transition hover:border-[#8ab591] hover:bg-white hover:text-[#087f5b] hover:shadow-xs"
+                            class="group inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dfe5dc] bg-[#f9fbf8] px-3.5 py-2.5 text-xs font-semibold text-[#1f3b28] transition hover:border-[#8ab591] hover:bg-white hover:text-[#087f5b] hover:shadow-xs"
                         >
                             <span>{{ topic.title }}</span>
                         </Link>
 
                         <Link
                             :href="topicIndex()"
-                            class="inline-flex items-center gap-1 rounded-xl border border-dashed border-[#b8cbbd] px-3.5 py-2 text-xs font-bold text-[#087f5b] transition hover:border-[#087f5b] hover:bg-[#f0f8f2]"
+                            class="inline-flex min-h-11 items-center gap-1 rounded-xl border border-dashed border-[#b8cbbd] px-3.5 py-2.5 text-xs font-bold text-[#087f5b] transition hover:border-[#087f5b] hover:bg-[#f0f8f2]"
                         >
                             Lihat Semua Topik
                             <ArrowRight class="size-3.5" />
@@ -450,21 +454,21 @@ function formatRupiah(amount: number): string {
                         <div>
                             <div class="mb-1 inline-flex items-center gap-1.5 rounded-full border border-[#dfd3be] bg-[#fffcf5] px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-[#92400e] uppercase">
                                 <Trophy class="size-3 text-[#d97706]" />
-                                Leaderboard SuaraNetijen
+                                Papan Sponsor
                             </div>
                             <h2
                                 id="top-leaderboard-heading"
                                 class="text-xl font-bold tracking-tight text-[#18392d] sm:text-2xl"
                             >
-                                Leaderboard (#4 – #10)
+                                Posisi #4 – #10
                             </h2>
                             <p class="mt-0.5 text-xs text-[#61725f] sm:text-sm">
-                                Brand, produk, dan layanan di peringkat #4 sampai #10 periode {{ sponsorTeaser?.period_name || 'Minggu Ini' }}.
+                                Urutan mengikuti nominal sponsor terkonfirmasi, terpisah dari ranking sentimen. Periode {{ sponsorTeaser?.period_name || 'Minggu Ini' }}.
                             </p>
                         </div>
                         <Link
                             :href="leaderboardPage()"
-                            class="inline-flex items-center rounded-lg border border-[#dfcca9] bg-white px-3.5 py-1.5 text-xs font-bold text-[#92400e] shadow-2xs transition hover:border-[#d97706] hover:bg-[#fffbf2]"
+                            class="inline-flex min-h-11 items-center rounded-lg border border-[#dfcca9] bg-white px-3.5 py-2.5 text-xs font-bold text-[#92400e] shadow-2xs transition hover:border-[#d97706] hover:bg-[#fffbf2]"
                         >
                             Lihat Semua Peringkat & Ikut Sponsor
                         </Link>
@@ -524,7 +528,7 @@ function formatRupiah(amount: number): string {
                                     >
                                         Sentimen {{ entry.sentiment_score.toLocaleString('id-ID', { maximumFractionDigits: 1 }) }}
                                     </span>
-                                    <span v-else class="text-[#718274]">Tanpa skor</span>
+                                    <span v-else class="text-neutral-500">Tanpa skor</span>
 
                                     <span>•</span>
 
@@ -561,14 +565,14 @@ function formatRupiah(amount: number): string {
                                         :ping="`/api/sponsor/click/${entry.slug}`"
                                         target="_blank"
                                         rel="noopener"
-                                        class="inline-flex min-h-8 items-center justify-center rounded-lg bg-[#eaf7ee] px-2.5 py-1 text-xs font-bold text-[#145736] transition hover:bg-[#d6f0dd]"
+                                        class="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#eaf7ee] px-2.5 py-2.5 text-xs font-bold text-[#145736] transition hover:bg-[#d6f0dd]"
                                         @click="trackSponsorClick(entry.slug, { placement: 'homepage_table', url: entry.website_url || undefined })"
                                     >
                                         Buka Situs
                                     </a>
                                     <Link
                                         :href="`/leaderboard?rebut_rank=${entry.rank}&target_name=${encodeURIComponent(entry.name)}&needed_amount=${entry.settled_total_amount + 1}#formSection`"
-                                        class="inline-flex min-h-8 items-center justify-center rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-1 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
+                                        class="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-2.5 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
                                     >
                                         Rebut #{{ entry.rank }}
                                     </Link>
@@ -591,7 +595,7 @@ function formatRupiah(amount: number): string {
                         <div class="mt-3">
                             <Link
                                 :href="leaderboardPage()"
-                                class="inline-flex items-center justify-center rounded-lg bg-[#d97706] px-4 py-2 text-xs font-bold text-white shadow-2xs transition hover:bg-[#b45309]"
+                                class="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#9a3412] px-4 py-2.5 text-xs font-bold text-white shadow-2xs transition hover:bg-[#7c2d12]"
                             >
                                 Amankan Posisi Sekarang
                             </Link>
@@ -604,15 +608,15 @@ function formatRupiah(amount: number): string {
                         class="rounded-xl border border-dashed border-[#dfcca9] bg-white p-5 text-center sm:p-6"
                     >
                         <h3 class="text-sm font-bold text-[#2d2212] sm:text-base">
-                            Leaderboard periode ini masih kosong
+                            Papan Sponsor periode ini masih kosong
                         </h3>
                         <p class="mx-auto mt-1 max-w-md text-xs leading-relaxed text-[#7c694e] sm:text-sm">
-                            Jadilah brand, produk, atau layanan pertama yang tampil di peringkat teratas SuaraNetijen dan dapatkan exposure langsung ke ribuan pengunjung.
+                            Jadilah brand, produk, atau layanan pertama yang tampil di Papan Sponsor periode ini.
                         </p>
                         <div class="mt-3">
                             <Link
                                 :href="leaderboardPage()"
-                                class="inline-flex items-center justify-center rounded-lg bg-[#d97706] px-4 py-2 text-xs font-bold text-white shadow-2xs transition hover:bg-[#b45309]"
+                                class="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#9a3412] px-4 py-2.5 text-xs font-bold text-white shadow-2xs transition hover:bg-[#7c2d12]"
                             >
                                 Sponsori Sekarang
                             </Link>

@@ -231,7 +231,7 @@ onBeforeUnmount(stopPolling);
                     <a
                         v-if="!isPaid && paymentLinkUrl"
                         :href="paymentLinkUrl"
-                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#d97706] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#b45309]"
+                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#9a3412] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#7c2d12]"
                     >
                         Kembali ke Pembayaran <ArrowRight class="size-4" />
                     </a>

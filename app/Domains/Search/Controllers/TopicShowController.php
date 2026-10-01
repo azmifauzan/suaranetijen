@@ -50,8 +50,6 @@ class TopicShowController extends Controller
                 'slug' => $topic->slug,
                 'keyword' => $topic->keyword,
                 'title' => $topic->title ?: "Opini Netizen tentang {$topic->keyword}",
-                'meta_description' => $topic->meta_description ?: "Daftar entitas terkait {$topic->keyword} berdasarkan frekuensi suara netizen.",
-                'intro' => $topic->intro,
                 'updated_at' => $topic->updated_at?->format('d M Y') ?? '',
                 'category' => $topic->category ? [
                     'id' => $topic->category->id,

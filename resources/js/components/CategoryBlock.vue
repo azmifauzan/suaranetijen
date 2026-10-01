@@ -149,7 +149,7 @@ defineProps<{
                 v-if="block.child_categories.length > 0"
                 class="mt-3.5 border-t border-[#edf1ec] pt-3"
             >
-                <p class="mb-1.5 text-[11px] font-medium text-[#798b7e]">
+                <p class="mb-1.5 text-[11px] font-medium text-neutral-500">
                     Subkategori:
                 </p>
                 <div class="flex flex-wrap gap-1.5">

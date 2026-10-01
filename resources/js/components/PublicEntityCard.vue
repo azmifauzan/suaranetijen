@@ -31,7 +31,7 @@ defineProps<{
             />
         </div>
         <h3 class="mt-5 text-lg font-bold tracking-tight">{{ entity.name }}</h3>
-        <p class="mt-1 text-xs text-[#738076]">
+        <p class="mt-1 text-xs text-neutral-500">
             {{ entity.type_label }} · {{ entity.category_name }}
         </p>
         <div class="mt-5 flex flex-1 flex-col justify-end">
@@ -57,13 +57,13 @@ defineProps<{
                     >Belum cukup opini</span
                 ><span class="text-xs text-[#637368]">Sentimen Netijen</span>
             </div>
-            <p class="mt-4 flex items-center gap-1.5 text-xs text-[#738076]">
+            <p class="mt-4 flex items-center gap-1.5 text-xs text-neutral-500">
                 <MessageCircle class="size-3.5" />{{
                     entity.opinion_count.toLocaleString('id-ID')
                 }}
                 opini dianalisis
             </p>
-            <p v-if="entity.updated_at" class="mt-2 text-xs text-[#738076]">
+            <p v-if="entity.updated_at" class="mt-2 text-xs text-neutral-500">
                 Diperbarui {{ entity.updated_at }}
             </p>
         </div>

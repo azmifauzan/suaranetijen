@@ -11,7 +11,6 @@ interface TopicItem {
     slug: string;
     keyword: string;
     title: string;
-    meta_description?: string | null;
     category_name?: string | null;
 }
 
@@ -102,12 +101,6 @@ defineProps<{
                             <h3 class="mt-1 font-bold text-[#18392d] group-hover:text-[#087f5b] group-hover:underline">
                                 {{ topic.title }}
                             </h3>
-                            <p
-                                v-if="topic.meta_description"
-                                class="mt-2 line-clamp-2 text-xs leading-relaxed text-neutral-500"
-                            >
-                                {{ topic.meta_description }}
-                            </p>
                             <div class="mt-3 flex items-center text-xs font-semibold text-[#087f5b]">
                                 Telusuri topik →
                             </div>

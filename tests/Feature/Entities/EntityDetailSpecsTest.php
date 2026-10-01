@@ -114,7 +114,7 @@ test('resubmitting a spec updates the existing row instead of creating a duplica
         ->and(MotorcycleSpec::where('entity_id', $entity->id)->value('engine_cc'))->toBe(160);
 });
 
-test('public entity page exposes specs for a smartphone entity', function () {
+test('public entity page does not expose smartphone specs', function () {
     $category = Category::factory()->create(['slug' => 'smartphone']);
     $entity = Entity::factory()->create(['category_id' => $category->id, 'type' => EntityType::Product]);
     SmartphoneSpec::factory()->create([
@@ -127,20 +127,22 @@ test('public entity page exposes specs for a smartphone entity', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Entities/Show')
-            ->where('specs.title', 'Spesifikasi Smartphone')
-            ->where('specs.items', fn ($items) => collect($items)->contains(
-                fn ($item) => $item['label'] === 'Chipset' && $item['value'] === 'Snapdragon 7 Gen 4'
-            ))
+            ->missing('specs')
         );
 });
 
-test('public entity page has null specs when no detail spec exists', function () {
-    $entity = Entity::factory()->create(['type' => EntityType::Brand]);
+test('public entity page does not expose car specs', function () {
+    $category = Category::factory()->create(['slug' => 'mobil']);
+    $entity = Entity::factory()->create(['category_id' => $category->id, 'type' => EntityType::Product]);
+    CarSpec::factory()->create([
+        'entity_id' => $entity->id,
+        'body_type' => 'SUV',
+    ]);
 
     $this->get("/e/{$entity->slug}")
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Entities/Show')
-            ->where('specs', null)
+            ->missing('specs')
         );
 });

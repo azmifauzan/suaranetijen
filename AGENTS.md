@@ -349,11 +349,13 @@ Epic 8 + 12), and Phase 5 (coverage expansion / Epic 6) are implemented and veri
 real PostgreSQL + Redis instance**, not just
 SQLite tests: PostgreSQL/Redis are the repository's default connections, Horizon is configured
 with the four documented supervisor groups, `/admin` is protected by the authenticated
-`access-admin` Gate, the ~200-entity seed CSV imports cleanly (209 entities after adding a
-placeholder `Samsung Galaxy A57` product purely to satisfy `docs/02` acceptance criterion 1 —
-Samsung has not released that model), and PRD acceptance criteria 1 and 2 (`samsng a57` -> Samsung
-Galaxy A57; `vps biznet` -> VPS Biznet Gio and Biznet Gio) pass against live data. This project
-does not use a GitHub Actions workflow; run the quality gates locally (`composer test`).
+`access-admin` Gate, the ~200-entity seed CSV imports cleanly (209 entities, including Samsung
+Galaxy A57, which Samsung announced on 25 March 2026 [in its newsroom](https://news.samsung.com/id/samsung-perkenalkan-galaxy-a57-5g-dan-galaxy-a37-5g-hadirkan-fitur-kelas-pro-di-harga-awesome) and lists on its [Indonesian product page](https://www.samsung.com/id/smartphones/galaxy-a/galaxy-a57-5g-awesome-gray-128gb-sm-a576bzaqxid/)).
+The workspace database had no sentiment observations or snapshots for A57 when checked on 1 October
+2026; do not describe its live-page opinion count as verified from this database. PRD acceptance
+criteria 1 and 2 (`samsng a57` -> Samsung Galaxy A57; `vps biznet` -> VPS Biznet Gio and Biznet
+Gio) pass against live data. This project does not use a GitHub Actions workflow; run the quality
+gates locally (`composer test`).
 
 Search implementation notes:
 - `SearchService` covers `docs/13`'s exact / alias / prefix / trigram / category-context tiers,

@@ -27,7 +27,7 @@ defineProps<{
                 <p class="text-3xl font-bold tracking-tight">
                     Sebelum pilih, cek kata netizen.
                 </p>
-                <p class="mt-4 text-sm leading-6 text-[#68746b]">
+                <p class="mt-4 text-sm leading-6 text-neutral-500">
                     SuaraNetijen membantu kamu membaca gambaran opini publik
                     tentang brand, produk, dan layanan di Indonesia.
                 </p>

@@ -135,7 +135,7 @@ const navigation = [
                         <Link :href="home()" aria-label="SuaraNetijen — Beranda"
                             ><BrandLogo tagline
                         /></Link>
-                        <p class="mt-5 text-sm leading-6 text-[#68746b]">
+                        <p class="mt-5 text-sm leading-6 text-neutral-500">
                             Temukan gambaran opini publik tentang brand, produk,
                             dan layanan di Indonesia.
                         </p>
@@ -169,7 +169,7 @@ const navigation = [
                     </div>
                 </div>
                 <div
-                    class="mt-10 flex flex-col justify-between gap-3 border-t border-[#dce3d7] pt-6 text-xs text-[#68746b] sm:flex-row"
+                    class="mt-10 flex flex-col justify-between gap-3 border-t border-[#dce3d7] pt-6 text-xs text-neutral-500 sm:flex-row"
                 >
                     <p>© {{ new Date().getFullYear() }} SuaraNetijen</p>
                     <p>Opini publik untuk keputusan yang lebih sadar.</p>

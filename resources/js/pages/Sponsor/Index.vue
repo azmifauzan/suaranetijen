@@ -565,7 +565,7 @@ function formatRupiah(amount: number): string {
                         >
                             <a
                                 :href="userOrder.payment_link_url"
-                                class="inline-flex items-center rounded-lg bg-[#d97706] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#b45309]"
+                                class="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#9a3412] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#7c2d12]"
                             >
                                 Bayar Sekarang via QRIS
                             </a>
@@ -577,25 +577,25 @@ function formatRupiah(amount: number): string {
             <!-- Header -->
             <div class="mb-6">
                 <h1 class="text-2xl font-black tracking-tight text-[#18392d] sm:text-3xl">
-                    Leaderboard
+                    Papan Sponsor
                 </h1>
             </div>
 
             <!-- Top 3 sits first so the competitive target is visible before the sponsor form. -->
             <div class="space-y-2">
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <h2 class="text-sm font-bold text-[#18392d]">Top 3 Leaderboard</h2>
+                    <h2 class="text-sm font-bold text-[#18392d]">Posisi #1–#3</h2>
 
                     <!-- Period Switcher -->
                     <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-[#738378] mr-1">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-neutral-500 mr-1">
                             Periode:
                         </span>
                         <Link
                             v-for="p in periods"
                             :key="p.id"
                             :href="leaderboardPage({ query: { period: p.key } })"
-                            class="rounded-full px-3.5 py-1.5 text-xs font-semibold transition"
+                            class="inline-flex min-h-11 items-center rounded-full px-3.5 py-2.5 text-xs font-semibold transition"
                             :class="
                                 selectedPeriod.key === p.key
                                     ? 'bg-[#18392d] text-white shadow-sm'
@@ -610,6 +610,9 @@ function formatRupiah(amount: number): string {
                         </Link>
                     </div>
                 </div>
+                <p class="text-xs text-neutral-500">
+                    Urutan berdasarkan nominal sponsor terkonfirmasi, bukan Sentimen Netijen.
+                </p>
 
                 <div
                     v-if="leaderboard.length > 0 && filteredLeaderboard.length > 0"
@@ -660,7 +663,7 @@ function formatRupiah(amount: number): string {
                                         {{ entry.type_label }}
                                     </span>
                                 </div>
-                                <p class="truncate text-[11px] leading-4 text-[#738478]">
+                                <p class="truncate text-[11px] leading-4 text-neutral-500">
                                     {{ entry.category_name }}
                                     <span v-if="entry.description" class="hidden lg:inline"> · {{ entry.description }}</span>
                                 </p>
@@ -677,7 +680,7 @@ function formatRupiah(amount: number): string {
                                 >
                                     Sentimen {{ entry.sentiment_score.toLocaleString('id-ID', { maximumFractionDigits: 1 }) }}
                                 </span>
-                                <span v-else class="text-[#718274]">Tanpa skor</span>
+                                <span v-else class="text-neutral-500">Tanpa skor</span>
 
                                 <span>•</span>
 
@@ -708,21 +711,21 @@ function formatRupiah(amount: number): string {
                                     :ping="`/api/sponsor/click/${entry.slug}`"
                                     target="_blank"
                                     rel="noopener"
-                                    class="inline-flex min-h-8 items-center justify-center rounded-lg bg-[#eaf7ee] px-2.5 py-1 text-xs font-bold text-[#145736] transition hover:bg-[#bceccb]"
+                                    class="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#eaf7ee] px-2.5 py-2.5 text-xs font-bold text-[#145736] transition hover:bg-[#bceccb]"
                                     @click="trackSponsorClick(entry.slug, { placement: 'leaderboard_top3', url: entry.website_url || undefined })"
                                 >
                                     Buka Situs
                                 </a>
                                 <button
                                     type="button"
-                                    class="inline-flex min-h-8 items-center justify-center rounded-lg border border-[#d8e3d6] bg-white px-2.5 py-1 text-xs font-bold text-[#1f4a38] transition hover:border-[#8cb896] hover:bg-[#edf6ee]"
+                                    class="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#d8e3d6] bg-white px-2.5 py-2.5 text-xs font-bold text-[#1f4a38] transition hover:border-[#8cb896] hover:bg-[#edf6ee]"
                                     @click="selectEntityAndScrollToForm(entry)"
                                 >
                                     + Sponsor
                                 </button>
                                 <button
                                     type="button"
-                                    class="inline-flex min-h-8 items-center justify-center rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-1 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
+                                    class="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-2.5 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
                                     @click="startRebut(entry)"
                                 >
                                     Rebut #{{ entry.rank }}
@@ -780,7 +783,7 @@ function formatRupiah(amount: number): string {
                     <div class="flex shrink-0 items-center gap-2">
                         <button
                             type="button"
-                            class="rounded-xl border border-[#d97706]/30 bg-white/90 px-3 py-1.5 text-xs font-bold text-[#92400e] transition hover:bg-white"
+                            class="inline-flex min-h-11 items-center rounded-xl border border-[#d97706]/30 bg-white/90 px-3 py-2.5 text-xs font-bold text-[#92400e] transition hover:bg-white"
                             @click="cancelRebut()"
                         >
                             Batal Rebut
@@ -837,7 +840,7 @@ function formatRupiah(amount: number): string {
                             v-for="item in candidates"
                             :key="item.id"
                             type="button"
-                            class="flex w-full items-center justify-between p-3 text-left transition hover:bg-[#f0f7f0]"
+                            class="flex min-h-11 w-full items-center justify-between p-3 text-left transition hover:bg-[#f0f7f0]"
                             @click="selectedEntity = item"
                         >
                             <div>
@@ -926,7 +929,7 @@ function formatRupiah(amount: number): string {
                             </dl>
                             <button
                                 type="button"
-                                class="shrink-0 font-semibold text-[#31483b] hover:text-[#a73520]"
+                                class="inline-flex min-h-11 shrink-0 items-center px-2 font-semibold text-[#31483b] hover:text-[#a73520]"
                                 @click="selectedEntity = null"
                             >
                                 Ganti
@@ -965,7 +968,7 @@ function formatRupiah(amount: number): string {
                                 v-for="preset in presetAmounts"
                                 :key="preset"
                                 type="button"
-                                class="rounded-xl border py-2 text-xs font-bold transition"
+                                class="min-h-11 rounded-xl border py-2.5 text-xs font-bold transition"
                                 :class="
                                     contributionAmount === preset
                                         ? 'border-[#d97706] bg-[#fff6e6] text-[#92400e]'
@@ -997,7 +1000,7 @@ function formatRupiah(amount: number): string {
                         <div v-if="rebutTarget" class="mt-2.5">
                             <button
                                 type="button"
-                                class="inline-flex items-center rounded-xl border border-[#f59e0b] bg-[#fffbeb] px-3 py-1.5 text-xs font-bold text-[#92400e] shadow-2xs transition hover:bg-[#fef3c7]"
+                                class="inline-flex min-h-11 items-center rounded-xl border border-[#f59e0b] bg-[#fffbeb] px-3 py-2.5 text-xs font-bold text-[#92400e] shadow-2xs transition hover:bg-[#fef3c7]"
                                 @click="selectPreset(rebutTarget.neededAmount)"
                             >
                                 Pasang Nominal Rebut Posisi #{{ rebutTarget.rank }}: {{ formatRupiah(rebutTarget.neededAmount) }}
@@ -1028,7 +1031,7 @@ function formatRupiah(amount: number): string {
                     <div class="mt-4 border-t border-[#edf1eb] pt-3">
                         <button
                             type="button"
-                            class="w-full rounded-full bg-[#d97706] py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#b45309] disabled:opacity-50"
+                            class="min-h-11 w-full rounded-full bg-[#9a3412] py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#7c2d12] disabled:opacity-50"
                             :disabled="isSubmitting"
                             @click="openConfirmModal()"
                         >
@@ -1137,7 +1140,7 @@ function formatRupiah(amount: number): string {
                                     >
                                         Sentimen {{ entry.sentiment_score.toLocaleString('id-ID', { maximumFractionDigits: 1 }) }}
                                     </span>
-                                    <span v-else class="text-[#718274]">Tanpa skor</span>
+                                    <span v-else class="text-neutral-500">Tanpa skor</span>
 
                                     <span>•</span>
 
@@ -1168,21 +1171,21 @@ function formatRupiah(amount: number): string {
                                         :ping="`/api/sponsor/click/${entry.slug}`"
                                         target="_blank"
                                         rel="noopener"
-                                        class="inline-flex min-h-8 items-center justify-center rounded-lg bg-[#eaf7ee] px-2.5 py-1 text-xs font-bold text-[#145736] transition hover:bg-[#bceccb]"
+                                        class="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#eaf7ee] px-2.5 py-2.5 text-xs font-bold text-[#145736] transition hover:bg-[#bceccb]"
                                         @click="trackSponsorClick(entry.slug, { placement: 'leaderboard_row', url: entry.website_url || undefined })"
                                     >
                                         Buka Situs
                                     </a>
                                     <button
                                         type="button"
-                                        class="inline-flex min-h-8 items-center justify-center rounded-lg border border-[#d8e3d6] bg-white px-2.5 py-1 text-xs font-bold text-[#18392d] transition hover:border-[#8cb896] hover:bg-[#f0f7f0]"
+                                        class="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#d8e3d6] bg-white px-2.5 py-2.5 text-xs font-bold text-[#18392d] transition hover:border-[#8cb896] hover:bg-[#f0f7f0]"
                                         @click="selectEntityAndScrollToForm(entry)"
                                     >
                                         + Sponsori
                                     </button>
                                     <button
                                         type="button"
-                                        class="inline-flex min-h-8 items-center justify-center rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-1 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
+                                        class="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#f59e0b] bg-[#fffbeb] px-2.5 py-2.5 text-xs font-bold text-[#92400e] transition hover:bg-[#fef3c7]"
                                         title="Rebut posisi ini"
                                         @click="startRebut(entry)"
                                     >
@@ -1271,7 +1274,7 @@ function formatRupiah(amount: number): string {
             <div class="relative w-full max-w-md rounded-3xl border border-[#e5e9e2] bg-white p-6 shadow-2xl sm:p-8">
                 <button
                     type="button"
-                    class="absolute top-5 right-5 flex size-9 items-center justify-center rounded-full text-[#7a8a7f] hover:bg-[#f2f6f1] hover:text-[#18392d]"
+                    class="absolute top-4 right-4 flex size-11 items-center justify-center rounded-full text-[#7a8a7f] hover:bg-[#f2f6f1] hover:text-[#18392d]"
                     @click="closeConfirmModal()"
                 >
                     <X class="size-5" />
@@ -1319,7 +1322,7 @@ function formatRupiah(amount: number): string {
                 <div class="mt-6">
                     <button
                         type="button"
-                        class="w-full rounded-full bg-[#d97706] py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#b45309] disabled:opacity-50"
+                        class="min-h-11 w-full rounded-full bg-[#9a3412] py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#7c2d12] disabled:opacity-50"
                         :disabled="isSubmitting"
                         @click="submitOrder()"
                     >

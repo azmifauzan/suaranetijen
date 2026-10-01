@@ -300,6 +300,24 @@ it('includes up to 3 published and indexable topics per category block', functio
     );
 });
 
+it('does not expose generated meta descriptions in the public topic index', function () {
+    $category = Category::factory()->create(['name' => 'Smartphone', 'slug' => 'smartphone']);
+
+    createIndexablePublishedTopic([
+        'category_id' => $category->id,
+        'meta_description' => 'Netizen ramai membahas hal-hal menarik.',
+    ]);
+
+    $this->get('/topik')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Topics/Index')
+            ->where('groupedTopics', fn ($groups) => collect($groups)
+                ->flatten(1)
+                ->every(fn (array $topic) => ! array_key_exists('meta_description', $topic)))
+        );
+});
+
 it('returns popularTopics up to 12 published indexable topics ordered by candidate_signal', function () {
     $category = Category::factory()->create();
 

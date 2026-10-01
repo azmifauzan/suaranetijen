@@ -9,7 +9,7 @@ import PublicSeo from '@/components/PublicSeo.vue';
     <PublicLayout>
         <PublicSeo
             title="Tentang SuaraNetijen"
-            description="Mengenal SuaraNetijen, proyek open source untuk membaca opini dan sentimen publik dari percakapan netizen di Indonesia."
+            description="Mengenal SuaraNetijen, proyek open source yang mengolah opini publik menjadi skor sentimen, tema, dan rating pengguna yang terpisah."
             canonical-path="/about"
         />
 
@@ -33,44 +33,37 @@ import PublicSeo from '@/components/PublicSeo.vue';
                     class="mt-6 space-y-6 text-base leading-relaxed text-neutral-700"
                 >
                     <p>
-                        SuaraNetijen hadir untuk menjawab pertanyaan mendasar
-                        setiap konsumen di Indonesia:
-                        <em
-                            >"Apa sebenarnya kata netizen tentang produk atau
-                            layanan ini?"</em
-                        >
+                        SuaraNetijen mengolah opini publik tentang brand,
+                        produk, dan layanan di Indonesia. Halaman entitas
+                        menampilkan skor sentimen, tema yang sering muncul,
+                        dan rating pengguna secara terpisah.
                     </p>
                     <p>
-                        Di era ulasan sponsor dan review berbayar yang
-                        membingungkan, menemukan opini nyata dari sesama
-                        pengguna menjadi semakin sulit. SuaraNetijen
-                        mengumpulkan percakapan dan pengalaman riil dari ribuan
-                        thread komunitas, forum diskusi, dan media terbuka, lalu
-                        merangkumnya menjadi indikator sentimen yang jernih,
-                        transparan, dan dapat diverifikasi.
+                        Model mengelompokkan opini relevan sebagai positif,
+                        netral, atau negatif. Hasilnya dapat keliru, terutama
+                        untuk sarkasme dan typo berat; opini yang ambigu bisa
+                        tidak diklasifikasikan.
                     </p>
 
                     <h2 class="pt-4 text-xl font-bold text-neutral-900">
-                        Pilar Utama Kami
+                        Cara Indeks Disusun
                     </h2>
                     <ul class="list-disc space-y-2 pl-5 text-sm">
                         <li>
-                            <strong>Independen:</strong> Tidak menerima bayaran
-                            untuk memanipulasi, menyembunyikan, atau menaikkan
-                            skor sentimen brand apapun.
+                            <strong>Skor terpisah dari sponsor:</strong>
+                            Nominal sponsor tidak masuk ke formula skor atau
+                            urutan ranking sentimen.
                         </li>
                         <li>
                             <strong>Berbasis Data Agregasi:</strong> Skor
-                            dihasilkan melalui model pemrosesan bahasa alami
-                            (NLP) yang konsisten, deterministik, dan bebas bias
-                            subjektif.
+                            dihitung dari opini relevan yang diklasifikasikan
+                            sebagai positif, netral, atau negatif. Klasifikasi
+                            otomatis memiliki batas dan dapat keliru.
                         </li>
                         <li>
-                            <strong>Dua Sisi yang Adil:</strong> Kami
-                            menampilkan apa yang disukai netizen sekaligus apa
-                            yang paling sering dikeluhkan, memberikan gambaran
-                            utuh sebelum Anda memutuskan membeli atau
-                            menggunakan layanan.
+                            <strong>Tiga informasi terpisah:</strong> Skor
+                            sentimen, Rating Netijen, dan frekuensi tema tidak
+                            digabung menjadi satu nilai.
                         </li>
                     </ul>
 
@@ -91,7 +84,7 @@ import PublicSeo from '@/components/PublicSeo.vue';
                             href="https://github.com/azmifauzan/suaranetijen"
                             target="_blank"
                             rel="noopener noreferrer"
-                            class="mt-3 inline-flex items-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800"
+                            class="mt-3 inline-flex min-h-11 items-center rounded-full bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800"
                             >Lihat kode sumber di GitHub</a
                         >
                     </section>

@@ -32,7 +32,6 @@ class TopicIndexController extends Controller
                 'slug' => $topic->slug,
                 'keyword' => $topic->keyword,
                 'title' => $topic->title ?: $topic->keyword,
-                'meta_description' => $topic->meta_description,
                 'category_name' => $topic->category?->name,
             ];
         }

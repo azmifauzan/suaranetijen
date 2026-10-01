@@ -129,12 +129,12 @@ function switchPeriod(p: string) {
                     <!-- "Semua" links to global /top ranking -->
                     <Link
                         :href="rankingIndex.url()"
-                        class="rounded-full bg-neutral-200/80 px-3 py-1 text-xs text-neutral-700 hover:bg-neutral-300"
+                        class="inline-flex min-h-11 items-center rounded-full bg-neutral-200/80 px-3 py-2.5 text-xs text-neutral-700 hover:bg-neutral-300"
                     >
                         Semua
                     </Link>
                     <span
-                        class="rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white"
+                        class="inline-flex min-h-11 items-center rounded-full bg-emerald-600 px-3 py-2.5 text-xs font-semibold text-white"
                     >
                         {{ category.name }}
                     </span>
@@ -142,7 +142,7 @@ function switchPeriod(p: string) {
                         v-for="other in otherCategories"
                         :key="other.id"
                         :href="showRanking.url(other.slug)"
-                        class="rounded-full bg-neutral-200/80 px-3 py-1 text-xs text-neutral-700 hover:bg-neutral-300"
+                        class="inline-flex min-h-11 items-center rounded-full bg-neutral-200/80 px-3 py-2.5 text-xs text-neutral-700 hover:bg-neutral-300"
                     >
                         {{ other.name }}
                     </Link>
@@ -155,7 +155,8 @@ function switchPeriod(p: string) {
                         :key="p.key"
                         type="button"
                         @click="switchPeriod(p.key)"
-                        class="rounded-md px-3 py-1 text-xs font-medium transition-colors"
+                        :aria-pressed="period === p.key"
+                        class="min-h-11 rounded-md px-3 py-2.5 text-xs font-medium transition-colors"
                         :class="{
                             'bg-white text-neutral-900 shadow-sm':
                                 period === p.key,
@@ -214,7 +215,7 @@ function switchPeriod(p: string) {
                         <div
                             class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-black"
                             :class="{
-                                'bg-amber-400/20 text-amber-600':
+                                'bg-amber-400/20 text-amber-800':
                                     item.rank === 1,
                                 'bg-neutral-300/40 text-neutral-600':
                                     item.rank === 2,

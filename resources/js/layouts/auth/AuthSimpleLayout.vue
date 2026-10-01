@@ -27,7 +27,7 @@ defineProps<{
                         <h1 class="text-xl font-bold tracking-tight">
                             {{ title }}
                         </h1>
-                        <p class="text-center text-sm text-[#68746b]">
+                        <p class="text-center text-sm text-neutral-500">
                             {{ description }}
                         </p>
                     </div>

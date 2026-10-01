@@ -65,31 +65,31 @@ const isEmpty = computed(() => {
                     {{ label ?? 'Papan Sponsor' }}
                 </span>
                 <span
-                    class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-600"
+                    class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800"
                 >
                     Sponsor
                 </span>
             </div>
             <Link
                 :href="leaderboardPage.url()"
-                class="text-[11px] font-medium text-amber-600 hover:underline"
+                class="inline-flex min-h-11 items-center text-[11px] font-medium text-amber-800 hover:underline"
             >
                 Lihat papan penuh →
             </Link>
         </div>
 
         <!-- Disclosure -->
-        <p class="mb-3 text-[10px] leading-relaxed text-amber-600/80">
+        <p class="mb-3 text-[10px] leading-relaxed text-amber-800">
             Urutan berdasarkan nominal sponsor terkonfirmasi, bukan Sentimen Netijen atau
             penilaian editorial.
         </p>
 
         <!-- Empty invite -->
         <div v-if="isEmpty" class="text-center py-3">
-            <p class="text-xs text-amber-600">Papan Sponsor masih kosong —</p>
+            <p class="text-xs text-amber-800">Papan Sponsor masih kosong —</p>
             <Link
                 :href="leaderboardPage.url()"
-                class="mt-1 inline-block text-xs font-semibold text-amber-700 hover:underline"
+                class="mt-1 inline-flex min-h-11 items-center text-xs font-semibold text-amber-800 hover:underline"
             >
                 Jadi yang pertama sponsori
             </Link>
@@ -128,7 +128,7 @@ const isEmpty = computed(() => {
                         >{{ entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : '🥉' }}</span>
                     </div>
                     <div class="mt-0.5 flex items-center gap-1.5">
-                        <span class="text-[10px] text-amber-600 font-medium">
+                        <span class="text-[10px] font-medium text-amber-800">
                             {{ formatRupiah(entry.settled_total_amount) }}
                         </span>
                         <span
@@ -146,7 +146,7 @@ const isEmpty = computed(() => {
                 v-for="entry in entries"
                 :key="entry.slug + '-link'"
                 :href="showEntity.url(entry.slug)"
-                class="text-[10px] text-neutral-400 hover:text-neutral-600 hover:underline"
+                class="inline-flex min-h-11 items-center text-[10px] text-neutral-500 hover:text-neutral-700 hover:underline"
             >
                 Lihat {{ entry.name }}
             </Link>
