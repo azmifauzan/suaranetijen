@@ -417,13 +417,6 @@ function formatRupiah(amount: number): string {
                                 Yang sering dibicarakan netizen
                             </h2>
                         </div>
-                        <Link
-                            :href="topicIndex()"
-                            class="inline-flex items-center gap-1.5 text-xs font-bold text-[#087f5b] hover:underline"
-                        >
-                            Lihat semua topik
-                            <ArrowRight class="size-3.5" />
-                        </Link>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2.5">
