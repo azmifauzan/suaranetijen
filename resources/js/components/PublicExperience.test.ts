@@ -71,7 +71,6 @@ it('connects category discovery and real entity summaries to their detail pages'
                     id: 1,
                     name: 'Technology',
                     slug: 'technology',
-                    is_public_figure: false,
                     top_entities: [
                         {
                             id: 1,

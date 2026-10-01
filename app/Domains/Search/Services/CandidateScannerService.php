@@ -11,6 +11,7 @@ use App\Domains\Entities\Services\TextNormalizer;
 use App\Domains\Search\Enums\SearchLandingPageSource;
 use App\Domains\Search\Enums\SearchLandingPageStatus;
 use App\Domains\Search\Models\SearchLandingPage;
+use App\Domains\Search\Models\SearchQuery;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Themes\Models\Theme;
 use Carbon\Carbon;
@@ -65,10 +66,7 @@ class CandidateScannerService
         $windowDays = (int) config('landing_pages.search_query_window_days', 30);
         $since = Carbon::now()->subDays($windowDays);
 
-        $driver = DB::connection()->getDriverName();
-        $userSessionExpr = $driver === 'pgsql'
-            ? 'COALESCE(user_id::text, session_id)'
-            : 'COALESCE(CAST(user_id AS TEXT), session_id)';
+        $userSessionExpr = SearchQuery::visitorSql();
 
         $rows = DB::table('search_queries')
             ->where('created_at', '>=', $since)
@@ -294,7 +292,7 @@ class CandidateScannerService
      *
      * @return array<int, string>
      */
-    private function getPublicFigureTerms(): array
+    public function getPublicFigureTerms(): array
     {
         $names = Entity::where('type', EntityType::Person)
             ->pluck('name')
@@ -314,7 +312,7 @@ class CandidateScannerService
     /**
      * @param  array<int, string>  $terms
      */
-    private function mentionsAny(string $normalized, array $terms): bool
+    public function mentionsAny(string $normalized, array $terms): bool
     {
         foreach ($terms as $term) {
             if (preg_match('/(?<![\p{L}\p{N}])'.preg_quote($term, '/').'(?![\p{L}\p{N}])/u', $normalized)) {

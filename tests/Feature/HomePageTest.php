@@ -87,33 +87,33 @@ it('returns top 3 eligible entities per root category across child categories or
     $e4 = Entity::factory()->create(['name' => 'Delta Server', 'slug' => 'delta-server', 'category_id' => $child2->id, 'status' => EntityStatus::Active, 'searchable' => true]);
 
     // Snapshots:
-    // e1: score 85, opinions 50
-    // e2: score 90, opinions 40 (Rank 1)
-    // e3: score 85, opinions 60 (Rank 2: same score as e1, but more opinions)
-    // e4: score 70, opinions 100 (Rank 4, exceeds top 3)
+    // e1: score 85, opinions 150
+    // e2: score 90, opinions 140 (Rank 1)
+    // e3: score 85, opinions 160 (Rank 2: same score as e1, but more opinions)
+    // e4: score 70, opinions 200 (Rank 4, exceeds top 3)
     SentimentSnapshot::factory()->create([
         'entity_id' => $e1->id,
         'period' => Period::OneYear->value,
         'score' => 85.0,
-        'opinion_count' => 50,
+        'opinion_count' => 150,
     ]);
     SentimentSnapshot::factory()->create([
         'entity_id' => $e2->id,
         'period' => Period::OneYear->value,
         'score' => 90.0,
-        'opinion_count' => 40,
+        'opinion_count' => 140,
     ]);
     SentimentSnapshot::factory()->create([
         'entity_id' => $e3->id,
         'period' => Period::OneYear->value,
         'score' => 85.0,
-        'opinion_count' => 60,
+        'opinion_count' => 160,
     ]);
     SentimentSnapshot::factory()->create([
         'entity_id' => $e4->id,
         'period' => Period::OneYear->value,
         'score' => 70.0,
-        'opinion_count' => 100,
+        'opinion_count' => 200,
     ]);
 
     $response = $this->get(route('home'));
@@ -140,7 +140,7 @@ it('returns top 3 eligible entities per root category across child categories or
     );
 });
 
-it('excludes non-eligible (< 30 opinions), inactive/disabled, and non-searchable entities from category blocks', function () {
+it('excludes entities below the ranking threshold (< 100 opinions), disabled and non-searchable ones, leaving the category without a block', function () {
     $parent = Category::factory()->create(['name' => 'Automotive', 'slug' => 'automotive', 'parent_id' => null]);
     $child = Category::factory()->create(['name' => 'Mobil', 'slug' => 'mobil', 'parent_id' => $parent->id]);
 
@@ -159,7 +159,7 @@ it('excludes non-eligible (< 30 opinions), inactive/disabled, and non-searchable
         'entity_id' => $disabled->id,
         'period' => Period::OneYear->value,
         'score' => 90.0,
-        'opinion_count' => 50,
+        'opinion_count' => 150,
     ]);
 
     // Non-searchable entity
@@ -168,21 +168,17 @@ it('excludes non-eligible (< 30 opinions), inactive/disabled, and non-searchable
         'entity_id' => $nonSearchable->id,
         'period' => Period::OneYear->value,
         'score' => 88.0,
-        'opinion_count' => 60,
+        'opinion_count' => 150,
     ]);
 
     $response = $this->get(route('home'));
 
     $response->assertInertia(fn (AssertableInertia $page) => $page
-        ->where('categoryBlocks', function (Collection $blocks) {
-            $auto = $blocks->firstWhere('slug', 'automotive');
-
-            return $auto && count($auto['top_entities']) === 0;
-        })
+        ->where('categoryBlocks', fn (Collection $blocks) => $blocks->firstWhere('slug', 'automotive') === null)
     );
 });
 
-it('never includes top_entities for Tokoh Publik, but keeps child categories', function () {
+it('never shows Tokoh Publik as a block, even with ranked entities', function () {
     $tokohPublik = Category::factory()->create(['name' => 'Tokoh Publik', 'slug' => 'tokoh-publik', 'parent_id' => null]);
     $politisi = Category::factory()->create(['name' => 'Politisi', 'slug' => 'politisi', 'parent_id' => $tokohPublik->id]);
 
@@ -203,19 +199,7 @@ it('never includes top_entities for Tokoh Publik, but keeps child categories', f
     $response = $this->get(route('home'));
 
     $response->assertInertia(fn (AssertableInertia $page) => $page
-        ->where('categoryBlocks', function (Collection $blocks) use ($politisi) {
-            $tp = $blocks->firstWhere('slug', 'tokoh-publik');
-            if (! $tp) {
-                return false;
-            }
-
-            // Must have NO top entities
-            $hasNoTopEntities = count($tp['top_entities']) === 0;
-            // But child category Politisi must still be present
-            $hasChild = collect($tp['child_categories'])->contains('slug', $politisi->slug);
-
-            return $hasNoTopEntities && $hasChild;
-        })
+        ->where('categoryBlocks', fn (Collection $blocks) => $blocks->firstWhere('slug', 'tokoh-publik') === null)
     );
 });
 
@@ -254,6 +238,10 @@ it('includes direct entities if a root category has no child categories', functi
 it('includes up to 3 published and indexable topics per category block', function () {
     $parent = Category::factory()->create(['name' => 'Digital Services', 'slug' => 'digital-services', 'parent_id' => null]);
     $child = Category::factory()->create(['name' => 'Web Hosting', 'slug' => 'web-hosting', 'parent_id' => $parent->id]);
+
+    // The block only exists because its category has a ranking list.
+    $ranked = Entity::factory()->create(['category_id' => $child->id, 'status' => EntityStatus::Active, 'searchable' => true]);
+    SentimentSnapshot::factory()->create(['entity_id' => $ranked->id, 'period' => Period::OneYear->value, 'score' => 80.0, 'opinion_count' => 150]);
 
     // 4 indexable published topics for this category hierarchy
     $t1 = createIndexablePublishedTopic([
@@ -359,7 +347,7 @@ it('caches categoryBlocks for 15 minutes and executes in constant queries (no N+
                 'entity_id' => $entity->id,
                 'period' => Period::OneYear->value,
                 'score' => 80.0,
-                'opinion_count' => 50,
+                'opinion_count' => 150,
             ]);
         }
     }
@@ -399,7 +387,7 @@ it('drops the homepage caches when a topic is unpublished, so no link to a 404 l
 it('drops the homepage caches when an entity is disabled, but not on unrelated edits', function () {
     $child = Category::factory()->create(['parent_id' => Category::factory()->create(['parent_id' => null])->id]);
     $entity = Entity::factory()->create(['category_id' => $child->id, 'status' => EntityStatus::Active, 'searchable' => true]);
-    SentimentSnapshot::factory()->create(['entity_id' => $entity->id, 'period' => Period::OneYear->value, 'score' => 80.0, 'opinion_count' => 50]);
+    SentimentSnapshot::factory()->create(['entity_id' => $entity->id, 'period' => Period::OneYear->value, 'score' => 80.0, 'opinion_count' => 150]);
 
     $this->get(route('home'))->assertOk();
     $entity->update(['description' => 'deskripsi baru']);

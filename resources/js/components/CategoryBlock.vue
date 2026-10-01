@@ -33,7 +33,6 @@ export interface CategoryBlockItem {
     id: number;
     name: string;
     slug: string;
-    is_public_figure: boolean;
     top_entities: CategoryEntity[];
     child_categories: ChildCategory[];
     topics: CategoryTopic[];
@@ -72,9 +71,9 @@ defineProps<{
                 </Link>
             </div>
 
-            <!-- Top 3 Entities (Excluded for Tokoh Publik and empty states) -->
+            <!-- Top 3 ranked entities -->
             <div
-                v-if="!block.is_public_figure && block.top_entities.length > 0"
+                v-if="block.top_entities.length > 0"
                 class="mt-4 border-t border-[#edf1ec] pt-3"
             >
                 <p class="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-[#687a6c]">

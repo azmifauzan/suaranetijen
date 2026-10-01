@@ -7,40 +7,40 @@ use App\Domains\Entities\Services\TextNormalizer;
 use App\Domains\Search\Models\SearchQuery;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
+use Illuminate\Support\Facades\Cache;
 
 class SearchSuggestionService
 {
+    public function __construct(
+        protected CandidateScannerService $safetyFilter
+    ) {}
+
     /**
-     * Return a balanced mix of popular searches and entities with the highest
-     * eligible public sentiment scores.
+     * Keywords many different visitors searched recently, topped up with the entities of
+     * highest public sentiment only while there are fewer keywords than slots.
      *
      * @return list<array{query: string, source: 'trending'|'top_score'}>
      */
-    public function getSuggestions(int $limit = 4): array
+    public function getSuggestions(?int $limit = null): array
     {
-        $limit = min(max($limit, 1), 10);
-        $trendingQueries = $this->getTrendingQueries($limit);
-        $topScoreEntities = $this->getTopScoreEntities($limit);
-        $suggestions = [];
-        $seenQueries = [];
+        $limit = min(max($limit ?? (int) config('search.suggestions.limit', 6), 1), 10);
 
-        for ($index = 0; $index < max(count($trendingQueries), count($topScoreEntities)); $index++) {
-            foreach ([$trendingQueries[$index] ?? null, $topScoreEntities[$index] ?? null] as $suggestion) {
-                if ($suggestion === null) {
-                    continue;
-                }
+        $suggestions = array_slice($this->getTrendingQueries(), 0, $limit);
+        $seen = array_map(fn (array $s): string => TextNormalizer::normalize($s['query']), $suggestions);
 
-                $normalizedQuery = TextNormalizer::normalize($suggestion['query']);
+        if (count($suggestions) < $limit) {
+            foreach ($this->getTopScoreEntities($limit) as $suggestion) {
+                $normalized = TextNormalizer::normalize($suggestion['query']);
 
-                if ($normalizedQuery === '' || isset($seenQueries[$normalizedQuery])) {
+                if ($normalized === '' || in_array($normalized, $seen, true)) {
                     continue;
                 }
 
                 $suggestions[] = $suggestion;
-                $seenQueries[$normalizedQuery] = true;
+                $seen[] = $normalized;
 
                 if (count($suggestions) === $limit) {
-                    break 2;
+                    break;
                 }
             }
         }
@@ -49,26 +49,49 @@ class SearchSuggestionService
     }
 
     /**
-     * @return list<array{query: string, source: 'trending'}>
+     * @return array<int, array{query: string, source: 'trending'}>
      */
-    protected function getTrendingQueries(int $limit): array
+    protected function getTrendingQueries(): array
     {
-        return array_values(SearchQuery::query()
+        return Cache::remember(
+            'search:suggestions:trending',
+            (int) config('search.suggestions.cache_seconds', 3600),
+            fn (): array => $this->queryTrending()
+        );
+    }
+
+    /**
+     * @return array<int, array{query: string, source: 'trending'}>
+     */
+    private function queryTrending(): array
+    {
+        $visitors = SearchQuery::visitorSql();
+        $minSessions = (int) config('search.suggestions.min_sessions', 3);
+        $publicFigureTerms = $this->safetyFilter->getPublicFigureTerms();
+
+        $rows = SearchQuery::query()
+            ->where('created_at', '>=', now()->subDays((int) config('search.suggestions.window_days', 30)))
             ->where('result_count', '>', 0)
             ->whereNotNull('normalized_query')
             ->whereRaw('length(normalized_query) between 2 and 80')
             ->select('normalized_query')
-            ->selectRaw('COUNT(*) as search_count')
+            ->selectRaw("COUNT(DISTINCT {$visitors}) as visitor_count")
             ->groupBy('normalized_query')
-            ->orderByDesc('search_count')
+            ->havingRaw("COUNT(DISTINCT {$visitors}) >= ?", [$minSessions])
+            ->orderByDesc('visitor_count')
             ->orderBy('normalized_query')
-            ->limit($limit)
-            ->get()
-            ->map(fn (SearchQuery $searchQuery): array => [
-                'query' => $searchQuery->normalized_query,
-                'source' => 'trending',
-            ])
-            ->all());
+            ->limit(60)
+            ->pluck('normalized_query');
+
+        $suggestions = [];
+
+        foreach ($rows as $query) {
+            if ($this->safetyFilter->isSafe($query) && ! $this->safetyFilter->mentionsAny($query, $publicFigureTerms)) {
+                $suggestions[] = ['query' => $query, 'source' => 'trending'];
+            }
+        }
+
+        return $suggestions;
     }
 
     /**

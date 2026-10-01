@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @property int $id
@@ -50,6 +51,19 @@ class SearchQuery extends Model
         return [
             'result_count' => 'integer',
         ];
+    }
+
+    /**
+     * SQL expression identifying one visitor: the account if logged in, else the session.
+     * COUNT(DISTINCT ...) of it counts people, not repeated searches by the same one.
+     *
+     * @return literal-string
+     */
+    public static function visitorSql(): string
+    {
+        return DB::connection()->getDriverName() === 'pgsql'
+            ? 'COALESCE(user_id::text, session_id)'
+            : 'COALESCE(CAST(user_id AS TEXT), session_id)';
     }
 
     /**

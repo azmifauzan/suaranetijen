@@ -917,7 +917,7 @@ Current implementation boundary:
 | `pg_trgm` search | implemented and verified against real PostgreSQL |
 | FTS on name/category/description (`docs/13`, ADR-004) | implemented as trigram-indexed word matching over `entity_search_documents` instead of `tsvector` (Postgres has no `indonesian` config); ADR-004 amended 30 Sep 2026 |
 | SEO topic pages (`docs/28`) | implemented and reviewed 30 Sep 2026 (`/topik`, `/topik/{slug}`, `/admin/topics`, `landing-pages:scan-candidates` weekly); not yet deployed or verified live. Raw `/search?q=` stays `noindex` — never index user queries directly |
-| Homepage SEO revamp (`docs/29`) | implemented and reviewed 30 Sep 2026 (per-root-category blocks, popular topics, `HomePageController`); not yet deployed |
+| Homepage SEO revamp (`docs/29`) | implemented and reviewed 30 Sep 2026, revised 1 Oct 2026 (max 6 category blocks, only those with a ranking list; search chips from distinct-visitor keywords) |
 | Search relevance over description/themes/specs (`docs/30`) | implemented and reviewed 30 Sep 2026 (`entity_search_documents`, soft descriptor matching, `search:rebuild-documents` daily); verified on local Postgres for PRD criteria 1-2, not yet on staging with real theme data |
 | Sentiment data model (Epic 3) | implemented and verified against real PostgreSQL |
 | Adapter framework (Epic 4) | implemented and verified against real PostgreSQL/Redis |
@@ -1676,8 +1676,11 @@ full list of review findings live in those two docs; only the traps worth knowin
   word-bounded and only fuzzy from 4 characters; sentiment breaks ties only when publicly eligible.
   Ranking changes must be checked on the live Postgres, not just the SQLite shim (rule in
   `.ai/rules/`).
-- PHPStan still reports 2 pre-existing errors in `SponsorLeaderboardService::getCategoryTeaser()`
-  (commit `c5c9140`), unrelated to this work.
+- Homepage category blocks (max 6) show only root categories whose `/top/{slug}` ranking has a list:
+  same bar as `SentimentRankingService` (`scoring.ranking_min_opinions`, `rankable`), richest ranking
+  first; 3-5 qualifying categories show one full row of 3. Homepage search chips are keywords searched
+  by >= 3 distinct visitors in 30 days (`config/search.php` `suggestions`), safety-filtered like topic
+  candidates, topped up with top-scoring entities only when short (`docs/29`, revision 1 Oct 2026).
 
 ## Document map
 

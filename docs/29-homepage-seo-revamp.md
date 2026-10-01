@@ -13,11 +13,12 @@ unik dan segar. Leaderboard sponsor tidak diubah.
 
 | Keputusan | Pilihan |
 |---|---|
-| Blok kategori | 11 kategori induk |
+| Blok kategori | Maksimal 6 kategori induk, hanya yang punya daftar ranking (revisi 1 Okt 2026, lihat bawah) |
 | Top 6 sentimen tertinggi (lintas kategori) | Dihapus, digantikan top 3 per kategori induk |
 | Entitas baru diperbarui | Dihapus. Freshness datang dari blok kategori dan topik |
 | Penjelasan 3 metrik | Dipertahankan, diringkas |
-| Hero, search, suggestion, podium + leaderboard sponsor #1-10, CTA sumber data | Tidak diubah |
+| Hero, search, podium + leaderboard sponsor #1-10, CTA sumber data | Tidak diubah |
+| Suggestion di bawah box search | Diubah (revisi 1 Okt 2026, lihat bawah): kata kunci terbanyak per sesi unik |
 
 ## Bergantung pada
 
@@ -39,7 +40,7 @@ unik dan segar. Leaderboard sponsor tidak diubah.
 ### Susunan halaman
 
 1. **Hero** (tetap). H1 diperkaya keyword: "Sentimen netizen tentang brand, produk, dan layanan di
-   Indonesia". Search + suggestion tidak berubah.
+   Indonesia". Search tidak berubah; suggestion diubah (lihat revisi 1 Oktober 2026).
 2. **Podium sponsor #1-3 dan leaderboard #4-10** (tetap).
 3. **Jelajahi per kategori** (baru, menggantikan grid nama kategori). Satu blok per kategori
    induk:
@@ -146,3 +147,26 @@ Masih terbuka:
   entitas sama sekali `noindex` dan keluar dari sitemap (`/category/*` dan `/top/*`).
 - `top_leaderboard` dan `sponsorTeaser` mengirim payload yang sama dua kali (sudah ada sebelumnya).
 - Task 4 (Rich Results Test, Lighthouse mobile, request indexing).
+
+## Revisi 1 Oktober 2026 (setelah deploy pertama)
+
+Dua hal ditemukan setelah staging menayangkan homepage baru.
+
+1. **Suggestion di bawah box search tidak ikut berubah.** Permintaan awal ("suggestion berdasarkan kata
+   kunci terbanyak dicari") hanya ada di draft lama `docs/28`, dan plan ini justru menulis "suggestion
+   tidak diubah". Itu kesalahan perencanaan. `SearchSuggestionService` sebelumnya memakai `COUNT(*)`
+   mentah dari seluruh riwayat dan mencampurnya dengan nama entitas ber-skor tertinggi ("GitHub",
+   "Maybelline"), tanpa filter keamanan. Sekarang:
+   - Kata kunci dari 30 hari terakhir, `result_count > 0`, dihitung per pengunjung unik (akun atau
+     sesi, `SearchQuery::visitorSql()`), minimal 3 (`search.suggestions.min_sessions`).
+   - Filter yang sama dengan antrian kandidat topik: blocklist, HP/email/URL, dan query yang
+     menyebut nama atau alias entitas `Person`.
+   - Cache 1 jam. Enam chip. Nama entitas ber-skor tertinggi hanya mengisi sisa slot bila kata kunci
+     layak kurang dari enam, jadi situs baru tidak menampilkan chip kosong.
+2. **Blok kategori sekarang enam, dan hanya yang punya daftar ranking.** Sebelumnya semua kategori induk
+   tampil (10 blok) dengan ambang skor publik (30 opini), sedangkan halaman `/top/{slug}` memakai
+   ambang ranking (100 opini) dan `rankable`. Akibatnya sebuah blok bisa menautkan ke ranking kosong.
+   Kini blok memakai ambang yang sama dengan halaman ranking (`scoring.ranking_min_opinions`,
+   `entities.rankable`), diurutkan menurut jumlah entitas ber-ranking terbanyak, maksimal enam. Bila
+   hanya 3-5 kategori yang memenuhi, tampil satu baris penuh (3) supaya grid tetap simetris; bila
+   kurang dari 3, tampil apa adanya. Tokoh Publik tidak pernah tampil sebagai blok.
