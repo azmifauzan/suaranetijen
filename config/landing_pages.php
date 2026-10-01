@@ -27,6 +27,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Complaint Subject Terms
+    |--------------------------------------------------------------------------
+    |
+    | A category x theme candidate whose label contains one of these words is
+    | never proposed, even when its sentiment is positive ("penanganan keluhan
+    | baik"): the page would still list brands under a complaint headline.
+    | Admins can create such a topic manually.
+    |
+    */
+    'complaint_terms' => [
+        'keluhan',
+        'komplain',
+        'complain',
+        'lambat',
+        'lemot',
+        'bermasalah',
+        'masalah',
+        'kecewa',
+        'penipuan',
+        'tipu',
+        'scam',
+        'refund',
+        'pengembalian dana',
+        'rusak',
+        'buruk',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Safety Blocklist
     |--------------------------------------------------------------------------
     */

@@ -215,3 +215,43 @@ test('it never turns a complaint theme into a category-theme candidate', functio
     expect((new CandidateScannerService)->scanCategoryThemes())->toBe(1)
         ->and(SearchLandingPage::pluck('keyword')->all())->toBe(['Bank Cs cepat']);
 });
+
+test('it skips a theme whose subject is a complaint even when its sentiment is positive', function () {
+    config()->set('landing_pages.category_theme_min_entities', 2);
+    config()->set('landing_pages.category_theme_min_observations', 2);
+
+    $category = Category::factory()->create(['name' => 'Bank']);
+    $fine = Theme::create(['slug' => 'transfer-cepat', 'display_label' => 'Transfer cepat', 'canonical_key' => 'transfer-cepat']);
+    $handling = Theme::create(['slug' => 'penanganan-keluhan-baik', 'display_label' => 'Penanganan keluhan baik', 'canonical_key' => 'penanganan-keluhan-baik']);
+    $refund = Theme::create(['slug' => 'refund-cepat', 'display_label' => 'Refund cepat', 'canonical_key' => 'refund-cepat']);
+
+    foreach (range(1, 3) as $i) {
+        $e = Entity::factory()->create(['category_id' => $category->id, 'status' => EntityStatus::Active, 'searchable' => true]);
+        foreach ([$fine, $handling, $refund] as $theme) {
+            EntityThemeSnapshot::create([
+                'entity_id' => $e->id,
+                'theme_id' => $theme->id,
+                'window' => Period::OneYear,
+                'observation_count' => 9,
+                'positive_count' => 9,
+                'neutral_count' => 0,
+                'negative_count' => 0,
+                'rank' => 1,
+                'calculated_at' => now(),
+            ]);
+        }
+    }
+
+    expect((new CandidateScannerService)->scanCategoryThemes())->toBe(1)
+        ->and(SearchLandingPage::pluck('keyword')->all())->toBe(['Bank Transfer cepat']);
+});
+
+test('complaint subject detection matches whole words only', function () {
+    $scanner = new CandidateScannerService;
+
+    expect($scanner->hasComplaintSubject('Penanganan keluhan baik'))->toBeTrue()
+        ->and($scanner->hasComplaintSubject('Pengembalian dana lama'))->toBeTrue()
+        ->and($scanner->hasComplaintSubject('Komplain cepat ditangani'))->toBeTrue()
+        ->and($scanner->hasComplaintSubject('Irit bbm'))->toBeFalse()
+        ->and($scanner->hasComplaintSubject('Harga bersaing'))->toBeFalse();
+});

@@ -189,7 +189,8 @@ class CandidateScannerService
             // A page listing brands under a complaint ("cs lambat merespons") is a reputation and
             // UU ITE risk. Admins may still create one by hand; the scanner never proposes it.
             if ((int) $row->negative_total > (int) $row->positive_total
-                || EntitySearchDocumentBuilder::hasNegationMarker($theme->display_label)) {
+                || EntitySearchDocumentBuilder::hasNegationMarker($theme->display_label)
+                || $this->hasComplaintSubject($theme->display_label)) {
                 continue;
             }
 
@@ -222,6 +223,22 @@ class CandidateScannerService
         }
 
         return $count;
+    }
+
+    /**
+     * Whether a theme label is about a complaint (configured whole-word terms), regardless of sentiment.
+     */
+    public function hasComplaintSubject(string $label): bool
+    {
+        $normalized = TextNormalizer::normalize($label);
+
+        foreach ((array) config('landing_pages.complaint_terms', []) as $term) {
+            if ($term !== '' && preg_match('/(?<![\p{L}\p{N}])'.preg_quote((string) $term, '/').'(?![\p{L}\p{N}])/u', $normalized)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

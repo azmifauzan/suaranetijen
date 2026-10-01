@@ -397,7 +397,57 @@ function formatRupiah(amount: number): string {
                 </div>
             </div>
 
-            <!-- 2. Dedicated Top 10 Leaderboard Section (#4 - #10) -->
+            <!-- 2. Yang Sering Dibicarakan Netizen (Max 12 Published Indexable Topics) -->
+            <section
+                v-if="popularTopics && popularTopics.length > 0"
+                class="border-b border-[#e5e9e0] bg-white"
+                aria-labelledby="topics-heading"
+            >
+                <div class="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
+                    <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+                        <div>
+                            <p class="mb-1 flex items-center gap-1.5 text-xs font-bold tracking-wider text-[#69796c] uppercase">
+                                <TrendingUp class="size-3.5 text-[#087f5b]" />
+                                Topik Hangat
+                            </p>
+                            <h2
+                                id="topics-heading"
+                                class="text-2xl font-bold tracking-tight text-[#18392d] sm:text-3xl"
+                            >
+                                Yang sering dibicarakan netizen
+                            </h2>
+                        </div>
+                        <Link
+                            :href="topicIndex()"
+                            class="inline-flex items-center gap-1.5 text-xs font-bold text-[#087f5b] hover:underline"
+                        >
+                            Lihat semua topik
+                            <ArrowRight class="size-3.5" />
+                        </Link>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <Link
+                            v-for="topic in popularTopics"
+                            :key="topic.id"
+                            :href="showTopic(topic.slug)"
+                            class="group inline-flex items-center gap-2 rounded-xl border border-[#dfe5dc] bg-[#f9fbf8] px-3.5 py-2 text-xs font-semibold text-[#1f3b28] transition hover:border-[#8ab591] hover:bg-white hover:text-[#087f5b] hover:shadow-xs"
+                        >
+                            <span>{{ topic.title }}</span>
+                        </Link>
+
+                        <Link
+                            :href="topicIndex()"
+                            class="inline-flex items-center gap-1 rounded-xl border border-dashed border-[#b8cbbd] px-3.5 py-2 text-xs font-bold text-[#087f5b] transition hover:border-[#087f5b] hover:bg-[#f0f8f2]"
+                        >
+                            Lihat Semua Topik
+                            <ArrowRight class="size-3.5" />
+                        </Link>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Dedicated Top 10 Leaderboard Section (#4 - #10) -->
             <section
                 class="border-b border-[#d7e6d2] bg-[#f9fcf6]"
                 aria-labelledby="top-leaderboard-heading"
@@ -578,7 +628,7 @@ function formatRupiah(amount: number): string {
                 </div>
             </section>
 
-            <!-- 3. Jelajahi Per Kategori (11 Root Category Blocks per docs/29) -->
+            <!-- 4. Jelajahi Per Kategori (max 6 ranked root category blocks, docs/29) -->
             <section
                 v-if="categoryBlocks.length > 0"
                 class="border-b border-[#e5e9e0] bg-[#f3f5ef]"
@@ -616,59 +666,9 @@ function formatRupiah(amount: number): string {
                 </div>
             </section>
 
-            <!-- 4. Yang Sering Dibicarakan Netizen (Max 12 Published Indexable Topics) -->
-            <section
-                v-if="popularTopics && popularTopics.length > 0"
-                class="border-b border-[#e5e9e0] bg-white"
-                aria-labelledby="topics-heading"
-            >
-                <div class="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
-                    <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
-                        <div>
-                            <p class="mb-1 flex items-center gap-1.5 text-xs font-bold tracking-wider text-[#69796c] uppercase">
-                                <TrendingUp class="size-3.5 text-[#087f5b]" />
-                                Topik Hangat
-                            </p>
-                            <h2
-                                id="topics-heading"
-                                class="text-2xl font-bold tracking-tight text-[#18392d] sm:text-3xl"
-                            >
-                                Yang sering dibicarakan netizen
-                            </h2>
-                        </div>
-                        <Link
-                            :href="topicIndex()"
-                            class="inline-flex items-center gap-1.5 text-xs font-bold text-[#087f5b] hover:underline"
-                        >
-                            Lihat semua topik
-                            <ArrowRight class="size-3.5" />
-                        </Link>
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-2.5">
-                        <Link
-                            v-for="topic in popularTopics"
-                            :key="topic.id"
-                            :href="showTopic(topic.slug)"
-                            class="group inline-flex items-center gap-2 rounded-xl border border-[#dfe5dc] bg-[#f9fbf8] px-3.5 py-2 text-xs font-semibold text-[#1f3b28] transition hover:border-[#8ab591] hover:bg-white hover:text-[#087f5b] hover:shadow-xs"
-                        >
-                            <span>{{ topic.title }}</span>
-                        </Link>
-
-                        <Link
-                            :href="topicIndex()"
-                            class="inline-flex items-center gap-1 rounded-xl border border-dashed border-[#b8cbbd] px-3.5 py-2 text-xs font-bold text-[#087f5b] transition hover:border-[#087f5b] hover:bg-[#f0f8f2]"
-                        >
-                            Lihat Semua Topik
-                            <ArrowRight class="size-3.5" />
-                        </Link>
-                    </div>
-                </div>
-            </section>
-
             <!-- 5. Tiga Metrik SuaraNetijen (Diringkas per docs/29) -->
             <section
-                class="border-b border-[#e5e9e0] bg-[#f3f5ef]"
+                class="border-b border-[#e5e9e0] bg-white"
                 aria-labelledby="metrics-heading"
             >
                 <div class="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">

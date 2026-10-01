@@ -170,3 +170,7 @@ Dua hal ditemukan setelah staging menayangkan homepage baru.
    `entities.rankable`), diurutkan menurut jumlah entitas ber-ranking terbanyak, maksimal enam. Bila
    hanya 3-5 kategori yang memenuhi, tampil satu baris penuh (3) supaya grid tetap simetris; bila
    kurang dari 3, tampil apa adanya. Tokoh Publik tidak pernah tampil sebagai blok.
+
+Urutan bagian diubah 1 Oktober 2026: "Yang sering dibicarakan netizen" (topik) kini tampil tepat setelah
+hero dan podium, di atas leaderboard #4-#10 dan di atas blok kategori. Urutan akhir: hero + podium,
+topik, leaderboard #4-#10, blok kategori, tiga metrik, CTA sumber data.

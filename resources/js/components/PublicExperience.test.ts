@@ -107,7 +107,6 @@ it('connects category discovery and real entity summaries to their detail pages'
                     slug: 'vps-murah',
                     title: 'VPS Murah',
                     keyword: 'vps murah',
-                    candidate_signal: 25,
                 },
             ],
         }),
@@ -119,6 +118,8 @@ it('connects category discovery and real entity summaries to their detail pages'
     expect(html).toContain('href="/topik/vps-murah"');
     expect(html).not.toContain('Baru diperbarui');
     expect(html).toContain('href="/search?q=IndiHome"');
+    expect(html.indexOf('id="topics-heading"')).toBeGreaterThan(-1);
+    expect(html.indexOf('id="topics-heading"')).toBeLessThan(html.indexOf('id="categories-heading"'));
 });
 
 it.each([
