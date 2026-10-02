@@ -137,6 +137,20 @@ interface TrendPoint {
     negative_count: number;
 }
 
+interface FaqItem {
+    question: string;
+    answer: string;
+}
+
+interface SeoData {
+    title: string;
+    meta_description: string;
+    intent_subtitle: string;
+    faq: FaqItem[];
+    breadcrumb_json_ld: Record<string, unknown>;
+    faq_json_ld: Record<string, unknown> | null;
+}
+
 const props = defineProps<{
     entity: EntityData;
     period: string;
@@ -149,6 +163,7 @@ const props = defineProps<{
     relatedEntities: RelatedEntity[];
     trend?: TrendPoint[];
     includedTopics?: Array<{ id: number; slug: string; title: string; keyword: string }>;
+    entitySeo?: SeoData;
 }>();
 
 const ratingData = ref<RatingData>({ ...props.rating });
@@ -158,9 +173,12 @@ const ratingForm = useHttp<{ rating: number; review: string }, RatingMutationRes
 });
 
 const pageTitle = computed(
-    () => `${props.entity.name}: Sentimen dan Rating Netizen`,
+    () => props.entitySeo?.title || `${props.entity.name}: Sentimen dan Rating Netizen`,
 );
 const metaDescription = computed(() => {
+    if (props.entitySeo?.meta_description) {
+        return props.entitySeo.meta_description;
+    }
     if (props.sentiment.is_eligible && props.sentiment.score !== null) {
         return `Skor Sentimen Netizen untuk ${props.entity.name} adalah ${props.sentiment.score}/100 berdasarkan analisis ${props.sentiment.opinion_count} opini publik. Simak rangkuman sentimen dan rating pengguna di SuaraNetijen.`;
     }
@@ -285,6 +303,20 @@ async function removeRating(): Promise<void> {
             <component :is="'script'" type="application/ld+json">
                 {{ JSON.stringify(jsonLd) }}
             </component>
+            <component
+                v-if="entitySeo?.breadcrumb_json_ld"
+                :is="'script'"
+                type="application/ld+json"
+            >
+                {{ JSON.stringify(entitySeo.breadcrumb_json_ld) }}
+            </component>
+            <component
+                v-if="entitySeo?.faq_json_ld"
+                :is="'script'"
+                type="application/ld+json"
+            >
+                {{ JSON.stringify(entitySeo.faq_json_ld) }}
+            </component>
         </PublicSeo>
 
         <!-- Main Content -->
@@ -340,6 +372,9 @@ async function removeRating(): Promise<void> {
                                 {{ entity.type_label }}
                             </span>
                         </div>
+                        <p class="mt-1 text-sm font-medium text-neutral-600 sm:text-base">
+                            {{ entitySeo?.intent_subtitle || (sentiment.is_eligible ? `Bagus atau tidak menurut netizen? Ringkasan dari ${sentiment.opinion_count} opini publik.` : 'Opini netizen dan indeks sentimen publik.') }}
+                        </p>
 
                         <div
                             class="mt-2 flex flex-wrap items-center gap-4 text-sm text-neutral-500"
@@ -398,10 +433,9 @@ async function removeRating(): Promise<void> {
                     class="mt-4 w-full"
                 >
                     <p
-                        v-if="entity.description"
                         class="text-sm leading-relaxed text-neutral-600"
                     >
-                        {{ entity.description }}
+                        {{ entity.description || `${entity.name} adalah ${entity.type_label} dalam kategori ${entity.category.name} di Indonesia.` }}
                     </p>
 
                     <!-- Direct Website Link -->
@@ -753,57 +787,58 @@ async function removeRating(): Promise<void> {
                         </div>
                     </div>
 
-                    <!-- Groups: Paling Suka & Sering Dikeluhkan -->
-                    <div class="grid gap-4 pt-2 sm:grid-cols-2">
-                        <!-- Netijen Paling Suka -->
-                        <div
-                            class="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-4"
-                        >
-                            <div class="text-xs font-bold text-emerald-800">
-                                Netizen Paling Suka
-                            </div>
+                    <!-- Groups: Kelebihan & Kekurangan Menurut Netizen (docs/31 Fase 1) -->
+                    <div class="pt-4">
+                        <h4 class="text-xs font-bold tracking-wider text-neutral-500 uppercase">
+                            Kelebihan dan Kekurangan Menurut Netizen
+                        </h4>
+                        <div class="mt-2.5 grid gap-4 sm:grid-cols-2">
+                            <!-- Netizen Paling Suka -->
                             <div
-                                v-if="themes.positive_themes.length > 0"
-                                class="mt-2.5 flex flex-wrap gap-1.5"
+                                class="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-4"
                             >
-                                <span
-                                    v-for="t in themes.positive_themes"
-                                    :key="t.id"
-                                    class="inline-flex items-center rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800"
+                                <div class="text-xs font-bold text-emerald-800">
+                                    Kelebihan yang Sering Dipuji
+                                </div>
+                                <div
+                                    v-if="themes.positive_themes.length > 0"
+                                    class="mt-2.5 flex flex-wrap gap-1.5"
                                 >
-                                    {{ t.display_label }} ({{
-                                        t.observation_count
-                                    }})
-                                </span>
+                                    <span
+                                        v-for="t in themes.positive_themes"
+                                        :key="t.id"
+                                        class="inline-flex items-center rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800"
+                                    >
+                                        {{ t.display_label }} (disebut {{ t.observation_count }} kali)
+                                    </span>
+                                </div>
+                                <div v-else class="mt-2 text-xs text-neutral-400">
+                                    Belum ada tema positif yang dominan.
+                                </div>
                             </div>
-                            <div v-else class="mt-2 text-xs text-neutral-400">
-                                Belum ada tema positif yang dominan.
-                            </div>
-                        </div>
 
-                        <!-- Paling Sering Dikeluhkan -->
-                        <div
-                            class="rounded-xl border border-rose-200/80 bg-rose-50/40 p-4"
-                        >
-                            <div class="text-xs font-bold text-rose-800">
-                                Paling Sering Dikeluhkan
-                            </div>
+                            <!-- Paling Sering Dikeluhkan -->
                             <div
-                                v-if="themes.negative_themes.length > 0"
-                                class="mt-2.5 flex flex-wrap gap-1.5"
+                                class="rounded-xl border border-rose-200/80 bg-rose-50/40 p-4"
                             >
-                                <span
-                                    v-for="t in themes.negative_themes"
-                                    :key="t.id"
-                                    class="inline-flex items-center rounded-md bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-800"
+                                <div class="text-xs font-bold text-rose-800">
+                                    Kekurangan yang Sering Dikeluhkan
+                                </div>
+                                <div
+                                    v-if="themes.negative_themes.length > 0"
+                                    class="mt-2.5 flex flex-wrap gap-1.5"
                                 >
-                                    {{ t.display_label }} ({{
-                                        t.observation_count
-                                    }})
-                                </span>
-                            </div>
-                            <div v-else class="mt-2 text-xs text-neutral-400">
-                                Belum ada keluhan berulang yang terdeteksi.
+                                    <span
+                                        v-for="t in themes.negative_themes"
+                                        :key="t.id"
+                                        class="inline-flex items-center rounded-md bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-800"
+                                    >
+                                        {{ t.display_label }} (disebut {{ t.observation_count }} kali)
+                                    </span>
+                                </div>
+                                <div v-else class="mt-2 text-xs text-neutral-400">
+                                    Belum ada keluhan berulang yang terdeteksi.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1063,6 +1098,36 @@ async function removeRating(): Promise<void> {
                                 {{ rev.review }}
                             </p>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pertanyaan Seputar {Nama} (FAQ - docs/31 Fase 1) -->
+            <div
+                v-if="entitySeo?.faq && entitySeo.faq.length > 0"
+                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
+            >
+                <div class="border-b border-neutral-100 pb-4">
+                    <h2 class="text-lg font-bold text-neutral-900">
+                        Pertanyaan Seputar {{ entity.name }}
+                    </h2>
+                    <p class="mt-0.5 text-xs text-neutral-500">
+                        Jawaban ringkas berdasarkan agregasi data opini publik dan analisis sentimen netizen.
+                    </p>
+                </div>
+
+                <div class="mt-6 space-y-4">
+                    <div
+                        v-for="(item, idx) in entitySeo.faq"
+                        :key="idx"
+                        class="rounded-xl border border-neutral-100 bg-neutral-50/70 p-4 transition-colors hover:bg-neutral-50"
+                    >
+                        <h3 class="text-sm font-bold text-neutral-900">
+                            {{ item.question }}
+                        </h3>
+                        <p class="mt-1.5 text-xs leading-relaxed text-neutral-600 sm:text-sm">
+                            {{ item.answer }}
+                        </p>
                     </div>
                 </div>
             </div>

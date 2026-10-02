@@ -4,6 +4,7 @@ namespace App\Domains\Sentiment\Models;
 
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Sentiment\Enums\Period;
+use App\Http\Controllers\SitemapController;
 use Carbon\CarbonImmutable;
 use Database\Factories\SentimentSnapshotFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -58,6 +59,15 @@ class SentimentSnapshot extends Model
             'score' => 'float',
             'calculated_at' => 'immutable_datetime',
         ];
+    }
+
+    /**
+     * Clear sitemap cache when snapshot data changes.
+     */
+    protected static function booted(): void
+    {
+        static::saved(fn () => SitemapController::clearCache());
+        static::deleted(fn () => SitemapController::clearCache());
     }
 
     /**

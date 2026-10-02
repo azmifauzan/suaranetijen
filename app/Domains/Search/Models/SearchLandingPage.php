@@ -8,6 +8,7 @@ use App\Domains\Entities\Services\TextNormalizer;
 use App\Domains\Search\Enums\SearchLandingPageSource;
 use App\Domains\Search\Enums\SearchLandingPageStatus;
 use App\Domains\Themes\Models\Theme;
+use App\Http\Controllers\SitemapController;
 use Database\Factories\SearchLandingPageFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -72,10 +73,14 @@ class SearchLandingPage extends Model
         static::saved(function (self $landingPage): void {
             if ($landingPage->wasChanged(['status', 'category_id', 'candidate_signal', 'title', 'keyword'])) {
                 HomepageCategoryBlockService::clearCache();
+                SitemapController::clearCache();
             }
         });
 
-        static::deleted(fn () => HomepageCategoryBlockService::clearCache());
+        static::deleted(function (): void {
+            HomepageCategoryBlockService::clearCache();
+            SitemapController::clearCache();
+        });
 
         static::saving(function (self $landingPage): void {
             if (empty($landingPage->normalized_keyword) && ! empty($landingPage->keyword)) {

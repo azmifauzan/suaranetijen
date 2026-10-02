@@ -17,7 +17,7 @@ const props = withDefaults(
     }>(),
     {
         robots: 'index, follow',
-        image: '/logo.svg',
+        image: '/og-image.png',
     },
 );
 

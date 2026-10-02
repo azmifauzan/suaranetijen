@@ -8,7 +8,9 @@ use App\Domains\Sources\Models\SourceItem;
 use App\Domains\Sources\Models\SourcePreflightLog;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 
@@ -49,6 +51,34 @@ class CheckSystemMetricsCommand extends Command
         } catch (\Throwable $e) {
             $metrics[] = ['Redis Reachability', 'UNREACHABLE'];
             $alerts[] = "Redis unreachable: {$e->getMessage()}";
+        }
+
+        // 0b. Inertia SSR Server status (docs/31 Fase 0 item 0.3)
+        $ssrEnabled = (bool) config('inertia.ssr.enabled', true);
+        if ($ssrEnabled) {
+            $ssrUrl = rtrim((string) config('inertia.ssr.url', 'http://127.0.0.1:13714'), '/');
+            $ssrFailures24h = (int) Cache::get('ssr:failures_count_24h', 0);
+            $lastSsrFailedAt = Cache::get('ssr:last_failed_at');
+
+            try {
+                $response = Http::timeout(1)->get("{$ssrUrl}/health");
+                if ($response->successful() || $response->status() === 404 || $response->status() === 200) {
+                    $metrics[] = ['Inertia SSR Reachability', 'OK'];
+                } else {
+                    $metrics[] = ['Inertia SSR Reachability', "ERROR ({$response->status()})"];
+                    $alerts[] = "Inertia SSR server returned unexpected status {$response->status()}";
+                }
+            } catch (\Throwable $e) {
+                $metrics[] = ['Inertia SSR Reachability', 'UNREACHABLE'];
+                $alerts[] = "Inertia SSR server unreachable at {$ssrUrl}: {$e->getMessage()}";
+            }
+
+            $metrics[] = ['SSR Render Failures (24h)', $ssrFailures24h];
+            if ($ssrFailures24h > 10) {
+                $alerts[] = "High SSR render failures count in last 24h: {$ssrFailures24h} (last: {$lastSsrFailedAt})";
+            }
+        } else {
+            $metrics[] = ['Inertia SSR', 'DISABLED'];
         }
 
         // 1. Queue depth and age

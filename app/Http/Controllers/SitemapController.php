@@ -11,33 +11,52 @@ use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Themes\Models\EntityThemeSnapshot;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class SitemapController extends Controller
 {
+    public const CACHE_KEY = 'seo:sitemap_xml';
+
     /**
-     * Generate dynamic XML sitemap (docs/13).
+     * Clear the cached XML sitemap.
+     */
+    public static function clearCache(): void
+    {
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    /**
+     * Generate dynamic XML sitemap (docs/13, docs/31).
      *
      * Only indexes:
      * - Active, searchable entities clearing the public-score threshold (opinion_count >= 30).
      * - Active categories (/category/{slug} and /top/{slug}).
-     * - Public static pages (/search, /methodology, /sources, /about, /terms, /privacy).
+     * - Public static trust pages (/methodology, /sources, /about, /terms, /privacy).
+     * Excludes /search per docs/31 item 0.7.
      */
     public function index(): Response
+    {
+        $xml = Cache::remember(self::CACHE_KEY, now()->addDay(), fn () => $this->buildSitemapXml());
+
+        return response($xml, 200, [
+            'Content-Type' => 'application/xml; charset=utf-8',
+        ]);
+    }
+
+    /**
+     * Build the raw sitemap XML string.
+     */
+    public function buildSitemapXml(): string
     {
         $baseUrl = rtrim((string) config('app.url'), '/');
         $minOpinions = (int) config('scoring.public_min_opinions', 30);
 
-        // 1. Static URLs
+        // 1. Static URLs (Excludes /search per docs/31 Fase 0 item 0.7)
         $urls = [
             [
                 'loc' => "{$baseUrl}/",
                 'changefreq' => 'hourly',
                 'priority' => '1.0',
-            ],
-            [
-                'loc' => "{$baseUrl}/search",
-                'changefreq' => 'daily',
-                'priority' => '0.9',
             ],
             [
                 'loc' => "{$baseUrl}/methodology",
@@ -67,13 +86,13 @@ class SitemapController extends Controller
         ];
 
         // 2. Active Categories & Top Lists
-        // Only categories that hold at least one active entity (own or in a child category): an empty page is thin.
         $categories = Category::query()
             ->active()
             ->where(fn ($query) => $query
                 ->whereHas('entities', fn ($q) => $q->where('status', EntityStatus::Active))
                 ->orWhereHas('children.entities', fn ($q) => $q->where('status', EntityStatus::Active)))
             ->get(['id', 'slug', 'updated_at']);
+
         foreach ($categories as $category) {
             $lastmod = $category->updated_at?->toIso8601String();
 
@@ -91,13 +110,11 @@ class SitemapController extends Controller
             ];
         }
 
-        // 3. Eligible entities ONLY (docs/13, docs/17: entities below threshold are noindex and NOT in sitemap)
+        // 3. Eligible entities ONLY (docs/13, docs/17, docs/31)
         $eligibleEntities = Entity::query()
             ->where('status', EntityStatus::Active)
             ->where('searchable', true)
             ->where(function ($query) use ($minOpinions) {
-                // The public entity page prefers a 365-day snapshot whenever
-                // one exists, so the sitemap must apply the same rule.
                 $query->whereHas('sentimentSnapshots', function ($snapshotQuery) use ($minOpinions) {
                     $snapshotQuery->where('period', Period::OneYear->value)
                         ->where('opinion_count', '>=', $minOpinions)
@@ -123,7 +140,8 @@ class SitemapController extends Controller
             $snapshot = $entity->sentimentSnapshots->firstWhere('period', Period::OneYear->value)
                 ?? $entity->sentimentSnapshots->firstWhere('period', Period::All->value);
 
-            $lastmod = ($snapshot->updated_at ?? $entity->updated_at)?->toIso8601String();
+            // Follow meaningful snapshot calculation timestamp (docs/13, docs/31)
+            $lastmod = ($snapshot->calculated_at ?? $snapshot->updated_at ?? $entity->updated_at)?->toIso8601String();
 
             $urls[] = [
                 'loc' => "{$baseUrl}/e/{$entity->slug}",
@@ -133,7 +151,7 @@ class SitemapController extends Controller
             ];
         }
 
-        // 4. Topic Landing Pages (docs/28). The hub is listed only once it has a topic to show.
+        // 4. Topic Landing Pages (docs/28)
         $topicEntityList = app(TopicEntityList::class);
         $topicUrls = [];
 
@@ -185,8 +203,6 @@ class SitemapController extends Controller
 
         $xml .= '</urlset>';
 
-        return response($xml, 200, [
-            'Content-Type' => 'application/xml; charset=utf-8',
-        ]);
+        return $xml;
     }
 }

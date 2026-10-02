@@ -5,7 +5,9 @@ namespace App\Domains\Entities\Controllers;
 use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Entities\Services\CategoryContext;
 use App\Domains\Search\Models\SearchLandingPage;
+use App\Domains\Search\Services\RobotsPolicy;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Domains\Sentiment\Services\ScoreCalculator;
@@ -123,12 +125,19 @@ class CategoryShowController extends Controller
             ->active()
             ->count();
 
+        if ($totalEntities === 0 || (is_string($searchQuery) && trim($searchQuery) !== '')) {
+            RobotsPolicy::noindex();
+        }
+
+        $contextDescription = CategoryContext::getDescription($category->slug, $category->name);
+
         return Inertia::render('Category/Show', [
             'category' => [
                 'id' => $category->id,
                 'name' => $category->name,
                 'slug' => $category->slug,
                 'total_entities' => $totalEntities,
+                'context_description' => $contextDescription,
             ],
             'topSentimen' => $topRankings->map(fn ($item) => [
                 'rank' => $item['rank'],

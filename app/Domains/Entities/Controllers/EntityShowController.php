@@ -3,8 +3,10 @@
 namespace App\Domains\Entities\Controllers;
 
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Entities\Services\EntitySeoService;
 use App\Domains\Ratings\Models\UserRating;
 use App\Domains\Search\Models\SearchLandingPage;
+use App\Domains\Search\Services\RobotsPolicy;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentDaily;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
@@ -20,7 +22,8 @@ use Inertia\Response;
 class EntityShowController extends Controller
 {
     public function __construct(
-        protected TopThemesService $topThemesService
+        protected TopThemesService $topThemesService,
+        protected EntitySeoService $entitySeoService
     ) {}
 
     /**
@@ -54,6 +57,10 @@ class EntityShowController extends Controller
         $sentimentData = null;
         $opinionCount = $activeSnapshot ? (int) $activeSnapshot->opinion_count : 0;
         $isPublicScoreEligible = ScoreCalculator::isPublicScoreEligible($opinionCount);
+
+        if (! $isPublicScoreEligible) {
+            RobotsPolicy::noindex();
+        }
 
         if ($activeSnapshot && $isPublicScoreEligible && $activeSnapshot->score !== null) {
             $pos = (int) $activeSnapshot->positive_count;
@@ -91,6 +98,16 @@ class EntityShowController extends Controller
 
         // Top Suara Netijen (Theme Index per docs/25)
         $themesData = $this->topThemesService->getTopThemesForEntity($entity, $selectedPeriod);
+
+        $seoData = $this->entitySeoService->generate(
+            $entity,
+            $sentimentData,
+            $themesData,
+            [
+                'rating_count' => $entity->ratingSnapshot ? (int) $entity->ratingSnapshot->rating_count : 0,
+                'rating_average' => $entity->ratingSnapshot?->rating_average !== null ? (float) $entity->ratingSnapshot->rating_average : null,
+            ]
+        );
 
         $relatedEntities = $this->buildRelatedEntities($entity);
 
@@ -227,7 +244,8 @@ class EntityShowController extends Controller
                     'keyword' => $t->keyword,
                 ])
                 ->values(),
-        ]);
+            'entitySeo' => $seoData,
+        ])->withViewData('robots', RobotsPolicy::get());
     }
 
     /**

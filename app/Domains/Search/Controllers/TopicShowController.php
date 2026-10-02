@@ -4,6 +4,7 @@ namespace App\Domains\Search\Controllers;
 
 use App\Domains\Search\Enums\SearchLandingPageStatus;
 use App\Domains\Search\Models\SearchLandingPage;
+use App\Domains\Search\Services\RobotsPolicy;
 use App\Domains\Search\Services\TopicEntityList;
 use App\Http\Controllers\Controller;
 use Inertia\Inertia;
@@ -25,6 +26,10 @@ class TopicShowController extends Controller
             ->firstOrFail();
 
         $listData = $this->topicEntityList->get($topic);
+
+        if (! $listData['is_indexable']) {
+            RobotsPolicy::noindex();
+        }
 
         $relatedTopics = [];
         if ($topic->category_id) {

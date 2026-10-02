@@ -3,6 +3,7 @@
 namespace App\Domains\Sentiment\Controllers;
 
 use App\Domains\Entities\Models\Category;
+use App\Domains\Entities\Services\CategoryContext;
 use App\Domains\Search\Models\SearchLandingPage;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Services\SentimentRankingService;
@@ -112,11 +113,14 @@ class TopRankingController extends Controller
             ])
             ->values();
 
+        $contextDescription = CategoryContext::getDescription($category->slug, $category->name);
+
         return Inertia::render('Top/Show', [
             'category' => [
                 'id' => $category->id,
                 'name' => $category->name,
                 'slug' => $category->slug,
+                'context_description' => $contextDescription,
             ],
             'period' => $period->value,
             'otherCategories' => $otherCategories,

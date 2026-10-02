@@ -4,8 +4,8 @@ import { home } from '@/routes';
 import { show as showEntity } from '@/routes/entities';
 import { show as showCategory } from '@/routes/categories';
 import { show as showRanking } from '@/routes/rankings';
-import { Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import PublicSeo from '@/components/PublicSeo.vue';
 
 interface CategoryData {
@@ -13,6 +13,7 @@ interface CategoryData {
     name: string;
     slug: string;
     total_entities: number;
+    context_description?: string;
 }
 
 interface RankedItem {
@@ -74,6 +75,54 @@ const props = defineProps<{
 
 const query = ref(props.searchQuery || '');
 
+const page = usePage();
+const siteUrl = computed(() => {
+    const raw = (page.props.seo as { site_url?: string } | undefined)?.site_url;
+    return (raw || '').replace(/\/$/, '');
+});
+
+const pageDescription = computed(
+    () => `Review dan sentimen netizen untuk ${props.category.total_entities} entitas ${props.category.name}: skor, tema yang sering dipuji dan dikeluhkan.`,
+);
+
+const breadcrumbJsonLd = computed(() => ({
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+        {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Beranda',
+            item: `${siteUrl.value}/`,
+        },
+        {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Kategori',
+            item: `${siteUrl.value}/#categories`,
+        },
+        {
+            '@type': 'ListItem',
+            position: 3,
+            name: props.category.name,
+            item: `${siteUrl.value}/category/${props.category.slug}`,
+        },
+    ],
+}));
+
+const itemListJsonLd = computed(() => ({
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `Entitas Sentimen Tertinggi: ${props.category.name}`,
+    description: pageDescription.value,
+    itemListElement: props.topSentimen.map((item, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: item.name,
+        url: `${siteUrl.value}/e/${item.slug}`,
+    })),
+}));
+
 function handleSearch() {
     if (query.value.trim()) {
         router.get(
@@ -95,10 +144,21 @@ function handleSearch() {
     <PublicLayout>
         <PublicSeo
             :title="`${category.name}: Sentimen Netizen dan Review`"
-            :description="`Lihat sentimen publik, opini netizen, dan entitas dalam kategori ${category.name} di SuaraNetijen.`"
+            :description="pageDescription"
             :canonical-path="`/category/${category.slug}`"
             :robots="searchQuery || category.total_entities === 0 ? 'noindex, follow' : 'index, follow'"
-        />
+        >
+            <component :is="'script'" type="application/ld+json">
+                {{ JSON.stringify(breadcrumbJsonLd) }}
+            </component>
+            <component
+                v-if="topSentimen.length > 0"
+                :is="'script'"
+                type="application/ld+json"
+            >
+                {{ JSON.stringify(itemListJsonLd) }}
+            </component>
+        </PublicSeo>
 
         <!-- Main Content -->
         <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -133,6 +193,12 @@ function handleSearch() {
                             Indeks sentimen dan opini publik dari netizen untuk
                             {{ category.total_entities }} entitas dalam kategori
                             {{ category.name }}.
+                        </p>
+                        <p
+                            v-if="category.context_description"
+                            class="mt-3 text-sm leading-relaxed text-neutral-600 border-t border-neutral-100 pt-3"
+                        >
+                            {{ category.context_description }}
                         </p>
                     </div>
                     <Link

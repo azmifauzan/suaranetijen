@@ -3,11 +3,13 @@
 namespace App\Providers;
 
 use App\Domains\Search\Services\TrigramSimilarity;
+use App\Http\Ssr\TimeoutHttpGateway;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -18,6 +20,8 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Inertia\ExceptionResponse;
 use Inertia\Inertia;
+use Inertia\Ssr\HttpGateway;
+use Inertia\Ssr\SsrRenderFailed;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,7 +30,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(HttpGateway::class, TimeoutHttpGateway::class);
     }
 
     /**
@@ -68,6 +72,16 @@ class AppServiceProvider extends ServiceProvider
         if (DB::getDriverName() === 'sqlite') {
             TrigramSimilarity::registerSqliteFunctions(DB::connection()->getPdo());
         }
+
+        Event::listen(SsrRenderFailed::class, function (SsrRenderFailed $event): void {
+            Log::warning('[InertiaSsr] Render failed, falling back to client-side rendering', $event->toArray());
+
+            try {
+                Cache::put('ssr:last_failed_at', now()->toIso8601String(), 86400);
+                Cache::increment('ssr:failures_count_24h');
+            } catch (\Throwable) {
+            }
+        });
     }
 
     /**

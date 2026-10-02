@@ -3,7 +3,8 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 import { home } from '@/routes';
 import { show as showEntity } from '@/routes/entities';
 import { index as rankingIndex, show as showRanking } from '@/routes/rankings';
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import PublicSeo from '@/components/PublicSeo.vue';
 import SponsorTeaserBox from '@/components/SponsorTeaserBox.vue';
 
@@ -11,6 +12,7 @@ interface CategoryData {
     id: number;
     name: string;
     slug: string;
+    context_description?: string;
 }
 
 interface DistributionData {
@@ -71,6 +73,54 @@ const periods = [
     { key: 'all', label: 'Semua Waktu' },
 ];
 
+const page = usePage();
+const siteUrl = computed(() => {
+    const raw = (page.props.seo as { site_url?: string } | undefined)?.site_url;
+    return (raw || '').replace(/\/$/, '');
+});
+
+const pageDescription = computed(
+    () => `Ranking ${props.category.name} dengan sentimen netizen tertinggi, urut dari skor sampai jumlah opini. Dihitung dari opini publik, bukan iklan.`,
+);
+
+const breadcrumbJsonLd = computed(() => ({
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+        {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Beranda',
+            item: `${siteUrl.value}/`,
+        },
+        {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Ranking',
+            item: `${siteUrl.value}/top`,
+        },
+        {
+            '@type': 'ListItem',
+            position: 3,
+            name: props.category.name,
+            item: `${siteUrl.value}/top/${props.category.slug}`,
+        },
+    ],
+}));
+
+const itemListJsonLd = computed(() => ({
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `${props.category.name} dengan Sentimen Netijen Tertinggi`,
+    description: pageDescription.value,
+    itemListElement: props.rankings.map((item) => ({
+        '@type': 'ListItem',
+        position: item.rank,
+        name: item.entity.name,
+        url: `${siteUrl.value}/e/${item.entity.slug}`,
+    })),
+}));
+
 function switchPeriod(p: string) {
     router.get(
         showRanking.url(props.category.slug),
@@ -84,9 +134,20 @@ function switchPeriod(p: string) {
     <PublicLayout>
         <PublicSeo
             :title="`${category.name} dengan Sentimen Netizen Tertinggi`"
-            :description="`Ranking ${category.name} dengan sentimen netizen tertinggi berdasarkan opini publik yang dianalisis SuaraNetijen.`"
+            :description="pageDescription"
             :canonical-path="`/top/${category.slug}`"
-        />
+        >
+            <component :is="'script'" type="application/ld+json">
+                {{ JSON.stringify(breadcrumbJsonLd) }}
+            </component>
+            <component
+                v-if="rankings.length > 0"
+                :is="'script'"
+                type="application/ld+json"
+            >
+                {{ JSON.stringify(itemListJsonLd) }}
+            </component>
+        </PublicSeo>
 
         <!-- Main Content -->
         <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -105,8 +166,7 @@ function switchPeriod(p: string) {
                     {{ category.name }} dengan Sentimen Netijen Tertinggi
                 </h1>
                 <p class="mt-2 text-sm text-neutral-600">
-                    Daftar entitas dalam kategori {{ category.name }} yang diurutkan berdasarkan
-                    agregat opini publik dari netizen (minimal 100 opini dianalisis).
+                    {{ category.context_description || `Daftar entitas dalam kategori ${category.name} yang diurutkan berdasarkan agregat opini publik dari netizen (minimal 100 opini dianalisis).` }}
                 </p>
             </div>
 

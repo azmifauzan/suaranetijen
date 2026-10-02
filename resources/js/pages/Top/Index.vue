@@ -3,7 +3,8 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 import { home } from '@/routes';
 import { show as showEntity } from '@/routes/entities';
 import { index as rankingIndex, show as showRanking } from '@/routes/rankings';
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import PublicSeo from '@/components/PublicSeo.vue';
 import SponsorTeaserBox from '@/components/SponsorTeaserBox.vue';
 
@@ -77,6 +78,44 @@ const periods = [
     { key: 'all', label: 'Semua Waktu' },
 ];
 
+const page = usePage();
+const siteUrl = computed(() => {
+    const raw = (page.props.seo as { site_url?: string } | undefined)?.site_url;
+    return (raw || '').replace(/\/$/, '');
+});
+
+const breadcrumbJsonLd = computed(() => ({
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+        {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Beranda',
+            item: `${siteUrl.value}/`,
+        },
+        {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Ranking',
+            item: `${siteUrl.value}/top`,
+        },
+    ],
+}));
+
+const itemListJsonLd = computed(() => ({
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Ranking Sentimen Netijen Tertinggi',
+    description: 'Daftar entitas di semua kategori yang diurutkan berdasarkan agregat opini publik netizen (minimal 100 opini dianalisis).',
+    itemListElement: props.rankings.map((item) => ({
+        '@type': 'ListItem',
+        position: item.rank,
+        name: item.entity.name,
+        url: `${siteUrl.value}/e/${item.entity.slug}`,
+    })),
+}));
+
 function switchPeriod(p: string) {
     router.get(rankingIndex.url(), { period: p }, { preserveScroll: true });
 }
@@ -88,7 +127,18 @@ function switchPeriod(p: string) {
             title="Ranking Sentimen Netijen Tertinggi"
             description="Daftar entitas di semua kategori yang diurutkan berdasarkan agregat opini publik netizen (minimal 100 opini dianalisis)."
             canonical-path="/top"
-        />
+        >
+            <component :is="'script'" type="application/ld+json">
+                {{ JSON.stringify(breadcrumbJsonLd) }}
+            </component>
+            <component
+                v-if="rankings.length > 0"
+                :is="'script'"
+                type="application/ld+json"
+            >
+                {{ JSON.stringify(itemListJsonLd) }}
+            </component>
+        </PublicSeo>
 
         <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
             <!-- Breadcrumbs -->

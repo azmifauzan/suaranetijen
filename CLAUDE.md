@@ -1718,6 +1718,7 @@ full list of review findings live in those two docs; only the traps worth knowin
 | `docs/28-topic-landing-pages.md` | Plan: SEO topic pages `/topik/{slug}` from curated keyword candidates + LLM draft |
 | `docs/29-homepage-seo-revamp.md` | Plan: homepage blocks per parent category, popular topics, WebSite/Organization JSON-LD |
 | `docs/30-search-relevance.md` | Plan: soft-match search over description, themes, specs, summaries (amends ADR-004) |
+| `docs/31-seo-plan.md` | Plan: SEO audit (SSR not running in prod), keyword clusters, rivals, phased roadmap |
 
 Config examples: `examples/score-config.yaml`, `examples/source-registry.yaml`,
 `examples/queue-topology.yaml`, `examples/.env.example`.

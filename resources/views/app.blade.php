@@ -50,7 +50,7 @@
         <x-inertia::head>
             <title data-inertia="title">SuaraNetijen — Indeks Sentimen Publik Indonesia</title>
             <meta data-inertia="description" name="description" content="Cari tahu opini netizen tentang brand, produk, dan layanan di Indonesia lewat sentimen publik dan rating pengguna di SuaraNetijen.">
-            <meta data-inertia="robots" name="robots" content="index, follow">
+            <meta data-inertia="robots" name="robots" content="{{ $robots ?? 'index, follow' }}">
             <link data-inertia="canonical" rel="canonical" href="{{ url()->current() }}">
             <meta data-inertia="og:title" property="og:title" content="SuaraNetijen — Indeks Sentimen Publik Indonesia">
             <meta data-inertia="og:description" property="og:description" content="Cari tahu opini netizen tentang brand, produk, dan layanan di Indonesia lewat sentimen publik dan rating pengguna di SuaraNetijen.">
@@ -58,11 +58,11 @@
             <meta data-inertia="og:type" property="og:type" content="website">
             <meta data-inertia="og:site_name" property="og:site_name" content="{{ config('app.name', 'SuaraNetijen') }}">
             <meta data-inertia="og:locale" property="og:locale" content="id_ID">
-            <meta data-inertia="og:image" property="og:image" content="{{ rtrim(config('app.url'), '/') }}/logo.svg">
-            <meta data-inertia="twitter:card" name="twitter:card" content="summary">
+            <meta data-inertia="og:image" property="og:image" content="{{ rtrim(config('app.url'), '/') }}/og-image.png">
+            <meta data-inertia="twitter:card" name="twitter:card" content="summary_large_image">
             <meta data-inertia="twitter:title" name="twitter:title" content="SuaraNetijen — Indeks Sentimen Publik Indonesia">
             <meta data-inertia="twitter:description" name="twitter:description" content="Cari tahu opini netizen tentang brand, produk, dan layanan di Indonesia lewat sentimen publik dan rating pengguna di SuaraNetijen.">
-            <meta data-inertia="twitter:image" name="twitter:image" content="{{ rtrim(config('app.url'), '/') }}/logo.svg">
+            <meta data-inertia="twitter:image" name="twitter:image" content="{{ rtrim(config('app.url'), '/') }}/og-image.png">
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">
