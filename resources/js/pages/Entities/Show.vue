@@ -2,6 +2,7 @@
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { home, methodology, sources } from '@/routes';
 import { show as showEntity } from '@/routes/entities';
+import { show as showCategory } from '@/routes/categories';
 import { show as showRanking } from '@/routes/rankings';
 import { Link, router, useHttp } from '@inertiajs/vue3';
 import { ArrowUpRight, Star, Trophy } from '@lucide/vue';
@@ -326,7 +327,7 @@ async function removeRating(): Promise<void> {
                 <Link :href="home()" class="hover:underline">Beranda</Link>
                 <span>/</span>
                 <Link
-                    :href="showRanking.url(entity.category.slug)"
+                    :href="showCategory.url(entity.category.slug)"
                     class="hover:underline"
                     >{{ entity.category.name }}</Link
                 >

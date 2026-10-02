@@ -62,8 +62,17 @@ interface OtherCategory {
     slug: string;
 }
 
+interface IndexableEntity {
+    name: string;
+    slug: string;
+    type_label: string;
+    opinion_count: number;
+    score: number | null;
+}
+
 const props = defineProps<{
     category: CategoryData;
+    allEntities?: IndexableEntity[];
     topSentimen: RankedItem[];
     mostDiscussed: DiscussedItem[];
     recentlyUpdated: RecentItem[];
@@ -442,6 +451,36 @@ function handleSearch() {
                     </div>
                 </div>
             </template>
+
+            <!-- All entities: every indexable page in this category gets a crawlable link (docs/31 Fase 2) -->
+            <section
+                v-if="!filteredEntities && allEntities && allEntities.length > 0"
+                class="mt-12"
+                aria-labelledby="all-entities-heading"
+            >
+                <h2
+                    id="all-entities-heading"
+                    class="text-base font-bold text-neutral-900"
+                >
+                    Semua {{ category.name }} yang Dinilai Netizen
+                </h2>
+                <p class="mt-0.5 text-xs text-neutral-500">
+                    {{ allEntities.length }} entitas dengan minimal 30 opini, diurutkan dari opini terbanyak.
+                </p>
+                <ul class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    <li v-for="item in allEntities" :key="item.slug">
+                        <Link
+                            :href="showEntity.url(item.slug)"
+                            class="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm transition hover:border-emerald-300 hover:bg-emerald-50/40"
+                        >
+                            <span class="font-semibold text-neutral-900">{{ item.name }}</span>
+                            <span class="shrink-0 text-xs text-neutral-500">
+                                {{ item.opinion_count }} opini<template v-if="item.score !== null"> · {{ Math.round(item.score) }}/100</template>
+                            </span>
+                        </Link>
+                    </li>
+                </ul>
+            </section>
 
             <!-- Related Topics (docs/28) -->
             <div v-if="relatedTopics && relatedTopics.length > 0" class="mt-12 rounded-2xl border border-[#e5e9e2] bg-[#f9faf7] p-6">

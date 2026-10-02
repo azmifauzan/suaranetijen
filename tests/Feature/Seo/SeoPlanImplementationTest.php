@@ -224,3 +224,74 @@ test('entity SEO meta description skips superlative theme labels instead of stri
         ->and(mb_strlen($seo['meta_description']))->toBeLessThanOrEqual(160)
         ->and(collect($seo['faq'])->pluck('answer')->implode(' '))->not->toContain('objektif');
 });
+
+test('sitemap lastmod for an entity follows its snapshot calculation time', function () {
+    $category = Category::query()->create(['name' => 'Smartphone', 'slug' => 'smartphone', 'status' => 'active']);
+    $entity = Entity::query()->create([
+        'name' => 'Fresh Phone',
+        'slug' => 'fresh-phone',
+        'type' => EntityType::Product,
+        'status' => EntityStatus::Active,
+        'category_id' => $category->id,
+        'searchable' => true,
+        'rankable' => true,
+    ]);
+    Entity::query()->whereKey($entity->id)->update(['updated_at' => '2026-09-04 08:00:00']);
+
+    SentimentSnapshot::query()->create([
+        'entity_id' => $entity->id,
+        'period' => Period::OneYear->value,
+        'score' => 80.0,
+        'opinion_count' => 60,
+        'positive_count' => 50,
+        'neutral_count' => 5,
+        'negative_count' => 5,
+        'sentiment_model_version' => 'v1',
+        'score_formula_version' => 'v1',
+        'calculated_at' => '2026-10-02 06:30:00',
+    ]);
+    SitemapController::clearCache();
+
+    $content = $this->get('/sitemap.xml')->getContent();
+
+    expect($content)->toContain('<loc>'.rtrim(config('app.url'), '/').'/e/fresh-phone</loc>')
+        ->and($content)->toContain('<lastmod>2026-10-02T06:30:00')
+        ->and($content)->not->toContain('<lastmod>2026-09-04');
+});
+
+test('category page lists every indexable entity so none is an orphan, and leaves thin ones out', function () {
+    $category = Category::query()->create(['name' => 'Smartphone', 'slug' => 'smartphone', 'status' => 'active']);
+    $make = function (string $name, string $slug, int $opinions) use ($category): void {
+        $entity = Entity::query()->create([
+            'name' => $name,
+            'slug' => $slug,
+            'type' => EntityType::Product,
+            'status' => EntityStatus::Active,
+            'category_id' => $category->id,
+            'searchable' => true,
+            'rankable' => true,
+        ]);
+        SentimentSnapshot::query()->create([
+            'entity_id' => $entity->id,
+            'period' => Period::OneYear->value,
+            'score' => $opinions >= 30 ? 70.0 : null,
+            'opinion_count' => $opinions,
+            'positive_count' => (int) ($opinions * 0.7),
+            'neutral_count' => 0,
+            'negative_count' => $opinions - (int) ($opinions * 0.7),
+            'sentiment_model_version' => 'v1',
+            'score_formula_version' => 'v1',
+            'calculated_at' => now(),
+        ]);
+    };
+    $make('Deep Phone A', 'deep-phone-a', 40);
+    $make('Deep Phone B', 'deep-phone-b', 90);
+    $make('Thin Phone', 'thin-phone', 5);
+
+    $this->get('/category/smartphone')->assertInertia(fn (Assert $page) => $page
+        ->component('Category/Show')
+        ->has('allEntities', 2)
+        ->where('allEntities.0.slug', 'deep-phone-b')
+        ->where('allEntities.1.slug', 'deep-phone-a')
+    );
+});

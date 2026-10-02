@@ -2,6 +2,7 @@
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { home } from '@/routes';
 import { show as showEntity } from '@/routes/entities';
+import { show as showCategory } from '@/routes/categories';
 import { index as rankingIndex, show as showRanking } from '@/routes/rankings';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -165,6 +166,12 @@ function switchPeriod(p: string) {
                 <h1 class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl">
                     {{ category.name }} dengan Sentimen Netijen Tertinggi
                 </h1>
+                <Link
+                    :href="showCategory.url(category.slug)"
+                    class="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-emerald-700 hover:underline"
+                >
+                    Lihat semua {{ category.name }} yang dinilai netizen →
+                </Link>
                 <p class="mt-2 text-sm text-neutral-600">
                     {{ category.context_description || `Daftar entitas dalam kategori ${category.name} yang diurutkan berdasarkan agregat opini publik dari netizen (minimal 100 opini dianalisis).` }}
                 </p>

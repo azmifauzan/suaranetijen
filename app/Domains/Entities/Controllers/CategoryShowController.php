@@ -114,6 +114,8 @@ class CategoryShowController extends Controller
                 ->get(['id', 'name', 'slug', 'type', 'description']);
         }
 
+        $allEntities = $this->listIndexableEntities($categoryIds->all());
+
         $otherCategories = Category::query()
             ->active()
             ->where('id', '!=', $category->id)
@@ -149,6 +151,7 @@ class CategoryShowController extends Controller
                 'score' => $item['score'],
                 'opinion_count' => $item['opinion_count'],
             ]),
+            'allEntities' => $allEntities,
             'mostDiscussed' => $mostDiscussed,
             'recentlyUpdated' => $recentlyUpdated,
             'filteredEntities' => $filteredEntities,
@@ -168,5 +171,43 @@ class CategoryShowController extends Controller
                 ])
                 ->values(),
         ]);
+    }
+
+    /**
+     * Every entity in the category that clears the public threshold (the same set the sitemap lists),
+     * so each indexable entity page has at least one crawlable inbound link (docs/31 Fase 2).
+     *
+     * @param  array<int, int>  $categoryIds
+     * @return array<int, array{name: string, slug: string, type_label: string, opinion_count: int, score: float|null}>
+     */
+    protected function listIndexableEntities(array $categoryIds): array
+    {
+        return Entity::query()
+            ->active()
+            ->where('searchable', true)
+            ->whereIn('category_id', $categoryIds)
+            ->with(['sentimentSnapshots' => fn ($query) => $query->whereIn('period', [Period::OneYear->value, Period::All->value])])
+            ->get()
+            ->map(function (Entity $entity): ?array {
+                $snapshot = $entity->sentimentSnapshots->firstWhere('period', Period::OneYear)
+                    ?? $entity->sentimentSnapshots->firstWhere('period', Period::All);
+                $opinionCount = $snapshot ? (int) $snapshot->opinion_count : 0;
+
+                if (! ScoreCalculator::isPublicScoreEligible($opinionCount)) {
+                    return null;
+                }
+
+                return [
+                    'name' => $entity->name,
+                    'slug' => $entity->slug,
+                    'type_label' => $entity->type->label(),
+                    'opinion_count' => $opinionCount,
+                    'score' => $snapshot?->score !== null ? (float) $snapshot->score : null,
+                ];
+            })
+            ->filter()
+            ->sortBy([['opinion_count', 'desc'], ['name', 'asc']])
+            ->values()
+            ->all();
     }
 }
