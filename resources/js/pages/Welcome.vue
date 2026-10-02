@@ -678,7 +678,7 @@ function formatRupiah(amount: number): string {
                                 id="metrics-heading"
                                 class="text-2xl font-bold tracking-tight text-[#18392d] sm:text-3xl"
                             >
-                                Tiga metrik objektif, tanpa kompromi
+                                Tiga metrik, dihitung terpisah
                             </h2>
                             <p class="mt-1 max-w-xl text-xs text-[#55695a] sm:text-sm">
                                 Setiap angka dan kesimpulan berdiri di atas metrik terpisah yang tidak pernah digabung.
