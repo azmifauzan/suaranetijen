@@ -1,7 +1,7 @@
 # 31 - SEO Plan
 
 Status: rencana (1 Oktober 2026, diperbarui 2 Oktober 2026 dengan data RankMySEO, Search Console,
-dan GA4). Fase 0-1 sudah diimplementasikan di working tree dan direview (lihat "Status implementasi"); belum dideploy, jadi produksi masih sama seperti saat audit. Melengkapi `docs/13` (model
+dan GA4). Fase 0-1 sudah diimplementasikan, direview, dan dideploy ke staging/produksi pada 2 Oktober 2026 (lihat "Status implementasi"). Melengkapi `docs/13` (model
 halaman SEO), `docs/28` (topik), `docs/29` (beranda), dan `docs/30` (relevansi search). Bila ada
 konflik, standing constraints di `CLAUDE.md` dan ADR di `docs/21` menang.
 
@@ -362,14 +362,14 @@ Target: 15 referring domain dalam 3 bulan.
 
 ## Status implementasi (review 2 Oktober 2026)
 
-Implementasi Fase 0-1 ada di working tree, belum di-commit dan belum dideploy. Direview dengan
+Implementasi Fase 0-1 di-commit (`0c06c9d`) dan dideploy 2 Oktober 2026. Direview dengan
 menjalankan server SSR sungguhan (`php artisan inertia:start-ssr`) dan mengambil HTML mentah dari
 tiap jenis halaman, bukan hanya membaca kode.
 
 | Item | Status | Catatan |
 |---|---|---|
 | 0.1 build SSR | selesai | `npm run build` menghasilkan `bootstrap/ssr/app.js`; semua import runtime SSR ada di `dependencies`, jadi `npm prune --omit=dev` di Dockerfile aman |
-| 0.1 proses SSR di produksi | **belum** | Tidak ada yang menjalankan server SSR; lihat runbook di bawah |
+| 0.1 proses SSR di produksi | selesai (2 Okt) | Container `suaranetijen-ssr` di host utama, healthy; `INERTIA_SSR_URL=http://suaranetijen-ssr:13714`. Diverifikasi dari luar: title, canonical absolut, H1, noindex dan `X-Robots-Tag` benar di HTML mentah |
 | 0.3 pemantauan SSR | selesai | listener `SsrRenderFailed` + cek `/health` di `monitor:metrics` |
 | 0.4, 0.5 noindex sisi server | selesai | `ApplyRobotsPolicy` + `RobotsPolicy`; header `X-Robots-Tag` dan meta ikut berubah. Diverifikasi: entitas di bawah threshold, `/login`, `/search?q=` |
 | 0.6, 0.7, 0.11 robots, sitemap | selesai | `Sitemap:` di robots.txt, `/search` keluar dari sitemap, sitemap di-cache dan dibersihkan saat snapshot atau topik berubah |
@@ -401,8 +401,6 @@ Verifikasi: 610 tes lulus (2.906 assertion), Pint dan PHPStan bersih, `npm run b
 
 Gap yang masih terbuka:
 
-- **Server SSR belum punya proses di produksi.** Tanpa langkah di bawah, deploy ini tidak mengubah apa
-  pun bagi crawler.
 - ~~Tidak ada timeout untuk permintaan SSR~~ (diperbaiki 2 Okt): `inertia-laravel` 3.3.3 tidak punya
   `inertia.ssr.timeout`, jadi `App\Http\Ssr\TimeoutHttpGateway` menggantikan `HttpGateway` dengan
   timeout 3 s dan connect timeout 1 s (`INERTIA_SSR_TIMEOUT`, `INERTIA_SSR_CONNECT_TIMEOUT`), termasuk
@@ -474,3 +472,15 @@ SSR. Setelah live, cek `curl -s https://suaranetijen.id/e/samsung | grep -o '<ti
   kanal tambahan.
 - Volume keyword hanya 4 titik data planner ditambah 100 keyword gap dari satu kompetitor. Ukur ulang dari Search Console 4-6 minggu
   setelah Fase 0-1 live, lalu sesuaikan klaster.
+
+## Deploy 2 Oktober 2026
+
+Image `azmifauzan/suaranetijen:latest` (digest `sha256:fc60635e…`) dibangun, diuji (bundle SSR dan
+`inertia:check-ssr` di dalam image), dan didorong. Host utama: `suaranetijen-ssr` ditambahkan ke
+compose (cadangan `docker-compose.yml.bak-*` dan `.env.bak-*`), `INERTIA_SSR_URL` ditambahkan ke
+`.env`, SSR dijalankan lebih dulu sampai healthy, lalu app dan scheduler di-recreate, `nginx -s reload`.
+Tidak ada migrasi. Tiga worker Horizon memakai image baru (`horizon:terminate`, lalu recreate) karena
+hook `SentimentSnapshot` membersihkan cache sitemap dan harus berjalan di worker yang menyimpan snapshot;
+semua supervisor `running`, 0 failed job. Hasil dari luar: title unik per halaman, canonical dan
+`og:image` absolut, `X-Robots-Tag: noindex` pada entitas tipis, `/login`, dan `/search?q=`;
+`/sitemap.xml` 0,6 s saat cache dingin dan 0,2 s saat panas.
