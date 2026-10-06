@@ -547,3 +547,48 @@ absolut, `index, follow`, kalimat pembacaan skor benar ("relatif setara" bila se
 menandai `click` sebagai key event; sudah dibatalkan, key event aktif hanya `sponsor_click` dan `view_search_results`
 (`purchase` bawaan, tanpa data). `submit_rating` baru bisa ditandai setelah muncul di "Recent events" GA4 (setelah
 rating pertama dikirim lewat situs).
+
+## Audit GitHub, deskripsi entitas, Lighthouse (6 Oktober 2026)
+
+**Audit entitas GitHub: data tercemar, sudah dibersihkan.** Dari 1.235 observasi GitHub, 1.197 (97%) berasal dari
+`indoforum`: satu per thread, 1.197 thread berbeda dan tak berkaitan ("Windows Vista Community", "Cara Reschedule Tiket
+Pesawat"), semuanya positif, tanpa `matched_term`. Itu 96% dari seluruh observasi IndoForum (1.243). Sumber lain tidak
+menunjukkan pola ini (entitas teratas per sumber 9-23%). Penyebab yang paling masuk akal, mengikuti pelajaran Kaskus:
+selektor `//main` dan `//body` di `IndoForumAdapter::extract()` membaca seluruh halaman sebagai satu opini, sehingga
+teks tetap di setiap halaman cocok dengan satu entitas. Teks mentahnya sudah kedaluwarsa dan IndoForum sekarang hanya
+mengembalikan halaman tantangan bot, jadi penyebab pastinya tidak bisa direproduksi; tes regresi memakai halaman tanpa
+node post dan gagal sebelum perbaikan.
+
+Tindakan: `//main` dan `//body` dihapus dari IndoForum; `entities:purge-mismatched-opinions` mendapat opsi `--source`;
+1.197 observasi dihapus (dry run lebih dulu: 1.197, semuanya tak terverifikasi) dan agregat dibangun ulang;
+`monitor:metrics` kini memberi peringatan bila satu entitas menguasai lebih dari 60% observasi satu sumber dalam 24 jam.
+Hasil: GitHub turun dari 99,1 (1.221 opini, 365 hari) menjadi 24 opini 365 hari (di bawah ambang, tanpa skor) dan 38
+opini seluruh waktu (skor 57,9). Halamannya kini `noindex` dan keluar dari sitemap. Tiga worker Horizon memakai adapter
+baru. Adapter HTML lain (DiskusiWebHosting, LowEndTalk, MediaKonsumen, Mojok, SerayaMotor) masih punya fallback `//body`,
+tetapi datanya tidak menunjukkan pencemaran; dibiarkan dan dicatat di `.ai/rules/adapters.md`.
+
+**Deskripsi entitas:** 35 entitas yang lolos ambang tetapi kosong deskripsinya diisi satu kalimat pendek lewat migrasi
+yang tidak menimpa suntingan admin, plus baris yang sama di `seed_entities.csv` (importer akan mengosongkannya lagi bila
+tidak). Hanya yang saya yakin faktanya; yang ambigu dilewati (Fiesta, So Good, Vit, Ultra, Club). Dari 5.358 entitas aktif,
+5.079 masih kosong, hampir semuanya di bawah ambang dan `noindex`.
+
+**Temuan terkait data:** `website_url` banyak yang salah hasil pencarian Wikidata, dan tautannya tampil di halaman
+entitas yang diindeks: Jago -> jagodina.org.rs, Benefit -> journals.ums.ac.id, Club -> atleticodemadrid.com,
+Pixy -> allartenter.com, Honda Jazz -> rpmnews.com, Mazda -> mazda.com/ja. Belum diperbaiki.
+
+**Lighthouse mobile (produksi, sebelum perbaikan a11y):**
+
+| Halaman | Perf | A11y | Best practices | SEO | LCP | TTFB |
+|---|---|---|---|---|---|---|
+| `/` | 74 | 96 | 100 | 100 | 4,1 s | 3,3 s (dingin) |
+| `/e/samsung` | 82 | 95 | 100 | 100 | 3,4 s | 1,0 s |
+| `/top/smartphone` | 88 | 95 | 100 | 100 | 3,3 s | 0,8 s |
+| `/banding/oppo-vs-vivo` | 89 | 96 | 100 | 100 | 3,4 s | 0,8 s |
+
+SEO 100 di keempatnya; CLS 0. Performa dibatasi waktu respons server (TTFB 0,8-1,0 s, dan 3,3 s pada beranda saat cache
+15 menitnya dingin), jadi cache halaman publik (0.9) tetap satu-satunya langkah performa yang berarti. Aksesibilitas gagal
+di dua hal yang sama di semua halaman: teks muted `#69796c`/`#667861` di 4,2-4,4:1 (kini `#5d6e61`, 4,9:1 atau lebih) dan
+`aria-label` tautan merek yang tidak diawali teks yang terlihat (kini "suaranetijen Beranda"). `Sponsor/Index.vue` masih
+memakai `#788a7e` (3,7:1) dan `#687a6d`; tidak diubah karena halaman itu sedang dikerjakan.
+
+Deploy hari ini juga membawa perbaikan tata letak halaman sponsor (kartu teaser dan tombol aksi top-3).
