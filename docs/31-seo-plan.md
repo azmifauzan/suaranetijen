@@ -506,3 +506,17 @@ Catatan:
 - Pratinjau di Threads/Facebook belum diuji dengan debugger platform masing-masing; gunakan Sharing
   Debugger Facebook untuk memaksa ambil ulang `og:image` setelah deploy.
 - Fase 3 (halaman perbandingan) tetap menunggu keputusan produk soal ADR-011.
+
+## Tindakan akun (6 Oktober 2026)
+
+| Item | Hasil |
+|---|---|
+| GSC: Validate fix 6 URL 5xx | Validasi dimulai 6 Okt 2026. Keenam URL dicek ulang 200 sebelum ditekan. Hasil muncul dalam beberapa hari |
+| GSC: kirim ulang sitemap | Tidak perlu. `sitemap.xml` sudah terkirim (1 Okt), dibaca Google 4 Okt (setelah SSR live) dengan status Success dan 158 halaman ditemukan |
+| GA4: tautkan Search Console | Selesai: `suaranetijen.id` (domain) ke stream SuaraNetijen, "Link created". Data query dan landing page organik baru muncul di GA4 setelah beberapa hari |
+| GA4: key event | `sponsor_click` dan `view_search_results` ditandai (dua event yang memang dikirim aplikasi). `purchase` sudah ada tanpa data. Event kirim-rating belum dipancarkan aplikasi; belum ada yang bisa ditandai |
+| RankMySEO: keyword | Sudah `review infinix`, `review iphone 16`, `vps biznet gio` (volume 113/170/149), semuanya 20+ (belum ada peringkat). Rank coverage kini 100% |
+| RankMySEO: skor on-page | Masih 34 (142 halaman, 587 isu): review terakhir 1 Okt, sebelum SSR live. Tidak ada tombol untuk memicu review ulang; menunggu jadwal RankMySEO |
+
+Mengukur dampak: bandingkan Search Console 28 hari (baseline 1 klik, 25 impresi, posisi 33,7), jumlah halaman terindeks
+(78), "Crawled/Discovered - not indexed" (18/38), dan sesi organic search GA4 (10) setelah 4-6 minggu.
