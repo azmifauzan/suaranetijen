@@ -17,6 +17,12 @@ class OfficialWebsiteFinder
      */
     public function find(Entity $entity): ?string
     {
+        // A person's site is a campaign or fan page far more often than an official one; no outbound link
+        // is better than a wrong one, and an admin can still enter it by hand.
+        if ($entity->type === EntityType::Person) {
+            return null;
+        }
+
         $queries = $this->buildSearchQueries($entity);
 
         foreach ($queries as $query) {
@@ -79,7 +85,7 @@ class OfficialWebsiteFinder
                 continue;
             }
 
-            $website = $this->fetchCandidateWebsite($candidateId);
+            $website = $this->fetchCandidateWebsite($candidateId, $entity);
             if ($website !== null) {
                 return $website;
             }
@@ -157,7 +163,7 @@ class OfficialWebsiteFinder
         return false;
     }
 
-    private function fetchCandidateWebsite(string $candidateId): ?string
+    private function fetchCandidateWebsite(string $candidateId, Entity $entity): ?string
     {
         try {
             $response = Http::timeout(10)
@@ -185,7 +191,7 @@ class OfficialWebsiteFinder
                 return null;
             }
 
-            return $this->pickBestUrl($claims);
+            return $this->pickBestUrl($claims, $entity);
         } catch (\Throwable) {
             return null;
         }
@@ -194,7 +200,7 @@ class OfficialWebsiteFinder
     /**
      * @param  list<array<string, mixed>>  $claims
      */
-    private function pickBestUrl(array $claims): ?string
+    private function pickBestUrl(array $claims, Entity $entity): ?string
     {
         $candidates = [];
 
@@ -210,7 +216,7 @@ class OfficialWebsiteFinder
             }
 
             $normalized = $this->normalizeAndValidateUrl($rawUrl);
-            if ($normalized === null) {
+            if ($normalized === null || ! $this->hostMatchesEntity($entity, $normalized)) {
                 continue;
             }
 
@@ -244,6 +250,76 @@ class OfficialWebsiteFinder
         usort($candidates, fn ($a, $b) => $b['score'] <=> $a['score']);
 
         return $candidates[0]['url'];
+    }
+
+    /**
+     * Wikidata text search returns homonyms: "Benefit" gave a journal, "Club" an Atletico Madrid page, "Jago" a
+     * Serbian town's site and "DANA" an Israeli company, each with an official website claim. The host has to
+     * be the entity's own name or alias (optionally plus a market word like "indonesia"), or the start of one
+     * ("mi" for "Mi Indonesia"), otherwise the claim belongs to something else.
+     */
+    private function hostMatchesEntity(Entity $entity, string $url): bool
+    {
+        $host = mb_strtolower((string) parse_url($url, PHP_URL_HOST));
+        $host = (string) preg_replace('/^(www|global|id|en|m|corporate|about|home|shop|store)\./', '', $host);
+        $labels = explode('.', $host);
+
+        $dropped = count($labels) >= 3 && in_array($labels[count($labels) - 2], ['co', 'com', 'or', 'ac', 'web', 'net', 'org'], true) ? 2 : 1;
+        $label = $this->normalizeToken(implode('', array_slice($labels, 0, max(1, count($labels) - $dropped))));
+
+        if ($label === '') {
+            return false;
+        }
+
+        $names = [$entity->name];
+        foreach ($entity->aliases as $alias) {
+            $names[] = $alias->alias;
+        }
+
+        // A product's page lives on its brand's site (toyota.astra.co.id/product/avanza).
+        $parent = $entity->parent ?? ($entity->parent_id !== null ? $entity->parent()->first() : null);
+        if ($parent !== null) {
+            $names[] = $parent->name;
+        }
+
+        $allowedSuffixes = ['indonesia', 'id', 'official', 'group', 'global', 'motor', 'motors', 'mobile', 'store', 'shop', 'app', 'corp', 'asia', 'auto', 'automotive', 'online'];
+
+        // Astra group distributors: toyota.astra.co.id, astra-honda.com. The brand is the rest of the label.
+        $labels = array_unique([$label, (string) preg_replace('/^astra|astra$/', '', $label)]);
+
+        foreach ($names as $name) {
+            $candidates = array_filter([
+                $this->normalizeToken($name),
+                $this->normalizeToken(explode(' ', trim($name))[0]),
+            ], fn (string $candidate): bool => $candidate !== '');
+
+            foreach ($candidates as $candidate) {
+                foreach ($labels as $variant) {
+                    if ($variant === '') {
+                        continue;
+                    }
+
+                    if ($variant === $candidate) {
+                        return true;
+                    }
+
+                    if (strlen($variant) >= 2 && str_starts_with($candidate, $variant)) {
+                        return true;
+                    }
+
+                    if (str_starts_with($variant, $candidate) && in_array(substr($variant, strlen($candidate)), $allowedSuffixes, true)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeToken(string $value): string
+    {
+        return (string) preg_replace('/[^a-z0-9]/', '', mb_strtolower($value));
     }
 
     private function normalizeAndValidateUrl(string $url): ?string

@@ -4,6 +4,7 @@ use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Enums\EntityType;
 use App\Domains\Entities\Jobs\EnrichEntityWebsiteJob;
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Entities\Models\EntityAlias;
 use App\Domains\Entities\Services\OfficialWebsiteFinder;
 use App\Domains\Ingestion\Jobs\ClassifySentimentJob;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
@@ -266,6 +267,8 @@ it('runs batch command entities:enrich-websites to enrich top entities', functio
 
     $samsung = Entity::factory()->create(['name' => 'Samsung', 'website_url' => null, 'status' => EntityStatus::Active]);
     $xiaomi = Entity::factory()->create(['name' => 'Xiaomi', 'website_url' => null, 'status' => EntityStatus::Active]);
+    // mi.co.id carries the brand's Indonesian name, which is how production knows Xiaomi (alias "Mi Indonesia").
+    EntityAlias::factory()->create(['entity_id' => $xiaomi->id, 'alias' => 'Mi Indonesia', 'normalized_alias' => 'mi indonesia']);
 
     // Give Samsung higher opinion count in sentiment snapshot
     SentimentSnapshot::factory()->create([
@@ -393,4 +396,44 @@ it('allows github.com official website for GitHub entity', function () {
     $url = $finder->find($entity);
 
     expect($url)->toBe('https://github.com');
+});
+
+function fakeWikidataWebsite(string $url): void
+{
+    Http::preventStrayRequests();
+    Http::fake([
+        '*action=wbsearchentities*' => Http::response(['search' => [['id' => 'Q1', 'description' => 'organization']]]),
+        '*action=wbgetclaims*' => Http::response(['claims' => ['P856' => [['mainsnak' => ['datavalue' => ['value' => $url]], 'rank' => 'normal']]]]),
+    ]);
+}
+
+it('rejects a homonym whose site belongs to something else', function (string $name, string $url) {
+    fakeWikidataWebsite($url);
+
+    expect((new OfficialWebsiteFinder)->find(Entity::factory()->create(['name' => $name, 'type' => EntityType::Brand])))->toBeNull();
+})->with([
+    'journal for Benefit' => ['Benefit', 'https://journals.ums.ac.id/index.php/benefit'],
+    'football club for Club' => ['Club', 'https://www.atleticodemadrid.com'],
+    'Serbian town for Jago' => ['Jago', 'https://www.jagodina.org.rs'],
+    'Israeli company for DANA' => ['DANA', 'https://www.danainternational.co.il'],
+    'gitlab for Zoom' => ['Zoom', 'https://about.gitlab.com'],
+    'record label for Axis' => ['AXIS', 'https://www.4ad.com'],
+    'news site for Honda Jazz' => ['Honda Jazz', 'https://rpmnews.com'],
+]);
+
+it('accepts the entity\'s own host, with a market word or an Astra distributor name', function (string $name, string $url, string $expected) {
+    fakeWikidataWebsite($url);
+
+    expect((new OfficialWebsiteFinder)->find(Entity::factory()->create(['name' => $name, 'type' => EntityType::Brand])))->toBe($expected);
+})->with([
+    'plain brand' => ['Samsung', 'https://www.samsung.com/', 'https://www.samsung.com'],
+    'brand with market word' => ['Honda Civic', 'https://www.honda-indonesia.com/civic', 'https://www.honda-indonesia.com/civic'],
+    'Astra distributor' => ['Toyota Avanza', 'https://www.toyota.astra.co.id/product/avanza', 'https://www.toyota.astra.co.id/product/avanza'],
+    'Astra Honda' => ['Honda Beat', 'https://www.astra-honda.com/product/beat', 'https://www.astra-honda.com/product/beat'],
+]);
+
+it('never looks up a website for a person', function () {
+    Http::preventStrayRequests();
+
+    expect((new OfficialWebsiteFinder)->find(Entity::factory()->create(['name' => 'Joko Widodo', 'type' => EntityType::Person])))->toBeNull();
 });
