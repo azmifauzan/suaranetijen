@@ -10,6 +10,7 @@ use App\Domains\Ratings\Models\UserRating;
 use App\Domains\Search\Jobs\RefreshEntitySearchDocumentJob;
 use App\Domains\Search\Models\EntitySearchDocument;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
+use App\Http\Middleware\CachePublicPages;
 use Database\Factories\EntityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -68,6 +69,10 @@ class Entity extends Model
         static::saved(function (self $entity): void {
             if ($entity->wasChanged(['status', 'searchable', 'category_id'])) {
                 HomepageCategoryBlockService::clearCache();
+            }
+
+            if ($entity->wasChanged(['name', 'slug', 'description', 'website_url', 'status', 'searchable', 'category_id', 'parent_id'])) {
+                CachePublicPages::flush();
             }
         });
 

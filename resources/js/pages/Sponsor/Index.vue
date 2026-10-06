@@ -805,7 +805,7 @@ function formatRupiah(amount: number): string {
                             class="w-full rounded-xl border border-[#cfd9ce] py-2.5 pr-4 pl-9 text-sm text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
                         />
                     </div>
-                    <p v-if="!selectedEntity" class="mt-1.5 text-[11px] text-[#788a7e]">
+                    <p v-if="!selectedEntity" class="mt-1.5 text-[11px] text-[#5d6e61]">
                         Kami ambil judul situsnya, lalu cocokkan dengan entitas yang sudah terdaftar di SuaraNetijen.
                     </p>
 
@@ -899,7 +899,7 @@ function formatRupiah(amount: number): string {
                             placeholder="Deskripsi singkat brand, produk, atau layanan"
                             class="mt-1.5 w-full rounded-xl border border-[#cfd9ce] py-2.5 px-4 text-sm text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
                         ></textarea>
-                        <p class="mt-1.5 text-[11px] text-[#788a7e]">
+                        <p class="mt-1.5 text-[11px] text-[#5d6e61]">
                             Kami isi otomatis dari deskripsi situs. Bisa Anda ubah.
                         </p>
                     </div>
@@ -951,7 +951,7 @@ function formatRupiah(amount: number): string {
                             placeholder="nama@email.com"
                             class="mt-1.5 w-full rounded-xl border border-[#cfd9ce] py-2.5 px-4 text-sm text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
                         />
-                        <p class="mt-1.5 text-[11px] text-[#788a7e]">
+                        <p class="mt-1.5 text-[11px] text-[#5d6e61]">
                             Tidak perlu akun. Kami kirim link masuk ke email ini agar Anda bisa cek status sponsor kapan saja.
                         </p>
                     </div>
@@ -982,7 +982,7 @@ function formatRupiah(amount: number): string {
 
                         <!-- Custom input -->
                         <div class="relative mt-3">
-                            <span class="absolute top-2.5 left-3 text-xs font-bold text-[#687a6d]">Rp</span>
+                            <span class="absolute top-2.5 left-3 text-xs font-bold text-[#5d6e61]">Rp</span>
                             <input
                                 v-model="customAmount"
                                 type="number"
@@ -992,7 +992,7 @@ function formatRupiah(amount: number): string {
                                 @input="handleCustomAmountChange"
                             />
                         </div>
-                        <p class="mt-1 text-[11px] text-[#788a7e]">
+                        <p class="mt-1 text-[11px] text-[#5d6e61]">
                             Bebas tentukan nominal (minimal {{ formatRupiah(minAmount) }}, kelipatan {{ formatRupiah(incrementAmount || 100) }}). Untuk merebut posisi, cukup tambah {{ formatRupiah(incrementAmount || 100) }} di atas total sponsor target.
                         </p>
 
@@ -1329,7 +1329,7 @@ function formatRupiah(amount: number): string {
                         <span v-if="isSubmitting">Memproses ke QRIS...</span>
                         <span v-else>Bayar Sekarang</span>
                     </button>
-                    <p class="mt-2 text-center text-[11px] text-[#788a7e]">
+                    <p class="mt-2 text-center text-[11px] text-[#5d6e61]">
                         Pembayaran diproses aman melalui QRIS. Biaya gateway QRIS ditanggung pembeli.
                     </p>
                 </div>

@@ -9,6 +9,7 @@ use App\Domains\Search\Enums\SearchLandingPageSource;
 use App\Domains\Search\Enums\SearchLandingPageStatus;
 use App\Domains\Themes\Models\Theme;
 use App\Http\Controllers\SitemapController;
+use App\Http\Middleware\CachePublicPages;
 use Database\Factories\SearchLandingPageFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -74,12 +75,14 @@ class SearchLandingPage extends Model
             if ($landingPage->wasChanged(['status', 'category_id', 'candidate_signal', 'title', 'keyword'])) {
                 HomepageCategoryBlockService::clearCache();
                 SitemapController::clearCache();
+                CachePublicPages::flush();
             }
         });
 
         static::deleted(function (): void {
             HomepageCategoryBlockService::clearCache();
             SitemapController::clearCache();
+            CachePublicPages::flush();
         });
 
         static::saving(function (self $landingPage): void {

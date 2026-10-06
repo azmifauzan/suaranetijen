@@ -3,6 +3,7 @@
 namespace App\Domains\Entities\Models;
 
 use App\Domains\Entities\Enums\CategoryStatus;
+use App\Http\Middleware\CachePublicPages;
 use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -119,5 +120,19 @@ class Category extends Model
     protected static function newFactory(): CategoryFactory
     {
         return CategoryFactory::new();
+    }
+
+    /**
+     * Renaming or hiding a category changes every public page that links to it.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (self $category): void {
+            if ($category->wasChanged(['name', 'slug', 'status', 'parent_id'])) {
+                CachePublicPages::flush();
+            }
+        });
+
+        static::deleted(fn () => CachePublicPages::flush());
     }
 }

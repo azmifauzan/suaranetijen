@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\ApplyRobotsPolicy;
+use App\Http\Middleware\CachePublicPages;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -39,7 +40,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/sponsor/click/*',
         ]);
 
-        $middleware->web(append: [
+        $middleware->web(prepend: [
+            CachePublicPages::class,
+        ], append: [
             ApplyRobotsPolicy::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,

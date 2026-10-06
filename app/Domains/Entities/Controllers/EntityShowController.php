@@ -16,6 +16,7 @@ use App\Domains\Sentiment\Services\ScoreCalculator;
 use App\Domains\Sponsorships\Models\SponsoredEntry;
 use App\Domains\Themes\Services\TopThemesService;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\CachePublicPages;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -124,6 +125,8 @@ class EntityShowController extends Controller
 
         if ($activeSponsoredEntry) {
             $activeSponsoredEntry->increment('views_count');
+            // Sponsors are shown their view count, so this page must reach the controller every time.
+            $request->attributes->set(CachePublicPages::SKIP_ATTRIBUTE, true);
         }
 
         $currentUserRating = $request->user()
