@@ -124,6 +124,26 @@ it('runs the allowlisted IndoForum adapter without discovering other forum ids',
         ->and($opinions)->toHaveCount(1);
 });
 
+it('extracts nothing from an IndoForum page that has no post node instead of reading the whole page', function () {
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) {
+        return match (true) {
+            str_contains($request->url(), '/forums/') => Http::response(sourceFixture('indoforum', 'listing.html')),
+            str_contains($request->url(), '/threads/') => Http::response(
+                '<!doctype html><html><head><title>Validating browser…</title></head><body>'
+                .'<div class="zbg-card">Validating browser… This should only take a moment.</div>'
+                .'<footer>Kode sumber kami ada di GitHub dan terus kami perbarui.</footer></body></html>'
+            ),
+            default => Http::response('', 404),
+        };
+    });
+
+    $adapter = new IndoForumAdapter;
+    $batch = $adapter->discover(new CrawlCursor('indoforum', metadata: ['forum_ids' => [139]]));
+
+    expect(iterator_to_array($adapter->extract($adapter->fetch($batch->documents[0]))))->toBe([]);
+});
+
 it('rejects an IndoForum forum id outside the allowlist without crawling it', function () {
     Http::preventStrayRequests();
 

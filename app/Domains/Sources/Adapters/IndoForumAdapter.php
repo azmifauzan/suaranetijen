@@ -92,14 +92,17 @@ class IndoForumAdapter extends AbstractHttpSourceAdapter
 
     public function extract(FetchedDocument $doc): iterable
     {
+        // No `//main` or `//body` fallback (same lesson as KaskusAdapter::extract()): on 5 Oct 2026, 1,197
+        // of 1,243 IndoForum observations were one entity (GitHub, 100% positive, one per document, on
+        // unrelated threads), so a page without a post node was being read as a whole. A page that has
+        // no post node is a bot challenge or an unhydrated shell; finding nothing and retrying next
+        // cycle is correct.
         return $this->extractHtmlOpinions(
             $doc,
             [
                 '//*[contains(concat(" ", normalize-space(@class), " "), " post ")]',
                 '//article',
                 '//*[contains(concat(" ", normalize-space(@class), " "), " content ")]',
-                '//main',
-                '//body',
             ],
             ['promo', 'iklan', 'jualan', 'wts'],
             ['adapter' => 'indoforum']

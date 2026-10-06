@@ -161,6 +161,27 @@ class CheckSystemMetricsCommand extends Command
             $alerts[] = "High parser extraction failure count in last 24h: {$extractFailures24h}";
         }
 
+        // 5. One entity swallowing a source (last 24h). A whole-page scrape reads boilerplate as an
+        // opinion on every page (IndoForum / GitHub, Sep 2026: 96% of a source, 100% positive).
+        $concentration = DB::table('sentiment_observations as o')
+            ->join('sources as s', 's.id', '=', 'o.source_id')
+            ->join('entities as e', 'e.id', '=', 'o.entity_id')
+            ->where('o.created_at', '>=', $oneDayAgo)
+            ->groupBy('s.id', 's.name', 'e.id', 'e.name')
+            ->selectRaw('s.id as source_id, s.name as source, e.name as entity, count(*) as n')
+            ->get()
+            ->groupBy('source_id');
+
+        foreach ($concentration as $rows) {
+            $total = (int) $rows->sum('n');
+            $top = $rows->sortByDesc('n')->first();
+            $share = $total > 0 ? (int) round($top->n / $total * 100) : 0;
+
+            if ($total >= 50 && $share > 60) {
+                $alerts[] = "{$top->source} gave {$share}% of its last-24h opinions ({$top->n} of {$total}) to one entity ({$top->entity}); check for a boilerplate match";
+            }
+        }
+
         // Display results
         $this->table(['Metric', 'Value'], $metrics);
 

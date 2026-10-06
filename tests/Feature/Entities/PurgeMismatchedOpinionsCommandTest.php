@@ -68,3 +68,21 @@ it('changes nothing on a dry run', function () {
 
     expect(SentimentObservation::count())->toBe(3);
 });
+
+it('limits the purge to the named sources and leaves the entity\'s opinions from other sources alone', function () {
+    $github = Entity::factory()->create(['name' => 'GitHub', 'slug' => 'github']);
+    $forum = Source::factory()->create(['key' => 'indoforum']);
+    $video = Source::factory()->create(['key' => 'youtube']);
+
+    $forumExpired = purgeFixtureObservation($github, $forum, null);
+    $videoExpired = purgeFixtureObservation($github, $video, null);
+
+    $this->artisan('entities:purge-mismatched-opinions', [
+        '--entity' => ['github'],
+        '--purge-unverifiable' => ['github'],
+        '--source' => ['indoforum'],
+    ])->assertSuccessful();
+
+    expect(SentimentObservation::query()->pluck('id')->all())->toBe([$videoExpired->id])
+        ->and(SentimentObservation::query()->whereKey($forumExpired->id)->exists())->toBeFalse();
+});

@@ -9,6 +9,7 @@ use App\Domains\Sentiment\Models\SentimentDaily;
 use App\Domains\Sentiment\Models\SentimentObservation;
 use App\Domains\Sentiment\Services\SentimentAggregator;
 use App\Domains\Sources\Models\RawPayload;
+use App\Domains\Sources\Models\Source;
 use App\Domains\Themes\Models\EntityThemeDaily;
 use App\Domains\Themes\Models\EntityThemeSnapshot;
 use App\Domains\Themes\Models\EntityThemeSummary;
@@ -26,6 +27,7 @@ class PurgeMismatchedOpinionsCommand extends Command
     protected $signature = 'entities:purge-mismatched-opinions
         {--entity=* : Entity slugs to clean (default: every entity with a blocked or uppercase-only alias)}
         {--purge-unverifiable=* : Entity slugs whose opinions with an expired raw payload are deleted too}
+        {--source=* : Only look at opinions from these source keys (default: every source)}
         {--dry-run : Count what would be deleted without changing anything}';
 
     /**
@@ -37,6 +39,9 @@ class PurgeMismatchedOpinionsCommand extends Command
     {
         $dryRun = (bool) $this->option('dry-run');
         $unverifiableSlugs = (array) $this->option('purge-unverifiable');
+        $sourceIds = $this->option('source') === []
+            ? null
+            : Source::query()->whereIn('key', (array) $this->option('source'))->pluck('id')->all();
 
         $entities = Entity::query()
             ->when(
@@ -51,7 +56,9 @@ class PurgeMismatchedOpinionsCommand extends Command
             $unverifiable = 0;
             $verified = 0;
 
-            SentimentObservation::query()->where('entity_id', $entity->id)->orderBy('id')
+            SentimentObservation::query()->where('entity_id', $entity->id)
+                ->when($sourceIds !== null, fn ($query) => $query->whereIn('source_id', $sourceIds))
+                ->orderBy('id')
                 ->chunkById(500, function ($observations) use ($matcher, $entity, $unverifiableSlugs, &$mismatched, &$unverifiable, &$verified): void {
                     $payloads = RawPayload::query()
                         ->whereIn('source_item_id', $observations->pluck('source_item_id'))
