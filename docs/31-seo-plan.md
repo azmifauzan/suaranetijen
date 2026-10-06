@@ -673,3 +673,8 @@ amber dibiarkan.
 
 **Belum bisa dikerjakan dari sini (ekstensi browser tidak tersambung):** menandai `submit_rating` sebagai key event di
 GA4 (event harus muncul dulu, atau dibuat lewat "New key event"), dan membaca ulang skor on-page RankMySEO.
+
+**Deploy akhir (6 Oktober 2026, image `sha256:` terbaru dari `7cb905c`):** app, SSR, scheduler, dan tiga worker. Lighthouse
+mobile setelah deploy: **aksesibilitas 100, best practices 100, SEO 100** pada `/`, `/e/samsung`, dan `/top/smartphone`
+(sebelumnya aksesibilitas 95-96). Item `label-content-name-mismatch` masih muncul sebagai informasi tetapi tidak
+memengaruhi skor. Hit cache tanpa cookie: 0,14-0,26 s.
