@@ -592,3 +592,47 @@ di dua hal yang sama di semua halaman: teks muted `#69796c`/`#667861` di 4,2-4,4
 memakai `#788a7e` (3,7:1) dan `#687a6d`; tidak diubah karena halaman itu sedang dikerjakan.
 
 Deploy hari ini juga membawa perbaikan tata letak halaman sponsor (kartu teaser dan tombol aksi top-3).
+
+## Fase 4: paket outreach (siap kirim, belum dikirim)
+
+Fase ini bergantung pada orang, bukan kode: tidak ada yang dikirim atas nama SuaraNetijen tanpa persetujuan. Yang
+tersedia di bawah adalah bahan yang siap dipakai, dengan angka dari produksi pada 6 Oktober 2026.
+
+**Angka yang boleh dikutip** (semua bisa dicek di situs):
+
+| Klaim | Sumber |
+|---|---|
+| Smartphone dengan Sentimen Netijen tertinggi: Vivo 88 (280 opini), Oppo 85 (861), Realme 84 (117), Xiaomi 80 (1.208), Infinix 77 (223), Samsung 72 (2.116) | `/top/smartphone` |
+| Mobil: Suzuki Ertiga Hybrid 78 (345 opini), Honda Brio 77 (123), Hyundai 76 (612), Daihatsu 76 (303), BYD 74 (656) | `/top/mobil` |
+| Perbandingan berdampingan 15 pasangan (Oppo vs Vivo, Samsung vs Xiaomi, Apple vs Samsung, Avanza vs Xpander, ...) | `/banding/...` |
+| 172 URL di sitemap; metodologi, sumber data, dan rumus skor terbuka | `/methodology`, `/sources` |
+
+Hindari: "terbaik", "objektif", "akurat", dan klaim bahwa skor menunjukkan kualitas produk. Pakai "sentimen netizen
+tertinggi" dan sebut jumlah opini; tiga metrik tidak digabung (ADR-007/011/012).
+
+**Sudut berita yang punya data sendiri** (bukan sekadar promosi):
+1. "Merek HP dengan sentimen netizen tertinggi bulan ini" dengan perubahan peringkat dari bulan lalu, ditaruh di
+   `/topik` atau halaman laporan agar bisa ditautkan.
+2. "Apa yang paling sering dikeluhkan netizen tentang {merek}": dari tema Top Suara Netijen, sebagai frekuensi.
+3. Perbandingan pasangan yang sedang ramai (peluncuran baru), berbasis `/banding/...`.
+
+**Sasaran, berurutan dari yang paling mungkin**:
+- Direktori dan daftar: Product Hunt, daftar startup Indonesia (DailySocial startup list, StartupRanking), daftar
+  "awesome" proyek open source Indonesia di GitHub (situs menyebut dirinya proyek open source; sertakan tautan repo).
+- Komunitas tempat data ini relevan dan mengizinkan tautan: forum teknologi dan otomotif (bukan Reddit, yang melarang
+  perayap dan API-nya komersial). Bagikan halaman entitas atau perbandingan, bukan beranda (beranda: 14 detik
+  engagement).
+- Media: DailySocial, Tech in Asia Indonesia, Kompas Tekno, detikInet, IDN Times Tech, Oto Detik/Otomotifnet untuk
+  sudut mobil. Kirim satu paragraf, satu grafik, dan tautan ke halaman sumber.
+- Tautan balik dari sponsor: Papan Sponsor sudah mengirim `rel="sponsored"`; tambahkan opsi "tampilkan kami di
+  halaman produk Anda" hanya bila sponsor memintanya.
+
+**Contoh pesan pitch (Indonesia):**
+
+> Kami mengolah ribuan opini netizen tentang merek HP dan mobil di Indonesia menjadi skor sentimen yang bisa dicek
+> siapa saja, tanpa iklan yang memengaruhi skor. Bulan ini: Vivo (88 dari 280 opini) dan Oppo (85 dari 861) ada di
+> puncak, Samsung (72 dari 2.116 opini) paling banyak dibicarakan. Datanya terbuka di suaranetijen.id/top/smartphone
+> dan metodenya di suaranetijen.id/methodology. Kalau berguna untuk liputan Anda, kami bisa kirim data lengkap per
+> kategori.
+
+**Target tiga bulan:** 15 domain perujuk (sekarang 1). Ukur di RankMySEO (Backlinks) dan GA4 (source/medium referral).
