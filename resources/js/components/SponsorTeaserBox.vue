@@ -3,7 +3,11 @@ import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { Trophy } from '@lucide/vue';
 import { index as leaderboardPage } from '@/routes/leaderboard';
-import { getDirectWebsiteUrl, getFaviconUrl, trackSponsorClick } from '@/lib/sponsor';
+import {
+    getDirectWebsiteUrl,
+    getFaviconUrl,
+    trackSponsorClick,
+} from '@/lib/sponsor';
 import { show as showEntity } from '@/routes/entities';
 
 interface SponsorEntry {
@@ -80,12 +84,12 @@ const isEmpty = computed(() => {
 
         <!-- Disclosure -->
         <p class="mb-3 text-[10px] leading-relaxed text-amber-800">
-            Urutan berdasarkan nominal sponsor terkonfirmasi, bukan Sentimen Netijen atau
-            penilaian editorial.
+            Urutan berdasarkan nominal sponsor terkonfirmasi, bukan Sentimen
+            Netijen atau penilaian editorial.
         </p>
 
         <!-- Empty invite -->
-        <div v-if="isEmpty" class="text-center py-3">
+        <div v-if="isEmpty" class="py-3 text-center">
             <p class="text-xs text-amber-800">Papan Sponsor masih kosong —</p>
             <Link
                 :href="leaderboardPage.url()"
@@ -97,59 +101,68 @@ const isEmpty = computed(() => {
 
         <!-- Sponsor cards -->
         <div v-else class="flex flex-col gap-2 sm:flex-row sm:gap-3">
-            <a
+            <div
                 v-for="entry in entries"
                 :key="entry.slug"
-                :href="getDirectWebsiteUrl(entry.website_url, entry.slug)"
-                target="_blank"
-                rel="sponsored noopener noreferrer"
-                class="group flex flex-1 items-center gap-3 rounded-lg border border-amber-200 bg-white px-3 py-2.5 transition hover:border-amber-400 hover:shadow-sm"
-                @click="trackSponsorClick(entry.slug)"
+                class="min-w-0 flex-1 rounded-lg border border-amber-200 bg-white px-3 py-2.5 transition hover:border-amber-400 hover:shadow-sm"
             >
-                <!-- Favicon -->
-                <img
-                    v-if="getFaviconUrl(entry.website_url)"
-                    :src="getFaviconUrl(entry.website_url) ?? undefined"
-                    :alt="entry.name"
-                    class="h-7 w-7 flex-shrink-0 rounded-full border border-amber-100 object-contain"
-                    loading="lazy"
-                    onerror="this.style.display='none'"
-                />
+                <a
+                    :href="getDirectWebsiteUrl(entry.website_url, entry.slug)"
+                    target="_blank"
+                    rel="sponsored noopener noreferrer"
+                    class="group flex min-h-11 min-w-0 items-center gap-3"
+                    @click="trackSponsorClick(entry.slug)"
+                >
+                    <!-- Favicon -->
+                    <img
+                        v-if="getFaviconUrl(entry.website_url)"
+                        :src="getFaviconUrl(entry.website_url) ?? undefined"
+                        :alt="entry.name"
+                        class="h-7 w-7 flex-shrink-0 rounded-full border border-amber-100 object-contain"
+                        loading="lazy"
+                        onerror="this.style.display = 'none';"
+                    />
 
-                <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-1.5">
-                        <span
-                            class="truncate text-xs font-semibold text-neutral-900 group-hover:text-amber-700"
-                        >{{ entry.name }}</span>
-                        <span
-                            v-if="entry.rank <= 3"
-                            class="flex-shrink-0 text-[10px]"
-                            :title="`#${entry.rank} Papan Sponsor`"
-                        >{{ entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : '🥉' }}</span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5">
+                            <span
+                                class="truncate text-xs font-semibold text-neutral-900 group-hover:text-amber-700"
+                                >{{ entry.name }}</span
+                            >
+                            <span
+                                v-if="entry.rank <= 3"
+                                class="flex-shrink-0 text-[10px]"
+                                :title="`#${entry.rank} Papan Sponsor`"
+                                >{{
+                                    entry.rank === 1
+                                        ? '🥇'
+                                        : entry.rank === 2
+                                          ? '🥈'
+                                          : '🥉'
+                                }}</span
+                            >
+                        </div>
+                        <div class="mt-0.5 flex items-center gap-1.5">
+                            <span
+                                class="text-[10px] font-medium text-amber-800"
+                            >
+                                {{ formatRupiah(entry.settled_total_amount) }}
+                            </span>
+                            <span
+                                v-if="entry.sentiment_score !== null"
+                                class="text-[10px] text-neutral-400"
+                                >· {{ entry.sentiment_score }}/100</span
+                            >
+                        </div>
                     </div>
-                    <div class="mt-0.5 flex items-center gap-1.5">
-                        <span class="text-[10px] font-medium text-amber-800">
-                            {{ formatRupiah(entry.settled_total_amount) }}
-                        </span>
-                        <span
-                            v-if="entry.sentiment_score !== null"
-                            class="text-[10px] text-neutral-400"
-                        >· {{ entry.sentiment_score }}/100</span>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <!-- Link to entity pages -->
-        <div v-if="!isEmpty" class="mt-2 flex flex-wrap gap-2">
-            <Link
-                v-for="entry in entries"
-                :key="entry.slug + '-link'"
-                :href="showEntity.url(entry.slug)"
-                class="inline-flex min-h-11 items-center text-[10px] text-neutral-500 hover:text-neutral-700 hover:underline"
-            >
-                Lihat {{ entry.name }}
-            </Link>
+                </a>
+                <Link
+                    :href="showEntity.url(entry.slug)"
+                    class="mt-2 inline-flex min-h-11 max-w-full items-center text-[10px] break-words text-neutral-500 hover:text-neutral-700 hover:underline"
+                >
+                    Lihat {{ entry.name }}
+                </Link>
+            </div>
         </div>
     </div>
 </template>

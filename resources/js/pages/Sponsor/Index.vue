@@ -705,7 +705,7 @@ function formatRupiah(amount: number): string {
                             </div>
 
                             <!-- Actions -->
-                            <div class="flex items-center gap-1.5">
+                            <div class="flex max-w-full flex-wrap items-center justify-end gap-1.5">
                                 <a
                                     :href="getDirectWebsiteUrl(entry.website_url, entry.slug, { placement: 'leaderboard_top3' })"
                                     :ping="`/api/sponsor/click/${entry.slug}`"
