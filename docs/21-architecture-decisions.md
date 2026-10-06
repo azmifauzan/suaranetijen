@@ -74,3 +74,18 @@ never a numeric per-theme score, and never a manual per-category aspect taxonomy
 **Why:** answers "what do netizens say most" without reopening ADR-008's exclusion of aspect
 scoring/subscores; keeps the engine entity-type-agnostic (no per-category taxonomy to maintain),
 consistent with ADR-001's one-engine-across-types decision.
+
+## ADR-012 - Entity comparison pages show two scores side by side, never one verdict
+**Decision:** `/banding/{a}-vs-{b}` (`docs/31` Fase 3) places two entities' Sentimen Netijen, opinion count,
+sentiment split, and theme frequencies next to each other. It does not compute a combined score, a
+difference score, a winner badge, a per-theme score, or an aspect comparison. The one sentence that
+reads the numbers only restates both scores ("lebih tinggi daripada", or "relatif setara" within five
+points). Rating Netijen is not shown on these pages.
+**Why:** ADR-007/011 forbid *merging* metrics, and ADR-008 forbids aspect scoring; neither forbids
+showing the same metric for two entities, which is what a reader searching "A vs B bagus mana" needs. Keeping
+each number attached to its own entity preserves provenance, and the disclaimer says the gap describes the
+spread of opinion, not product quality.
+**Scope:** both entities must clear the public threshold (otherwise 404) and share a category (otherwise
+`noindex`). Only pairs listed in `config/comparisons.php` are indexable and in the sitemap; any other eligible
+same-category pair renders as `noindex`. Person entities are not listed (docs/31, Tokoh Publik default).
+

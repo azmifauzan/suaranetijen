@@ -520,3 +520,22 @@ Catatan:
 
 Mengukur dampak: bandingkan Search Console 28 hari (baseline 1 klik, 25 impresi, posisi 33,7), jumlah halaman terindeks
 (78), "Crawled/Discovered - not indexed" (18/38), dan sesi organic search GA4 (10) setelah 4-6 minggu.
+
+## Fase 3 dan event rating (6 Oktober 2026)
+
+- **Keputusan ADR-011:** halaman perbandingan tidak melanggarnya. ADR-007/011 melarang *menggabungkan*
+  metrik dan ADR-008 melarang skor aspek; menampilkan metrik yang sama untuk dua entitas berdampingan
+  tidak termasuk. Dicatat sebagai ADR-012 di `docs/21`, termasuk batasannya: tanpa skor gabungan, tanpa
+  selisih, tanpa pemenang, tanpa skor per tema, tanpa Rating Netijen.
+- **Halaman:** `/banding/{a}-vs-{b}` (`ComparisonController`, `EntityComparison`, `Comparison/Show.vue`).
+  Dua kartu berdampingan (skor, opini, sebaran, tema dipuji/dikeluhkan sebagai frekuensi), satu kalimat
+  yang hanya membaca dua skor ("lebih tinggi daripada", atau "relatif setara" bila selisih < 5), FAQ, JSON-LD
+  Breadcrumb dan FAQPage. Urutan dibalik di-301 ke urutan alfabet. Entitas tipis atau tak dikenal: 404.
+- **Daftar kurasi:** `config/comparisons.php` berisi 15 pasangan yang punya bukti pencarian (autocomplete)
+  dan entitas yang lolos threshold di produksi. Hanya pasangan itu yang indexable dan masuk sitemap; pasangan
+  lain yang valid tetap tampil tetapi `noindex`, begitu pula beda kategori. Menambah pasangan = menambah
+  satu baris, tanpa migrasi.
+- **Tautan:** halaman entitas memuat "Bandingkan {nama} dengan yang lain" ke pasangan kurasinya yang sisi
+  lainnya lolos threshold.
+- **Event rating:** `submit_rating` dikirim ke GA4 saat rating berhasil disimpan (`resources/js/lib/analytics.ts`,
+  tanpa efek bila gtag tidak dimuat). Tandai sebagai key event di GA4 setelah event pertama masuk.

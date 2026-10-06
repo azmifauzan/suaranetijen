@@ -3,6 +3,7 @@
 namespace App\Domains\Entities\Controllers;
 
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Entities\Services\EntityComparison;
 use App\Domains\Entities\Services\EntityOgImage;
 use App\Domains\Entities\Services\EntitySeoService;
 use App\Domains\Ratings\Models\UserRating;
@@ -25,7 +26,8 @@ class EntityShowController extends Controller
     public function __construct(
         protected TopThemesService $topThemesService,
         protected EntitySeoService $entitySeoService,
-        protected EntityOgImage $ogImage
+        protected EntityOgImage $ogImage,
+        protected EntityComparison $comparisons
     ) {}
 
     /**
@@ -248,6 +250,7 @@ class EntityShowController extends Controller
                 ->values(),
             'entitySeo' => $seoData,
             'ogImage' => $this->ogImageUrl($entity),
+            'comparisons' => $this->comparisons->forEntity($entity),
         ])->withViewData('robots', RobotsPolicy::get());
     }
 

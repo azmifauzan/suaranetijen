@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Entities\Controllers\CategoryShowController;
+use App\Domains\Entities\Controllers\ComparisonController;
 use App\Domains\Entities\Controllers\EntityOgImageController;
 use App\Domains\Entities\Controllers\EntityShowController;
 use App\Domains\Ratings\Controllers\Api\RatingController;
@@ -42,6 +43,9 @@ Route::get('/search', [SearchPageController::class, 'index'])->name('search.inde
 Route::get('/api/search', [SearchController::class, 'index'])->name('api.search');
 
 Route::get('/e/{slug}', [EntityShowController::class, 'show'])->name('entities.show');
+Route::get('/banding/{pair}', [ComparisonController::class, 'show'])
+    ->where('pair', '[a-z0-9-]+-vs-[a-z0-9-]+')
+    ->name('comparisons.show');
 Route::get('/og/e/{slug}.png', [EntityOgImageController::class, 'show'])
     ->where('slug', '[a-z0-9-]+')
     ->name('og.entity');

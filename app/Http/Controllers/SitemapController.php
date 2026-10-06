@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Entities\Services\EntityComparison;
 use App\Domains\Search\Models\SearchLandingPage;
 use App\Domains\Search\Services\TopicEntityList;
 use App\Domains\Sentiment\Enums\Period;
@@ -184,6 +185,16 @@ class SitemapController extends Controller
                 'priority' => '0.8',
             ];
             array_push($urls, ...$topicUrls);
+        }
+
+        // 5. Curated comparison pages (docs/31 Fase 3)
+        foreach (app(EntityComparison::class)->indexablePages() as $page) {
+            $urls[] = [
+                'loc' => "{$baseUrl}/banding/{$page['pair']}",
+                'lastmod' => $page['lastmod'],
+                'changefreq' => 'daily',
+                'priority' => '0.6',
+            ];
         }
 
         // Build XML
