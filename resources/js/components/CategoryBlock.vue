@@ -94,7 +94,7 @@ defineProps<{
                             >
                                 {{ entity.name }}
                             </Link>
-                            <div class="flex items-center gap-2 text-[11px] text-[#69796c]">
+                            <div class="flex items-center gap-2 text-[11px] text-[#5d6e61]">
                                 <span>{{ entity.category_name }}</span>
                                 <span>•</span>
                                 <span class="flex items-center gap-1">

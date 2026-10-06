@@ -195,7 +195,7 @@ function formatRupiah(amount: number): string {
 
                     <!-- Search suggestions directly under search input -->
                     <div
-                        class="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-[#667861]"
+                        class="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-[#5d6e61]"
                     >
                         <span class="mr-1">Coba cari:</span>
                         <Link
@@ -410,7 +410,7 @@ function formatRupiah(amount: number): string {
                 <div class="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
                     <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
                         <div>
-                            <p class="mb-1 flex items-center gap-1.5 text-xs font-bold tracking-wider text-[#69796c] uppercase">
+                            <p class="mb-1 flex items-center gap-1.5 text-xs font-bold tracking-wider text-[#5d6e61] uppercase">
                                 <TrendingUp class="size-3.5 text-[#087f5b]" />
                                 Topik Hangat
                             </p>
@@ -634,7 +634,7 @@ function formatRupiah(amount: number): string {
                 <div class="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
                     <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
                         <div>
-                            <p class="mb-1 text-xs font-bold tracking-wider text-[#69796c] uppercase">
+                            <p class="mb-1 text-xs font-bold tracking-wider text-[#5d6e61] uppercase">
                                 Indeks Kategori
                             </p>
                             <h2
@@ -671,7 +671,7 @@ function formatRupiah(amount: number): string {
                 <div class="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
                     <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
                         <div>
-                            <p class="mb-1 text-xs font-bold tracking-wider text-[#69796c] uppercase">
+                            <p class="mb-1 text-xs font-bold tracking-wider text-[#5d6e61] uppercase">
                                 Metodologi SuaraNetijen
                             </p>
                             <h2
