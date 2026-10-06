@@ -484,3 +484,25 @@ hook `SentimentSnapshot` membersihkan cache sitemap dan harus berjalan di worker
 semua supervisor `running`, 0 failed job. Hasil dari luar: title unik per halaman, canonical dan
 `og:image` absolut, `X-Robots-Tag: noindex` pada entitas tipis, `/login`, dan `/search?q=`;
 `/sitemap.xml` 0,6 s saat cache dingin dan 0,2 s saat panas.
+
+## Fase 2 dan kartu share (6 Oktober 2026)
+
+Dideploy ke produksi (`ecca529`; image `sha256:e484b14c…`; SSR, app, scheduler di-recreate; worker tidak
+perlu karena tidak ada perubahan di sisi worker).
+
+| Item | Hasil |
+|---|---|
+| JSON-LD | Sudah lengkap sebelum Fase 2: BreadcrumbList di 137 halaman, ItemList di 39, FAQPage di 80; semua valid dan absolut (crawl 144 URL sitemap). Tidak ada yang ditambah |
+| Tautan internal | Crawl menemukan 4 halaman entitas tanpa tautan masuk (`samsung-galaxy-s24-ultra`, `iphone-17`, `toyota-yaris`, `yamaha-nmax-155`). `/category/{slug}` kini memuat tautan ke semua entitas yang lolos threshold; breadcrumb entitas menunjuk ke kategori (sama dengan JSON-LD); `/top/{slug}` menaut balik ke kategori |
+| Kartu share per entitas | `/og/e/{slug}.png` (1200x630) untuk entitas yang lolos threshold: nama, kategori, skor Sentimen Netijen, jumlah opini, sebaran positif/netral/negatif. Dirender GD + DejaVu Sans (`resources/fonts/`, lisensi disertakan), di-cache di `storage/app/og` per versi snapshot, URL membawa `?v=`. Entitas tipis dan slug tak dikenal: 404, `og:image` tetap gambar situs. `twitter:card` menjadi `summary_large_image` |
+
+Diverifikasi dari luar: `og:image` `/e/samsung` menunjuk ke kartu yang valid (PNG 1200x630, 0,56 s saat
+dirender, 0,30 s saat di-cache), `/e/abdul-kadir-karding` dan slug palsu mengembalikan 404 untuk kartu.
+
+Catatan:
+
+- Render kartu pertama kali terjadi saat crawler atau platform sosial mengambilnya; file lama per slug
+  dihapus saat versi berubah. `storage/app/og` tidak ikut cadangan dan tidak perlu.
+- Pratinjau di Threads/Facebook belum diuji dengan debugger platform masing-masing; gunakan Sharing
+  Debugger Facebook untuk memaksa ambil ulang `og:image` setelah deploy.
+- Fase 3 (halaman perbandingan) tetap menunggu keputusan produk soal ADR-011.
