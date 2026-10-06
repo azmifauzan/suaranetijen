@@ -719,3 +719,26 @@ dan hanya menampilkan pasangan yang kedua sisinya lolos ambang 30 opini.
 
 Juga diverifikasi di produksi: aset ber-hash dikirim origin dengan `immutable, max-age=31536000`; salinan lama di
 Cloudflare masih membawa `max-age=14400` sampai kedaluwarsa (4 jam), URL baru sudah memakai header baru.
+
+## Fase 4: sasaran yang sudah diverifikasi (6 Oktober 2026)
+
+Pengecekan 6 Oktober memastikan cara mendaftar ke tiap sasaran dari halamannya sendiri. Belum ada yang dikirim.
+
+| Sasaran | Cara mendaftar (terverifikasi) | Tautan | Catatan |
+|---|---|---|---|
+| `IndopenSource/awesome-indonesia` (juga tampil di indopensource.org/projects dan tokengratis.id/opensource) | Pull request yang menambah satu baris `"azmifauzan/suaranetijen"` ke `repos.json`, jalankan `make validate`; README dibuat otomatis dari API GitHub | repo GitHub | Syarat: open source Indonesia yang masih aktif di 2026, publik, bukan duplikat. Tag, deskripsi, lisensi, dan bintang diambil dari metadata GitHub, jadi deskripsi dan topik repo menentukan tampilannya |
+| `maziyank/awesome-indonesia` | Ikuti `CONTRIBUTING.md` repo itu; daftar terurut menurut bintang, tanpa seksi per framework, terakhir disinkronkan 6 Okt 2026 | repo GitHub | Aktif |
+| `rujukan/made-in-indonesia` | Fork, tambah satu baris di README pada urutan abjad: `(⭐ N) [suaranetijen](https://github.com/azmifauzan/suaranetijen) - "Indeks sentimen publik Indonesia" _by [azmifauzan](https://github.com/azmifauzan)_`, lalu PR | repo GitHub | Syarat: lisensi OSS (MIT, memenuhi) dan pembuat orang Indonesia |
+| AppVerse.id | Alamat kontak `hello@appverse.id`; bagian GitHub Repos menerima URL publik tanpa login dan tampil setelah ditinjau admin. Formulir produknya tidak terbaca dari halaman publik | appverse.id | Gratis menurut halamannya; kebijakan dofollow tidak disebutkan |
+| Product Hunt | Akun pribadi (akun perusahaan tidak bisa memposting), URL langsung ke halaman produk (tanpa tautan pendek atau pelacak), tagline maks 60 karakter, deskripsi maks 260, gambar, dan komentar pembuat | producthunt.com/launch | Satu peluncuran per produk; jadwalkan 12:01 PST. Tautan di Product Hunt biasanya nofollow, nilainya ada di sorotan dan rujukan |
+| DailySocial dan media teknologi | Tidak ada formulir tip di halaman yang terbaca; kirim siaran pers ringkas ke alamat redaksi di halaman About masing-masing media | news.dailysocial.id/about | Subjek singkat, informatif, bukan klik-umpan; cantumkan nama, jabatan, telepon, email |
+
+**Kesiapan repositori** (kini sebagian besar terpenuhi): publik, lisensi MIT, README diperbarui 6 Okt dengan tautan situs
+langsung, contoh, dan stack. **Belum:** kolom "website" dan topik repositori di GitHub kosong. Daftar di atas menarik tag
+dan deskripsi dari metadata itu. Perubahan yang disarankan: homepage `https://suaranetijen.id` dan topik
+`sentiment-analysis`, `indonesia`, `laravel`, `inertiajs`, `vue`, `public-opinion`, `open-source`.
+
+**Siap dikirim, menunggu persetujuan** (semuanya bertindak atas nama akun GitHub atau email Anda, jadi tidak saya
+jalankan sendiri): (1) `gh repo edit` homepage dan topik; (2) tiga pull request ke daftar di atas; (3) surel ke
+`hello@appverse.id`; (4) satu paragraf pitch ke redaksi media (teks ada di bagian paket outreach); (5) draf peluncuran
+Product Hunt.

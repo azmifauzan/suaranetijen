@@ -5,10 +5,22 @@
 Search-first public sentiment index for Indonesia. Search a brand, product, or service and see
 whether public conversation about it leans positive or negative.
 
-**Baseline:** 4 September 2026 · **Market:** Indonesia · **Status:** Phase 0 (foundation), Phase 1
-(search), Phase 2 (sentiment substrate), Phase 3 (first observations), Phase 4 (public score),
-Phase 5 (coverage expansion), Phase 6 (first-party rating), and Phase 7 (public launch readiness)
-verified locally against PostgreSQL/Redis
+**Situs langsung:** [suaranetijen.id](https://suaranetijen.id) · **Pasar:** Indonesia · **Lisensi:** MIT
+
+Apa yang bisa dilakukan, dengan data nyata:
+
+- Cari merek, produk, atau layanan dan lihat **Sentimen Netijen** (0-100) dari opini publik yang dikumpulkan dari
+  forum, YouTube, dan portal ulasan, beserta jumlah opini dan sebaran positif/netral/negatif.
+  Contoh: [Samsung](https://suaranetijen.id/e/samsung), [ranking smartphone](https://suaranetijen.id/top/smartphone).
+- Lihat **tema yang paling sering dipuji dan dikeluhkan** per entitas (frekuensi, tanpa skor per tema).
+- [Bandingkan dua merek berdampingan](https://suaranetijen.id/banding), mis. Oppo vs Vivo; dua skor ditampilkan terpisah
+  dan tidak digabung.
+- **Rating Netijen** (bintang dari pengguna) tetap metrik terpisah. Cara hitung dan batasnya ada di
+  [metodologi](https://suaranetijen.id/methodology) dan [sumber data](https://suaranetijen.id/sources).
+
+**Stack:** Laravel 13, Inertia v3 + Vue (SSR), PostgreSQL, Redis + Horizon, tersebar di satu host web dan tiga worker.
+Backlog dan keputusan arsitektur ada di [`docs/`](docs/); rencana SEO terkini di
+[`docs/31-seo-plan.md`](docs/31-seo-plan.md).
 
 ## Open source & lisensi
 
