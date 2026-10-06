@@ -40,6 +40,11 @@ RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-avail
     && sed -ri -e 's!/var/www/!/var/www/html/public/!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
+# Vite names every file in build/assets after its content hash, so browsers and Cloudflare can keep them for a year.
+RUN a2enmod headers \
+    && printf '<Directory /var/www/html/public/build/assets>\n    Header set Cache-Control "public, max-age=31536000, immutable"\n</Directory>\n' > /etc/apache2/conf-available/assets-cache.conf \
+    && a2enconf assets-cache
+
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 

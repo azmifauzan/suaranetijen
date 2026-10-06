@@ -678,3 +678,32 @@ GA4 (event harus muncul dulu, atau dibuat lewat "New key event"), dan membaca ul
 mobile setelah deploy: **aksesibilitas 100, best practices 100, SEO 100** pada `/`, `/e/samsung`, dan `/top/smartphone`
 (sebelumnya aksesibilitas 95-96). Item `label-content-name-mismatch` masih muncul sebagai informasi tetapi tidak
 memengaruhi skor. Hit cache tanpa cookie: 0,14-0,26 s.
+
+## LCP: pengukuran yang benar (6 Oktober 2026)
+
+**Koreksi atas catatan sebelumnya.** Saya menulis bahwa LCP "dibatasi render" (CSS pemblokir, JS, gtag) dan perlu kerja
+front-end. Setelah ditelusuri lewat trace, itu salah dibaca: skor Lighthouse mobile (LCP 3,4 s, kadang 5,6 s pada halaman
+yang sama) sebagian besar artefak pengukuran, bukan pengalaman pengguna.
+
+Bukti:
+- Pada run Lighthouse tanpa throttling, semua aset selesai diunduh pada 0,3-0,5 s dan thread utama menganggur, tetapi
+  paint pertama baru terjadi pada 1,3 s (selisih tetap sekitar 1,15 s, tiga dari empat run). Filmstrip kosong pada
+  375/750/1125 ms. Kontrol: example.com dengan alat dan komputer yang sama paint pada 0,1 s.
+- Chrome yang sama, dikendalikan lewat puppeteer dengan emulasi mobile tanpa throttling jaringan, delapan kali muat:
+  FCP = LCP 0,33-0,75 s, tanpa mutasi DOM (hidrasi tidak mengganti isi SSR), elemen LCP adalah paragraf SSR.
+- Dengan kondisi yang sama seperti Lighthouse mobile (1,6 Mbps, RTT 150 ms, CPU 4x), enam kali muat halaman
+  `/top/smartphone`: **FCP = LCP 1,41-1,72 s**, TTFB 147-493 ms, 502 KB dalam 32 permintaan, load 3,1-3,4 s. Batas
+  "baik" Google untuk LCP adalah 2,5 s.
+
+Kesimpulan: LCP nyata pengguna di jaringan lambat sekitar 1,5 s, di bawah batas 2,5 s. Angka 3,4-5,7 s di laporan
+Lighthouse mensimulasikan dan melebih-lebihkan, dan melompat-lompat karena penundaan frame headless. Tidak ada kerja
+front-end besar yang dibenarkan oleh data ini (menunda gtag, memecah JS, CSS kritis hanya akan mengubah TBT atau
+ukuran, bukan LCP yang sudah sehat), jadi tidak dikerjakan.
+
+**Yang dikerjakan:** aset ber-hash di `/build/assets` kini dikirim dengan
+`Cache-Control: public, max-age=31536000, immutable` (konfigurasi Apache di Dockerfile; diuji pada image `php:8.5-apache`).
+Sebelumnya hanya `max-age=14400` yang ditambahkan Cloudflare, sehingga pengunjung yang kembali setelah 4 jam
+memvalidasi ulang 30-an berkas. Ini membantu kunjungan ulang dan mengurangi beban origin, bukan LCP kunjungan pertama.
+
+**Untuk mengukur ke depan:** pakai data lapangan (Search Console, laporan Core Web Vitals, setelah ada cukup trafik) dan
+skrip puppeteer dengan throttling di atas, bukan skor Lighthouse tunggal.
