@@ -3,6 +3,7 @@
 namespace App\Domains\Entities\Controllers;
 
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Entities\Services\EntityOgImage;
 use App\Domains\Entities\Services\EntitySeoService;
 use App\Domains\Ratings\Models\UserRating;
 use App\Domains\Search\Models\SearchLandingPage;
@@ -23,7 +24,8 @@ class EntityShowController extends Controller
 {
     public function __construct(
         protected TopThemesService $topThemesService,
-        protected EntitySeoService $entitySeoService
+        protected EntitySeoService $entitySeoService,
+        protected EntityOgImage $ogImage
     ) {}
 
     /**
@@ -245,6 +247,7 @@ class EntityShowController extends Controller
                 ])
                 ->values(),
             'entitySeo' => $seoData,
+            'ogImage' => $this->ogImageUrl($entity),
         ])->withViewData('robots', RobotsPolicy::get());
     }
 
@@ -284,5 +287,20 @@ class EntityShowController extends Controller
         }
 
         return $related;
+    }
+
+    /**
+     * Absolute URL of the entity's share card, or null when it does not clear the public threshold
+     * (the page then keeps the site-wide image). The version query rolls the URL when a number changes.
+     */
+    protected function ogImageUrl(Entity $entity): ?string
+    {
+        $snapshot = $this->ogImage->eligibleSnapshot($entity);
+
+        if ($snapshot === null) {
+            return null;
+        }
+
+        return route('og.entity', ['slug' => $entity->slug, 'v' => $this->ogImage->version($snapshot)]);
     }
 }

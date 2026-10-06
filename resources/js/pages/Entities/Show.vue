@@ -165,6 +165,7 @@ const props = defineProps<{
     trend?: TrendPoint[];
     includedTopics?: Array<{ id: number; slug: string; title: string; keyword: string }>;
     entitySeo?: SeoData;
+    ogImage?: string | null;
 }>();
 
 const ratingData = ref<RatingData>({ ...props.rating });
@@ -300,6 +301,7 @@ async function removeRating(): Promise<void> {
             :robots="
                 sentiment.is_eligible ? 'index, follow' : 'noindex, follow'
             "
+            :image="ogImage ?? undefined"
         >
             <component :is="'script'" type="application/ld+json">
                 {{ JSON.stringify(jsonLd) }}

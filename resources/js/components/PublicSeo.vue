@@ -70,7 +70,13 @@ const imageUrl = computed(() => {
         />
         <meta head-key="og:locale" property="og:locale" content="id_ID" />
         <meta head-key="og:image" property="og:image" :content="imageUrl" />
-        <meta head-key="twitter:card" name="twitter:card" content="summary" />
+        <meta
+            head-key="twitter:card"
+            name="twitter:card"
+            content="summary_large_image"
+        />
+        <meta head-key="og:image:width" property="og:image:width" content="1200" />
+        <meta head-key="og:image:height" property="og:image:height" content="630" />
         <meta
             head-key="twitter:title"
             name="twitter:title"
