@@ -742,3 +742,15 @@ dan deskripsi dari metadata itu. Perubahan yang disarankan: homepage `https://su
 jalankan sendiri): (1) `gh repo edit` homepage dan topik; (2) tiga pull request ke daftar di atas; (3) surel ke
 `hello@appverse.id`; (4) satu paragraf pitch ke redaksi media (teks ada di bagian paket outreach); (5) draf peluncuran
 Product Hunt.
+
+## Fase 4: status pengiriman (6 Oktober 2026)
+
+| Sasaran | Status |
+|---|---|
+| Metadata repositori GitHub (homepage, topik, deskripsi) | Selesai, diisi pemilik repo |
+| `IndopenSource/awesome-indonesia` | Pull request #50 terbuka, menunggu tinjauan |
+| `maziyank/awesome-indonesia` | Dilewati: fork dari IndopenSource, tercakup PR #50 |
+| `rujukan/made-in-indonesia` | Dilewati: tidak aktif sejak 2023 |
+| AppVerse.id | Pemilik yang mendaftar sendiri; belum ada konfirmasi |
+| Product Hunt | Draf dibuat dan dijadwalkan pemilik untuk 9 Oktober 2026. Tagline "Public sentiment index for brands in Indonesia", tag Analytics dan Open Source, komentar pembuat terisi, galeri satu gambar (disarankan 3 atau lebih) |
+| Media teknologi | Belum dikirim; menunggu pilihan media dan waktu dari pemilik |
