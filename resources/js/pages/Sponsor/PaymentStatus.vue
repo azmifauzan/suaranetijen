@@ -161,7 +161,7 @@ onBeforeUnmount(stopPolling);
                     }}
                 </h1>
                 <p
-                    class="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#637568]"
+                    class="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#5d6e61]"
                 >
                     <template v-if="isPaid">
                         Pembayaran sudah dikonfirmasi. Anda akan diarahkan ke
@@ -182,19 +182,19 @@ onBeforeUnmount(stopPolling);
                     class="mx-auto mt-8 max-w-md rounded-2xl border border-[#e5e9e2] bg-[#f8faf7] p-4 text-left text-sm"
                 >
                     <div class="flex items-center justify-between gap-4">
-                        <span class="text-[#637568]">Entitas</span>
+                        <span class="text-[#5d6e61]">Entitas</span>
                         <strong class="text-right text-[#18392d]">{{
                             order.entity_name
                         }}</strong>
                     </div>
                     <div class="mt-3 flex items-center justify-between gap-4">
-                        <span class="text-[#637568]">Nominal</span>
+                        <span class="text-[#5d6e61]">Nominal</span>
                         <strong class="text-[#92400e]">{{
                             formatRupiah(order.amount)
                         }}</strong>
                     </div>
                     <div class="mt-3 flex items-center justify-between gap-4">
-                        <span class="text-[#637568]">Status</span>
+                        <span class="text-[#5d6e61]">Status</span>
                         <strong class="text-right text-[#18392d]">{{
                             statusLabel
                         }}</strong>
@@ -203,7 +203,7 @@ onBeforeUnmount(stopPolling);
 
                 <p
                     v-if="isChecking"
-                    class="mt-5 inline-flex items-center gap-2 text-xs text-[#637568]"
+                    class="mt-5 inline-flex items-center gap-2 text-xs text-[#5d6e61]"
                     role="status"
                     aria-live="polite"
                 >
@@ -211,7 +211,7 @@ onBeforeUnmount(stopPolling);
                 </p>
                 <p
                     v-else-if="lastCheckedAt && !isPaid"
-                    class="mt-5 text-xs text-[#7b8b80]"
+                    class="mt-5 text-xs text-[#5d6e61]"
                     role="status"
                     aria-live="polite"
                 >

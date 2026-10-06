@@ -636,3 +636,40 @@ tertinggi" dan sebut jumlah opini; tiga metrik tidak digabung (ADR-007/011/012).
 > kategori.
 
 **Target tiga bulan:** 15 domain perujuk (sekarang 1). Ukur di RankMySEO (Backlinks) dan GA4 (source/medium referral).
+
+## Cache halaman publik dan Lighthouse ulang (6 Oktober 2026, sore)
+
+**Latar:** TTFB halaman publik naik menjadi 1,1-1,6 s (beranda 1,7-2,9 s hangat, 5,2 s dingin) karena Postgres bersama
+(batas 8 CPU, memori 961 MiB dari 1 GiB) dipakai penuh oleh pipeline ingestion (`MatchEntitiesJob`,
+`ClassifySentimentJob`; load host 11,9). Crawler dan bot pratinjau menunggu itu.
+
+**Perubahan (item 0.9):** `CachePublicPages` menyajikan HTML publik dari cache selama 5 menit hanya untuk permintaan
+tanpa cookie, tanpa query string, bukan Inertia XHR, untuk rute publik (beranda, entitas, kategori, top, topik,
+perbandingan, halaman statis). Berjalan sebelum session, jadi hit tidak mengirim cookie; permintaan ber-cookie tidak
+pernah di-cache maupun dilayani dari cache, sehingga data per pengguna (rating, flash, tema) tidak bocor. Halaman
+entitas bersponsor tidak di-cache (jumlah tayang sponsor), kunci memuat hash manifest Vite (deploy tidak menyajikan
+HTML yang menunjuk aset yang sudah hilang), dan menyunting entitas, topik, atau kategori mengosongkan cache. Perubahan
+skor dari pipeline tidak mengosongkannya; menunggu TTL.
+
+**Hasil produksi (tanpa cookie):**
+
+| Halaman | Sebelum | Hit cache |
+|---|---|---|
+| `/` | 1,7 s (dingin 5,2 s) | 0,20-0,24 s |
+| `/e/samsung` | 1,1-1,5 s | 0,17-0,23 s |
+| `/top/smartphone` | 0,8-1,1 s | 0,18-0,20 s |
+| `/banding/oppo-vs-vivo` | 1,1 s | 0,19-0,30 s |
+
+**Lighthouse mobile sesudah cache:** waktu dokumen akar turun dari 760-3.240 ms menjadi 90-350 ms. LCP tidak ikut turun
+secara berarti: hasilnya bimodal pada halaman yang sama (`/top/smartphone`, tiga kali jalan dengan dokumen 120-220 ms:
+skor 87, 87, 74, LCP 3,4 s, 3,4 s, 5,6 s), jadi LCP dibatasi render (CSS pemblokir render 26 KB, JS dan gtag sekitar
+536 KiB) dan bukan server. Perbaikan LCP berikutnya ada di sisi front-end (memecah JS, memuat gtag setelah interaksi,
+CSS kritis), dan belum dikerjakan.
+
+**Aksesibilitas putaran kedua:** sisa kegagalan setelah putaran pertama adalah warna muted lain (`#6d7c61` 3,9:1,
+`#66736c` 4,4:1, dan 19 varian hijau-abu-abu antara 2,4 dan 4,5:1) dan nama tautan merek (teks terlihat "suaranetijen."
+memuat titik, jadi `aria-label` kini "suaranetijen. Beranda"). Semua warna muted itu kini `#5d6e61`; warna aksen dan
+amber dibiarkan.
+
+**Belum bisa dikerjakan dari sini (ekstensi browser tidak tersambung):** menandai `submit_rating` sebagai key event di
+GA4 (event harus muncul dulu, atau dibuat lewat "New key event"), dan membaca ulang skor on-page RankMySEO.

@@ -41,7 +41,7 @@ const navigation = [
             <div
                 class="mx-auto flex h-20 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8"
             >
-                <Link :href="home()" aria-label="suaranetijen Beranda"
+                <Link :href="home()" aria-label="suaranetijen. Beranda"
                     ><BrandLogo
                 /></Link>
                 <nav
@@ -132,7 +132,7 @@ const navigation = [
             <div class="mx-auto max-w-6xl px-5 py-12 sm:px-8">
                 <div class="flex flex-col justify-between gap-10 md:flex-row">
                     <div class="max-w-xs">
-                        <Link :href="home()" aria-label="suaranetijen Beranda"
+                        <Link :href="home()" aria-label="suaranetijen. Beranda"
                             ><BrandLogo tagline
                         /></Link>
                         <p class="mt-5 text-sm leading-6 text-neutral-500">

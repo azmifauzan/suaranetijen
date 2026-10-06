@@ -381,7 +381,7 @@ function formatRupiah(amount: number): string {
             <!-- Value props banner -->
             <div class="border-b border-[#e6e9e1] bg-white">
                 <div
-                    class="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-5 py-3 text-xs text-[#66746b] sm:px-8 sm:text-sm"
+                    class="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-5 py-3 text-xs text-[#5d6e61] sm:px-8 sm:text-sm"
                 >
                     <span class="flex items-center gap-2">
                         <MessageCircle class="size-4 text-[#087f5b]" />
@@ -742,7 +742,7 @@ function formatRupiah(amount: number): string {
                                     Ada data di balik setiap suara.
                                 </h2>
                                 <p
-                                    class="mt-2 max-w-lg text-sm leading-6 text-[#6d7c61]"
+                                    class="mt-2 max-w-lg text-sm leading-6 text-[#5d6e61]"
                                 >
                                     Kenali dari mana opini berasal dan bagaimana
                                     kami mengolahnya. Terbuka, supaya kamu bisa

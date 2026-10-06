@@ -17,7 +17,7 @@ withDefaults(defineProps<{ tagline?: boolean }>(), { tagline: false });
             >
             <span
                 v-if="tagline"
-                class="mt-1 text-xs tracking-normal text-[#66736c]"
+                class="mt-1 text-xs tracking-normal text-[#5d6e61]"
                 >Sebelum pilih, cek kata netizen.</span
             >
         </span>

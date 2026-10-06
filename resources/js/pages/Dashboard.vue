@@ -39,7 +39,7 @@ const userName = computed(
                     Halo, {{ userName }}. Siap cek suara netizen?
                 </h1>
                 <p
-                    class="mt-4 max-w-xl text-sm leading-6 text-[#68746b] sm:text-base"
+                    class="mt-4 max-w-xl text-sm leading-6 text-[#5d6e61] sm:text-base"
                 >
                     Cari brand, produk, atau layanan untuk melihat sentimen
                     publik, tema yang paling sering dibicarakan, dan rating
@@ -73,7 +73,7 @@ const userName = computed(
                     <Search class="size-5" />
                 </div>
                 <h2 class="mt-5 font-bold text-[#18392d]">Cari opini publik</h2>
-                <p class="mt-2 text-sm leading-6 text-[#68746b]">
+                <p class="mt-2 text-sm leading-6 text-[#5d6e61]">
                     Temukan entitas dan lihat rangkuman opini yang relevan.
                 </p>
             </div>
@@ -84,7 +84,7 @@ const userName = computed(
                     <ShieldCheck class="size-5" />
                 </div>
                 <h2 class="mt-5 font-bold text-[#18392d]">Sentimen terpisah</h2>
-                <p class="mt-2 text-sm leading-6 text-[#68746b]">
+                <p class="mt-2 text-sm leading-6 text-[#5d6e61]">
                     Sentimen publik dan rating pengguna dihitung sebagai metrik
                     berbeda.
                 </p>
@@ -96,7 +96,7 @@ const userName = computed(
                     <Star class="size-5" />
                 </div>
                 <h2 class="mt-5 font-bold text-[#18392d]">Baca dengan sadar</h2>
-                <p class="mt-2 text-sm leading-6 text-[#68746b]">
+                <p class="mt-2 text-sm leading-6 text-[#5d6e61]">
                     Kenali sumber dan cara kerja indeks sebelum mengambil
                     keputusan.
                 </p>
@@ -110,7 +110,7 @@ const userName = computed(
                 <h2 class="font-bold text-[#18392d]">
                     Ingin tahu cara kerjanya?
                 </h2>
-                <p class="mt-2 text-sm leading-6 text-[#68746b]">
+                <p class="mt-2 text-sm leading-6 text-[#5d6e61]">
                     Pelajari metodologi dan prinsip transparansi SuaraNetijen.
                 </p>
             </div>

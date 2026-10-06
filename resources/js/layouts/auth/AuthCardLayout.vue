@@ -24,7 +24,7 @@ defineProps<{
             <Link
                 :href="home()"
                 class="flex items-center gap-2 self-center font-medium"
-                aria-label="suaranetijen Beranda"
+                aria-label="suaranetijen. Beranda"
             >
                 <BrandLogo tagline />
             </Link>

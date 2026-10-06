@@ -64,7 +64,7 @@ defineProps<{
                 </div>
                 <Link
                     :href="showRanking(block.slug)"
-                    class="shrink-0 rounded-lg p-1.5 text-[#5e7364] transition hover:bg-[#edf4ec] hover:text-[#087f5b]"
+                    class="shrink-0 rounded-lg p-1.5 text-[#5d6e61] transition hover:bg-[#edf4ec] hover:text-[#087f5b]"
                     :title="`Peringkat sentimen ${block.name}`"
                 >
                     <ArrowRight class="size-4" />
@@ -76,7 +76,7 @@ defineProps<{
                 v-if="block.top_entities.length > 0"
                 class="mt-4 border-t border-[#edf1ec] pt-3"
             >
-                <p class="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-[#687a6c]">
+                <p class="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-[#5d6e61]">
                     <Sparkles class="size-3 text-[#087f5b]" />
                     Sentimen Netizen Tertinggi
                 </p>
@@ -132,7 +132,7 @@ defineProps<{
                 class="mt-3.5 border-t border-[#edf1ec] pt-3"
             >
                 <div class="flex flex-wrap items-center gap-1.5">
-                    <Tag class="size-3 text-[#798b7e]" />
+                    <Tag class="size-3 text-[#5d6e61]" />
                     <Link
                         v-for="topic in block.topics"
                         :key="topic.slug"

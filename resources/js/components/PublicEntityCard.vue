@@ -27,7 +27,7 @@ defineProps<{
                 aria-hidden="true"
                 >{{ entity.name.slice(0, 2).toUpperCase() }}</span
             ><ArrowUpRight
-                class="size-5 text-[#8b998f] transition group-hover:text-[#087f5b]"
+                class="size-5 text-[#5d6e61] transition group-hover:text-[#087f5b]"
             />
         </div>
         <h3 class="mt-5 text-lg font-bold tracking-tight">{{ entity.name }}</h3>
@@ -53,9 +53,9 @@ defineProps<{
                     }}<span class="text-xs font-medium"> / 100</span></span
                 ><span
                     v-else
-                    class="rounded-lg bg-[#f1f3ed] px-3 py-2 text-xs font-medium text-[#6c776e]"
+                    class="rounded-lg bg-[#f1f3ed] px-3 py-2 text-xs font-medium text-[#5d6e61]"
                     >Belum cukup opini</span
-                ><span class="text-xs text-[#637368]">Sentimen Netijen</span>
+                ><span class="text-xs text-[#5d6e61]">Sentimen Netijen</span>
             </div>
             <p class="mt-4 flex items-center gap-1.5 text-xs text-neutral-500">
                 <MessageCircle class="size-3.5" />{{

@@ -121,7 +121,7 @@ function matchedTheme(item: Suggestion): string | null {
             @submit.prevent="submit"
         >
             <Search
-                class="ml-2 size-5 shrink-0 text-[#68796d] sm:ml-3 sm:size-6"
+                class="ml-2 size-5 shrink-0 text-[#5d6e61] sm:ml-3 sm:size-6"
                 aria-hidden="true"
             />
             <label :for="inputId" class="sr-only"
@@ -160,21 +160,21 @@ function matchedTheme(item: Suggestion): string | null {
             <p
                 v-if="loading"
                 role="status"
-                class="flex items-center gap-2 p-4 text-sm text-[#63756a]"
+                class="flex items-center gap-2 p-4 text-sm text-[#5d6e61]"
             >
                 <LoaderCircle class="size-4 animate-spin" /> Mencari...
             </p>
             <p
                 v-else-if="failed"
                 role="status"
-                class="p-4 text-sm text-[#63756a]"
+                class="p-4 text-sm text-[#5d6e61]"
             >
                 Saran belum dapat dimuat. Tekan Cari untuk melihat hasil.
             </p>
             <p
                 v-else-if="!suggestions.length"
                 role="status"
-                class="p-4 text-sm text-[#63756a]"
+                class="p-4 text-sm text-[#5d6e61]"
             >
                 Belum ada yang cocok. Coba nama atau kata kunci lain.
             </p>
@@ -194,7 +194,7 @@ function matchedTheme(item: Suggestion): string | null {
                         <span class="block text-sm font-bold">{{
                             item.name
                         }}</span>
-                        <span class="text-xs text-[#68796d]">
+                        <span class="text-xs text-[#5d6e61]">
                             {{ item.type_label }} · {{ item.category.name }}
                         </span>
                         <span

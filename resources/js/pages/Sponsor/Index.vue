@@ -737,7 +737,7 @@ function formatRupiah(amount: number): string {
 
                 <div
                     v-else-if="leaderboard.length === 0"
-                    class="rounded-xl border border-dashed border-[#dce3db] bg-[#fafcfa] p-4 text-center text-xs text-[#637568]"
+                    class="rounded-xl border border-dashed border-[#dce3db] bg-[#fafcfa] p-4 text-center text-xs text-[#5d6e61]"
                 >
                     Belum ada entitas di Top 3 untuk periode ini.
                 </div>
@@ -753,7 +753,7 @@ function formatRupiah(amount: number): string {
                 <h3 class="mt-1 text-lg font-extrabold text-[#18392d]">
                     Tingkatkan Posisi di Leaderboard
                 </h3>
-                <p class="mt-1 text-xs text-[#637568]">
+                <p class="mt-1 text-xs text-[#5d6e61]">
                     Dukungan Anda terakumulasi pada entitas pilihan untuk periode {{ activePeriod.name }}.
                 </p>
 
@@ -797,7 +797,7 @@ function formatRupiah(amount: number): string {
                         Link Website Resmi Entitas
                     </label>
                     <div v-if="!selectedEntity" class="relative mt-1.5">
-                        <Search class="absolute top-3 left-3 size-4 text-[#8e9f93]" />
+                        <Search class="absolute top-3 left-3 size-4 text-[#5d6e61]" />
                         <input
                             v-model="urlInput"
                             type="url"
@@ -809,7 +809,7 @@ function formatRupiah(amount: number): string {
                         Kami ambil judul situsnya, lalu cocokkan dengan entitas yang sudah terdaftar di SuaraNetijen.
                     </p>
 
-                    <div v-if="isFetchingPreview && !selectedEntity" class="mt-3 flex items-center gap-2 text-xs text-[#637568]">
+                    <div v-if="isFetchingPreview && !selectedEntity" class="mt-3 flex items-center gap-2 text-xs text-[#5d6e61]">
                         <span class="size-3.5 animate-spin rounded-full border-2 border-[#cfd9ce] border-t-[#087f5b]" />
                         Mengambil informasi situs...
                     </div>
@@ -826,9 +826,9 @@ function formatRupiah(amount: number): string {
                         v-if="urlPreview && !selectedEntity"
                         class="mt-3 rounded-xl border border-[#d8e2d6] bg-[#f7faf6] p-3 text-xs"
                     >
-                        <p class="text-[10px] font-bold tracking-wide text-[#8e9f93] uppercase">Ditemukan</p>
+                        <p class="text-[10px] font-bold tracking-wide text-[#5d6e61] uppercase">Ditemukan</p>
                         <p class="mt-1 font-bold text-[#18392d]">{{ urlPreview.title }}</p>
-                        <p class="mt-0.5 truncate text-[#6e7f73]">{{ urlPreview.url }}</p>
+                        <p class="mt-0.5 truncate text-[#5d6e61]">{{ urlPreview.url }}</p>
                     </div>
 
                     <!-- Candidate entity matches -->
@@ -847,7 +847,7 @@ function formatRupiah(amount: number): string {
                                 <div class="text-sm font-bold text-[#18392d]">
                                     {{ item.name }}
                                 </div>
-                                <div class="text-xs text-[#6e7f73]">
+                                <div class="text-xs text-[#5d6e61]">
                                     {{ item.type_label }} · {{ item.category_name }}
                                 </div>
                             </div>
@@ -1044,7 +1044,7 @@ function formatRupiah(amount: number): string {
             <!-- Leaderboard search (rankup.uno-style): filters the board below, never affects
                  the sponsor entry form above or organic search. -->
             <div v-if="leaderboard.length > 0" class="relative mt-8 w-full">
-                <Search class="absolute top-3 left-3 size-4 text-[#8e9f93]" />
+                <Search class="absolute top-3 left-3 size-4 text-[#5d6e61]" />
                 <input
                     v-model="leaderboardQuery"
                     type="search"
@@ -1064,14 +1064,14 @@ function formatRupiah(amount: number): string {
                 <h3 class="mt-4 text-lg font-bold text-[#1f3729]">
                     Belum ada entitas di leaderboard periode ini
                 </h3>
-                <p class="mx-auto mt-2 max-w-md text-sm text-[#6c7d70]">
+                <p class="mx-auto mt-2 max-w-md text-sm text-[#5d6e61]">
                     Jadilah yang pertama mengangkat brand, produk, atau layanan pilihanmu ke posisi teratas Leaderboard periode ini!
                 </p>
             </div>
 
             <div
                 v-else-if="filteredLeaderboard.length === 0"
-                class="mt-6 rounded-2xl border border-dashed border-[#dce3db] bg-white p-8 text-center text-sm text-[#6c7d70]"
+                class="mt-6 rounded-2xl border border-dashed border-[#dce3db] bg-white p-8 text-center text-sm text-[#5d6e61]"
             >
                 Tidak ada entitas di leaderboard yang cocok dengan "{{ leaderboardQuery }}".
             </div>
@@ -1200,13 +1200,13 @@ function formatRupiah(amount: number): string {
                     <!-- Stats separate the core ranking from the rest of the loaded entries. -->
                     <div v-if="sectionIndex === 0 && stats" class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
                         <div class="rounded-2xl border border-[#e5e9e2] bg-white p-3 shadow-2xs">
-                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
+                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#5d6e61]">
                                 <Trophy class="size-3.5 text-[#d97706]" /> Total Listing
                             </div>
                             <div class="mt-1 text-lg font-black text-[#18392d]">
                                 {{ stats.total_listings }}
                             </div>
-                            <div class="mt-0.5 text-[10px] text-[#8e9f93]">entitas aktif</div>
+                            <div class="mt-0.5 text-[10px] text-[#5d6e61]">entitas aktif</div>
                         </div>
 
                         <div class="rounded-2xl border border-[#f2ddb3] bg-[#fffefb] p-3 shadow-2xs">
@@ -1220,33 +1220,33 @@ function formatRupiah(amount: number): string {
                         </div>
 
                         <div class="rounded-2xl border border-[#e5e9e2] bg-white p-3 shadow-2xs">
-                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
+                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#5d6e61]">
                                 <MousePointerClick class="size-3.5 text-[#087f5b]" /> Total Klik URL
                             </div>
                             <div class="mt-1 text-lg font-black text-[#18392d]">
                                 {{ stats.total_clicks.toLocaleString('id-ID') }}
                             </div>
-                            <div class="mt-0.5 text-[10px] text-[#8e9f93]">kunjungan direct link</div>
+                            <div class="mt-0.5 text-[10px] text-[#5d6e61]">kunjungan direct link</div>
                         </div>
 
                         <div class="rounded-2xl border border-[#e5e9e2] bg-white p-3 shadow-2xs">
-                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
+                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#5d6e61]">
                                 <Eye class="size-3.5 text-[#2563eb]" /> Total Pengunjung
                             </div>
                             <div class="mt-1 text-lg font-black text-[#18392d]">
                                 {{ stats.total_views.toLocaleString('id-ID') }}
                             </div>
-                            <div class="mt-0.5 text-[10px] text-[#8e9f93]">tampilan halaman detail</div>
+                            <div class="mt-0.5 text-[10px] text-[#5d6e61]">tampilan halaman detail</div>
                         </div>
 
                         <div class="col-span-2 rounded-2xl border border-[#e5e9e2] bg-white p-3 shadow-2xs sm:col-span-1">
-                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#66776b]">
+                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-[#5d6e61]">
                                 <Award class="size-3.5 text-[#d97706]" /> Peringkat #1 Saat Ini
                             </div>
                             <div class="mt-1 text-lg font-black text-[#18392d]">
                                 {{ formatRupiah(stats.highest_bid) }}
                             </div>
-                            <div class="mt-0.5 text-[10px] text-[#8e9f93]">sponsor tertinggi</div>
+                            <div class="mt-0.5 text-[10px] text-[#5d6e61]">sponsor tertinggi</div>
                         </div>
                     </div>
                 </template>
@@ -1274,7 +1274,7 @@ function formatRupiah(amount: number): string {
             <div class="relative w-full max-w-md rounded-3xl border border-[#e5e9e2] bg-white p-6 shadow-2xl sm:p-8">
                 <button
                     type="button"
-                    class="absolute top-4 right-4 flex size-11 items-center justify-center rounded-full text-[#7a8a7f] hover:bg-[#f2f6f1] hover:text-[#18392d]"
+                    class="absolute top-4 right-4 flex size-11 items-center justify-center rounded-full text-[#5d6e61] hover:bg-[#f2f6f1] hover:text-[#18392d]"
                     @click="closeConfirmModal()"
                 >
                     <X class="size-5" />
@@ -1290,23 +1290,23 @@ function formatRupiah(amount: number): string {
 
                 <div class="mt-5 space-y-3 rounded-2xl border border-[#e5e9e2] bg-[#f8faf7] p-4 text-sm">
                     <div class="flex items-center justify-between">
-                        <span class="text-[#637568]">Entitas</span>
+                        <span class="text-[#5d6e61]">Entitas</span>
                         <span class="font-bold text-[#18392d]">{{ selectedEntity?.name || newEntityName }}</span>
                     </div>
                     <div v-if="isNewEntityMode" class="flex items-center justify-between">
-                        <span class="text-[#637568]">Status</span>
+                        <span class="text-[#5d6e61]">Status</span>
                         <span class="font-bold text-[#92400e]">Entitas baru — aktif setelah bayar</span>
                     </div>
                     <div class="flex items-center justify-between">
-                        <span class="text-[#637568]">Nominal</span>
+                        <span class="text-[#5d6e61]">Nominal</span>
                         <span class="font-bold text-[#92400e]">{{ formatRupiah(contributionAmount) }}</span>
                     </div>
                     <div v-if="!currentUser" class="flex items-center justify-between">
-                        <span class="text-[#637568]">Email</span>
+                        <span class="text-[#5d6e61]">Email</span>
                         <span class="font-bold text-[#18392d]">{{ guestEmail }}</span>
                     </div>
                     <div v-if="predictedRank" class="flex items-center justify-between">
-                        <span class="text-[#637568]">Estimasi Posisi</span>
+                        <span class="text-[#5d6e61]">Estimasi Posisi</span>
                         <span class="font-bold text-[#92400e]">#{{ predictedRank }}</span>
                     </div>
                 </div>

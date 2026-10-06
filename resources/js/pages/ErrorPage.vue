@@ -58,7 +58,7 @@ const content = computed(() => {
             <Link
                 :href="home()"
                 class="inline-flex items-center"
-                aria-label="suaranetijen Beranda"
+                aria-label="suaranetijen. Beranda"
             >
                 <BrandLogo tagline />
             </Link>
