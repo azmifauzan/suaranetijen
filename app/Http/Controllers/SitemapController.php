@@ -187,8 +187,19 @@ class SitemapController extends Controller
             array_push($urls, ...$topicUrls);
         }
 
-        // 5. Curated comparison pages (docs/31 Fase 3)
-        foreach (app(EntityComparison::class)->indexablePages() as $page) {
+        // 5. Curated comparison pages (docs/31 Fase 3), and the list that links them
+        $comparisonPages = app(EntityComparison::class)->indexablePages();
+
+        if ($comparisonPages !== []) {
+            $urls[] = [
+                'loc' => "{$baseUrl}/banding",
+                'lastmod' => collect($comparisonPages)->max('lastmod'),
+                'changefreq' => 'daily',
+                'priority' => '0.7',
+            ];
+        }
+
+        foreach ($comparisonPages as $page) {
             $urls[] = [
                 'loc' => "{$baseUrl}/banding/{$page['pair']}",
                 'lastmod' => $page['lastmod'],

@@ -43,6 +43,7 @@ Route::get('/search', [SearchPageController::class, 'index'])->name('search.inde
 Route::get('/api/search', [SearchController::class, 'index'])->name('api.search');
 
 Route::get('/e/{slug}', [EntityShowController::class, 'show'])->name('entities.show');
+Route::get('/banding', [ComparisonController::class, 'index'])->name('comparisons.index');
 Route::get('/banding/{pair}', [ComparisonController::class, 'show'])
     ->where('pair', '[a-z0-9-]+-vs-[a-z0-9-]+')
     ->name('comparisons.show');

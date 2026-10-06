@@ -16,6 +16,7 @@ import {
 } from '@/routes';
 import { index as searchPage } from '@/routes/search';
 import { index as rankingIndex } from '@/routes/rankings';
+import { index as comparisonsIndex } from '@/routes/comparisons';
 import { index as topicsIndex } from '@/routes/topics';
 
 const page = usePage();
@@ -163,6 +164,7 @@ const navigation = [
                                 class="inline-flex items-center gap-2"
                                 ><Search class="size-4" /> Cari & jelajahi</Link
                             ><Link :href="topicsIndex()">Topik populer</Link
+                            ><Link :href="comparisonsIndex()">Perbandingan</Link
                             ><Link :href="terms()">Ketentuan penggunaan</Link
                             ><Link :href="privacy()">Privasi</Link>
                         </div>

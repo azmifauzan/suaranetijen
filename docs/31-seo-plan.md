@@ -707,3 +707,15 @@ memvalidasi ulang 30-an berkas. Ini membantu kunjungan ulang dan mengurangi beba
 
 **Untuk mengukur ke depan:** pakai data lapangan (Search Console, laporan Core Web Vitals, setelah ada cukup trafik) dan
 skrip puppeteer dengan throttling di atas, bukan skor Lighthouse tunggal.
+
+## Halaman daftar perbandingan (6 Oktober 2026)
+
+`/banding` (`ComparisonController@index`, `Comparison/Index.vue`) mendaftar semua halaman perbandingan yang indexable,
+dikelompokkan per kategori, dengan skor dan jumlah opini kedua sisi di tiap kartu, sehingga halaman `/banding/{a}-vs-{b}`
+dapat dicapai dari situs dan bukan hanya dari hasil pencarian. Tautan "Perbandingan" ada di footer semua halaman publik
+(kolom "Mulai di sini"), halaman itu masuk sitemap bila ada pasangan yang lolos, memuat JSON-LD Breadcrumb dan ItemList,
+disajikan dari cache halaman, dan menjadi `noindex` bila daftarnya kosong. Daftar mengikuti `config/comparisons.php`
+dan hanya menampilkan pasangan yang kedua sisinya lolos ambang 30 opini.
+
+Juga diverifikasi di produksi: aset ber-hash dikirim origin dengan `immutable, max-age=31536000`; salinan lama di
+Cloudflare masih membawa `max-age=14400` sampai kedaluwarsa (4 jam), URL baru sudah memakai header baru.

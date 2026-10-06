@@ -113,14 +113,14 @@ class EntityComparison
      * Curated pairs whose two entities are in the same category and both clear the public threshold:
      * the set that belongs in the sitemap. lastmod is the later of the two snapshot calculation times.
      *
-     * @return array<int, array{pair: string, lastmod: string}>
+     * @return array<int, array{pair: string, lastmod: string, category: string, category_slug: string, sides: array<int, array{name: string, slug: string, score: float, opinion_count: int}>}>
      */
     public function indexablePages(): array
     {
         $pairs = (array) config('comparisons.pairs', []);
         $slugs = collect($pairs)->flatMap(fn (string $pair): array => $this->parse($pair) ?? [])->unique()->values();
 
-        $entities = Entity::query()->active()->where('searchable', true)->whereIn('slug', $slugs)->get()->keyBy('slug');
+        $entities = Entity::query()->with('category')->active()->where('searchable', true)->whereIn('slug', $slugs)->get()->keyBy('slug');
         $snapshots = $entities->map(fn (Entity $entity): ?SentimentSnapshot => $this->snapshots->eligibleSnapshot($entity));
 
         $pages = [];
@@ -142,10 +142,43 @@ class EntityComparison
                 continue;
             }
 
-            $pages[] = ['pair' => $pair, 'lastmod' => date('c', max($first->calculated_at->getTimestamp(), $second->calculated_at->getTimestamp()))];
+            $pages[] = [
+                'pair' => $pair,
+                'lastmod' => date('c', max($first->calculated_at->getTimestamp(), $second->calculated_at->getTimestamp())),
+                'category' => $entities[$parts[0]]->category->name,
+                'category_slug' => $entities[$parts[0]]->category->slug,
+                'sides' => [
+                    ['name' => $entities[$parts[0]]->name, 'slug' => $parts[0], 'score' => round((float) $first->score, 1), 'opinion_count' => (int) $first->opinion_count],
+                    ['name' => $entities[$parts[1]]->name, 'slug' => $parts[1], 'score' => round((float) $second->score, 1), 'opinion_count' => (int) $second->opinion_count],
+                ],
+            ];
         }
 
         return $pages;
+    }
+
+    /**
+     * The indexable pairs grouped by category, for the /banding list page.
+     *
+     * @return array<int, array{category: string, category_slug: string, pairs: array<int, array{pair: string, label: string, sides: array<int, array{name: string, slug: string, score: float, opinion_count: int}>}>}>
+     */
+    public function listing(): array
+    {
+        $groups = [];
+
+        foreach ($this->indexablePages() as $page) {
+            $groups[$page['category_slug']]['category'] = $page['category'];
+            $groups[$page['category_slug']]['category_slug'] = $page['category_slug'];
+            $groups[$page['category_slug']]['pairs'][] = [
+                'pair' => $page['pair'],
+                'label' => "{$page['sides'][0]['name']} vs {$page['sides'][1]['name']}",
+                'sides' => $page['sides'],
+            ];
+        }
+
+        usort($groups, fn (array $a, array $b): int => strcmp($a['category'], $b['category']));
+
+        return $groups;
     }
 
     /**

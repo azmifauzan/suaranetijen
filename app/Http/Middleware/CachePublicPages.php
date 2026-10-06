@@ -29,7 +29,7 @@ class CachePublicPages
     private const ROUTES = [
         'home', 'about', 'methodology', 'sources', 'terms', 'privacy',
         'entities.show', 'categories.show', 'rankings.index', 'rankings.show',
-        'topics.index', 'topics.show', 'comparisons.show',
+        'topics.index', 'topics.show', 'comparisons.index', 'comparisons.show',
     ];
 
     private const KEPT_HEADERS = ['Content-Type', 'X-Robots-Tag', 'Link', 'Cache-Control'];

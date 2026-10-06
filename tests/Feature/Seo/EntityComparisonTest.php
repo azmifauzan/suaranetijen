@@ -131,3 +131,45 @@ test('an entity page links to its curated comparisons with an eligible other sid
         ->where('comparisons.0.pair', 'oppo-vs-vivo')
         ->where('comparisons.0.label', 'Oppo vs Vivo'));
 });
+
+test('the comparison list groups the indexable pairs by category and leaves out pairs a side of which is thin', function () {
+    config(['comparisons.pairs' => ['oppo-vs-vivo', 'oppo-vs-realme', 'toyota-vs-daihatsu']]);
+    comparisonEntity('oppo', 'Oppo', 200, 84.6);
+    comparisonEntity('vivo', 'Vivo', 150, 89.1);
+    comparisonEntity('realme', 'Realme', 12, 0);
+    comparisonEntity('toyota', 'Toyota', 300, 72.0, 'mobil');
+    comparisonEntity('daihatsu', 'Daihatsu', 120, 76.0, 'mobil');
+
+    $this->get('/banding')->assertOk()->assertHeaderMissing('X-Robots-Tag')->assertInertia(fn (Assert $page) => $page
+        ->component('Comparison/Index')
+        ->where('total', 2)
+        ->has('groups', 2)
+        ->where('groups.0.category', 'Mobil')
+        ->where('groups.0.pairs.0.pair', 'toyota-vs-daihatsu')
+        ->where('groups.1.category', 'Smartphone')
+        ->where('groups.1.pairs.0.label', 'Oppo vs Vivo')
+        ->where('groups.1.pairs.0.sides.0.score', 84.6)
+        ->missing('groups.1.pairs.1'));
+});
+
+test('an empty comparison list is noindex and stays out of the sitemap', function () {
+    config(['comparisons.pairs' => ['oppo-vs-vivo']]);
+
+    $this->get('/banding')->assertOk()->assertHeader('X-Robots-Tag', 'noindex, follow');
+    expect($this->get('/sitemap.xml')->getContent())->not->toContain('/banding</loc>');
+});
+
+test('the sitemap lists the comparison list page once there is a pair to list', function () {
+    config(['comparisons.pairs' => ['oppo-vs-vivo']]);
+    comparisonEntity('oppo', 'Oppo', 200, 84.6);
+    comparisonEntity('vivo', 'Vivo', 150, 89.1);
+
+    expect($this->get('/sitemap.xml')->getContent())->toContain('/banding</loc>')->toContain('/banding/oppo-vs-vivo</loc>');
+});
+
+test('the public footer links to the comparison list and the list page is served from the page cache', function () {
+    $this->get('/banding')->assertHeader('X-Page-Cache', 'MISS');
+    $this->get('/banding')->assertHeader('X-Page-Cache', 'HIT');
+
+    expect(file_get_contents(resource_path('js/layouts/PublicLayout.vue')))->toContain('comparisonsIndex()');
+});

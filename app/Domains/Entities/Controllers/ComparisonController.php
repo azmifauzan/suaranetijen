@@ -15,6 +15,24 @@ class ComparisonController extends Controller
     public function __construct(protected EntityComparison $comparisons) {}
 
     /**
+     * The list of comparison pages, so they can be reached from the site and not only from a search result.
+     */
+    public function index(): Response
+    {
+        $groups = $this->comparisons->listing();
+        $total = array_sum(array_map(fn (array $group): int => count($group['pairs']), $groups));
+
+        if ($total === 0) {
+            RobotsPolicy::noindex();
+        }
+
+        return Inertia::render('Comparison/Index', [
+            'groups' => $groups,
+            'total' => $total,
+        ])->withViewData('robots', RobotsPolicy::get());
+    }
+
+    /**
      * Side-by-side Sentimen Netijen for two entities (docs/31 Fase 3, ADR-012).
      */
     public function show(string $pair): Response|RedirectResponse
