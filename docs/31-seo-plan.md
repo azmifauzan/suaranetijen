@@ -539,3 +539,11 @@ Mengukur dampak: bandingkan Search Console 28 hari (baseline 1 klik, 25 impresi,
   lainnya lolos threshold.
 - **Event rating:** `submit_rating` dikirim ke GA4 saat rating berhasil disimpan (`resources/js/lib/analytics.ts`,
   tanpa efek bila gtag tidak dimuat). Tandai sebagai key event di GA4 setelah event pertama masuk.
+
+Deploy 6 Oktober 2026 (digest `sha256:fdcfc158…`): SSR, app, scheduler di-recreate. Diverifikasi dari luar:
+`/banding/oppo-vs-vivo`, `samsung-vs-xiaomi`, `mitsubishi-xpander-vs-toyota-avanza`, `apple-vs-samsung` 200, canonical
+absolut, `index, follow`, kalimat pembacaan skor benar ("relatif setara" bila selisih < 5); pasangan tak dikenal 404;
+15 pasangan di sitemap; `/e/oppo` menaut ke 5 perbandingan. Koreksi GA4: satu klik nyasar saat menandai key event sempat
+menandai `click` sebagai key event; sudah dibatalkan, key event aktif hanya `sponsor_click` dan `view_search_results`
+(`purchase` bawaan, tanpa data). `submit_rating` baru bisa ditandai setelah muncul di "Recent events" GA4 (setelah
+rating pertama dikirim lewat situs).
