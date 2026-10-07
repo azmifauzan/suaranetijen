@@ -752,5 +752,10 @@ Product Hunt.
 | `maziyank/awesome-indonesia` | Dilewati: fork dari IndopenSource, tercakup PR #50 |
 | `rujukan/made-in-indonesia` | Dilewati: tidak aktif sejak 2023 |
 | AppVerse.id | Pemilik yang mendaftar sendiri; belum ada konfirmasi |
-| Product Hunt | Draf dibuat dan dijadwalkan pemilik untuk 9 Oktober 2026. Tagline "Public sentiment index for brands in Indonesia", tag Analytics dan Open Source, komentar pembuat terisi, galeri satu gambar (disarankan 3 atau lebih) |
+| Product Hunt | Draf dibuat dan dijadwalkan pemilik untuk 9 Oktober 2026. Tagline "Public sentiment index for brands in Indonesia", tag Analytics dan Open Source, komentar pembuat terisi, galeri 3 gambar (kartu share, halaman entitas Samsung, perbandingan Apple vs Samsung), disimpan 7 Okt; launch 9 Okt 2026 12:01 AM PDT |
 | Media teknologi | Belum dikirim; menunggu pilihan media dan waktu dari pemilik |
+
+## Pengukuran 7 Oktober 2026
+
+- **GA4:** event `submit_rating` belum pernah masuk (daftar event 28 hari: `click`, `first_visit`, `form_start`, `page_view`, `scroll`, `session_start`, `sponsor_click`, `user_engagement`, `view_search_results`). GA4 baru menampilkan bintang key event setelah event pertama diterima, jadi penandaan menunggu rating asli dari pengguna. Key event saat ini: `sponsor_click`, `view_search_results`.
+- **RankMySEO:** skor on-page masih 34 (142 halaman, 587 isu), dari audit 5 Oktober, sebelum perbaikan SSR, noindex, dan a11y. Tidak ada tombol audit ulang yang ditemukan; skor baru perlu re-crawl manual. Tiga keyword terlacak belum masuk 20 besar, domain authority 2, 3 backlink. Search Console 28 hari: 30 impresi, 0 klik, posisi rata-rata 51,2.
