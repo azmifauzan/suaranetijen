@@ -2,9 +2,6 @@
 
 namespace App\Domains\Ingestion\Jobs;
 
-use App\Domains\Entities\Models\Entity;
-use App\Domains\Entities\Services\AliasPolicy;
-use App\Domains\Entities\Services\TextNormalizer;
 use App\Domains\Sources\Contracts\CrawlCursor;
 use App\Domains\Sources\Enums\DocumentState;
 use App\Domains\Sources\Exceptions\RateLimitExceededException;
@@ -12,6 +9,7 @@ use App\Domains\Sources\Models\CrawlState;
 use App\Domains\Sources\Models\IngestionFailure;
 use App\Domains\Sources\Models\Source;
 use App\Domains\Sources\Models\SourceDocument;
+use App\Domains\Sources\Services\SearchQueryPlanner;
 use App\Domains\Sources\Services\SourceRateLimiter;
 use App\Domains\Sources\Services\SourceRegistry;
 use Carbon\CarbonImmutable;
@@ -45,6 +43,11 @@ class DiscoverSourceDocumentsJob implements ShouldQueue
      * Rate-limit bounces before giving up and recording a permanent failure.
      */
     private const MAX_RATE_LIMIT_BOUNCES = 30;
+
+    /**
+     * Sources that search one entity per cycle, chosen by SearchQueryPlanner.
+     */
+    private const PLANNED_SEARCH_SOURCES = ['youtube', 'kaskus'];
 
     public function __construct(
         public Source $source,
@@ -86,34 +89,25 @@ class DiscoverSourceDocumentsJob implements ShouldQueue
                 $crawlState->metadata ?? []
             );
 
-            if (in_array($this->source->key, ['bluesky', 'youtube', 'kaskus'], true)) {
-                $trackedTerms = Entity::query()
-                    ->active()
-                    ->searchable()
-                    ->with('aliases')
-                    ->get()
-                    ->flatMap(function (Entity $entity): array {
-                        return [
-                            $entity->name,
-                            ...$entity->aliases->pluck('normalized_alias')->all(),
-                        ];
-                    })
-                    ->filter(fn (?string $term): bool => $term !== null && AliasPolicy::isUsable(TextNormalizer::normalize($term)))
-                    ->unique()
-                    ->values()
-                    ->all();
+            $searchedEntityId = null;
 
-                if ($this->source->key === 'bluesky') {
-                    $cursorMetadata['aliases'] = $trackedTerms;
-                } elseif (empty($cursorMetadata['queries'])) {
-                    $cursorMetadata['queries'] = $trackedTerms;
+            if (in_array($this->source->key, self::PLANNED_SEARCH_SOURCES, true)) {
+                unset($cursorMetadata['queries'], $cursorMetadata['query_index'], $cursorMetadata['page']);
+                $pick = app(SearchQueryPlanner::class)->next($cursorMetadata['searched_at'] ?? []);
+
+                if ($pick === null) {
+                    return;
                 }
+
+                $searchedEntityId = $pick['entity_id'];
+                $cursorMetadata['query'] = $pick['term'];
+                $cursorMetadata['single_page'] = true;
             }
 
             $cursor = new CrawlCursor(
                 sourceKey: $this->source->key,
                 cursorKey: $this->cursorKey,
-                cursorValue: $crawlState->cursor_value,
+                cursorValue: $searchedEntityId === null ? $crawlState->cursor_value : null,
                 lastExternalId: $crawlState->last_external_id,
                 lastCrawledAt: $crawlState->last_crawled_at,
                 metadata: $cursorMetadata
@@ -142,7 +136,15 @@ class DiscoverSourceDocumentsJob implements ShouldQueue
                 FetchSourceDocumentJob::dispatch($doc);
             }
 
-            if ($batch->nextCursor !== null) {
+            if ($searchedEntityId !== null) {
+                $searchedAt = $cursorMetadata['searched_at'] ?? [];
+                $searchedAt[$searchedEntityId] = now()->getTimestamp();
+                $crawlState->update([
+                    'cursor_value' => null,
+                    'last_crawled_at' => CarbonImmutable::now(),
+                    'metadata' => ['searched_at' => $searchedAt],
+                ]);
+            } elseif ($batch->nextCursor !== null) {
                 $crawlState->update([
                     'cursor_value' => $batch->nextCursor->cursorValue,
                     'last_external_id' => $batch->nextCursor->lastExternalId,

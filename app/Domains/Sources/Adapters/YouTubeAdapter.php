@@ -105,7 +105,9 @@ class YouTubeAdapter extends AbstractHttpSourceAdapter
             );
         }
 
-        $nextPageToken = is_array($payload) && is_string($payload['nextPageToken'] ?? null)
+        // single_page: the planner wants one search call per cycle, so deeper result pages are not fetched.
+        $nextPageToken = ($cursor->metadata['single_page'] ?? false) !== true
+            && is_array($payload) && is_string($payload['nextPageToken'] ?? null)
             ? trim($payload['nextPageToken'])
             : '';
         $nextQueryIndex = $nextPageToken === '' ? $queryIndex + 1 : $queryIndex;

@@ -9,6 +9,11 @@ return [
         'max_comment_pages' => (int) env('YOUTUBE_MAX_COMMENT_PAGES', 3),
     ],
 
+    'search_priority' => [
+        'penalty_hours_per_opinion' => (int) env('SEARCH_PRIORITY_PENALTY_HOURS', 2),
+        'max_penalty_days' => (int) env('SEARCH_PRIORITY_MAX_PENALTY_DAYS', 60),
+    ],
+
     'kaskus' => [
         'base_url' => env('KASKUS_BASE_URL', 'https://www.kaskus.co.id'),
         'listing_url' => env('KASKUS_LISTING_URL'),
