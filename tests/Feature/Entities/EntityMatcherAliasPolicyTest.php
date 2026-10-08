@@ -113,3 +113,10 @@ it('serves entities from the candidate cache within its ttl', function () {
 
     expect(app(EntityMatcher::class)->match('Biznet Gio stabil'))->not->toBeNull();
 });
+
+it('matches an everyday-word brand only with a supporting context word', function () {
+    $jago = entityWithAliases('Jago', []);
+
+    expect(app(EntityMatcher::class)->match('mobil ini jago banget nanjak, radiatornya kecil'))->toBeNull()
+        ->and(app(EntityMatcher::class)->match('Aplikasi Jago gampang buat transfer')?->id)->toBe($jago->id);
+});

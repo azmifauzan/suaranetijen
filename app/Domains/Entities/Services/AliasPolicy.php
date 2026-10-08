@@ -14,6 +14,26 @@ class AliasPolicy
     }
 
     /**
+     * Whether an everyday-word brand alias ("jago") has a supporting context word in the text.
+     */
+    public static function hasRequiredContext(string $normalizedText, string $normalizedAlias): bool
+    {
+        $contextWords = (array) config('entity_matching.context_required_aliases.'.$normalizedAlias, []);
+
+        if ($contextWords === []) {
+            return true;
+        }
+
+        foreach ($contextWords as $word) {
+            if (str_contains(" {$normalizedText} ", " {$word} ")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Short letter-only aliases are ambiguous in lowercase ("ga", "xl", "kai").
      */
     public static function requiresUppercase(string $normalizedAlias): bool

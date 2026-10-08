@@ -40,6 +40,10 @@ class EntityMatcher
                     continue;
                 }
 
+                if (! AliasPolicy::hasRequiredContext($normalizedText, $term)) {
+                    continue;
+                }
+
                 if ($term !== $name && AliasPolicy::requiresUppercase($term)
                     && ! AliasPolicy::appearsUppercase($text, $term)) {
                     continue;

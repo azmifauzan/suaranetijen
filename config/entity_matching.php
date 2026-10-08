@@ -20,6 +20,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Context-Required Aliases
+    |--------------------------------------------------------------------------
+    |
+    | Brand names that are also everyday words. The term only matches when the
+    | text also contains one of its context words, so "jago" (Indonesian for
+    | "skilled") in a car review is not attributed to the bank.
+    |
+    */
+    'context_required_aliases' => [
+        'jago' => ['bank', 'rekening', 'kantong', 'saldo', 'tabungan', 'transfer', 'aplikasi', 'app', 'nasabah', 'debit', 'kartu', 'atm', 'bunga', 'deposito', 'ojk', 'lps', 'syariah', 'mbanking', 'qris'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Uppercase-Only Alias Length
     |--------------------------------------------------------------------------
     |
