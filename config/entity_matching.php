@@ -16,7 +16,7 @@ return [
     | Indonesia attributed lotion and car opinions to the airline.
     |
     */
-    'blocked_aliases' => ['ga', 'do', 'map', 'sap', 'tam', 'bl', 'ct', 'rk', 'garuda'],
+    'blocked_aliases' => ['ga', 'do', 'map', 'sap', 'tam', 'bl', 'ct', 'rk', 'garuda', 'gigi'],
 
     /*
     |--------------------------------------------------------------------------
