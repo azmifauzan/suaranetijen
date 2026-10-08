@@ -1,8 +1,12 @@
 <?php
 
+use App\Domains\Entities\Models\Category;
+use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Models\LlmSetting;
 use App\Domains\Sentiment\Enums\SentimentClass;
+use App\Domains\Sources\Models\Source;
 use App\Domains\Themes\Models\Theme;
+use App\Domains\Themes\Models\ThemeObservation;
 use App\Domains\Themes\Services\LlmThemeExtractor;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
@@ -157,4 +161,21 @@ it('never calls the LLM for an empty batch', function () {
 
     expect(app(LlmThemeExtractor::class)->extractBatch(1, 'Samsung', []))->toBe([]);
     Http::assertNothingSent();
+});
+
+it('only offers known labels from the same root category, never from unrelated ones', function () {
+    $cars = Category::factory()->create();
+    $food = Category::factory()->create();
+    $car = Entity::factory()->create(['category_id' => $cars->id]);
+    $milk = Entity::factory()->create(['category_id' => $food->id, 'name' => 'Greenfields']);
+    $theme = Theme::create(['slug' => 'kualitas-mobil-bagus', 'display_label' => 'Kualitas mobil bagus', 'canonical_key' => 'kualitas-mobil-bagus']);
+    ThemeObservation::create([
+        'entity_id' => $car->id, 'theme_id' => $theme->id, 'source_id' => Source::factory()->create()->id,
+        'sentiment' => SentimentClass::Positive, 'extractor' => 'llm',
+    ]);
+    fakeThemeLlm([]);
+
+    app(LlmThemeExtractor::class)->extract($milk->id, 'Greenfields', 'Greenfields susunya enak banget.');
+
+    Http::assertSent(fn (Request $request) => ! str_contains($request['messages'][1]['content'], 'Kualitas mobil bagus'));
 });

@@ -2,11 +2,14 @@
 
 namespace App\Domains\Themes\Services;
 
+use App\Domains\Entities\Models\Category;
+use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Services\LlmClient;
 use App\Domains\Entities\Services\TextNormalizer;
 use App\Domains\Sentiment\Enums\SentimentClass;
 use App\Domains\Themes\Models\Theme;
 use App\Domains\Themes\Models\ThemeAlias;
+use Closure;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
@@ -211,7 +214,7 @@ class LlmThemeExtractor
                     .'Never put a brand, product or model name in the label ("harga murah", not "harga s24 murah"), so the same theme '
                     .'gets the same label across opinions. If an opinion is really about a different model or variant than '
                     .$entityName.' (e.g. an FE, Plus or Ultra version), it has no theme about '.$entityName.'. '
-                    .'If a known label below means the same thing, reuse that exact label. '
+                    .'If a known label below means the same thing, reuse that exact label; never reuse one that names a different kind of thing than '.$entityName.' (a car label for a food, a phone label for a bank). '
                     .'sentiment: the opinion\'s stance on that theme (positive, neutral, negative). '
                     .'evidence: copy the exact words from the opinion (max 12 words) that support the theme. '
                     .'context: one sentence in Indonesian, max 25 words, in your own words, paraphrasing what was said — '
@@ -253,7 +256,7 @@ class LlmThemeExtractor
                     .$entityName.' (e.g. an FE, Plus or Ultra version), it has no theme about '.$entityName.'. '
                     .'Reuse the exact same label across opinions that describe the same underlying theme — do not mint a '
                     .'new near-duplicate label ("baterai boros" vs "baterai cepat habis") for what is really one theme, '
-                    .'either within this batch or against a known label below. '
+                    .'either within this batch or against a known label below. Never reuse a known label that names a different kind of thing than '.$entityName.' (a car label for a food, a phone label for a bank). '
                     .'sentiment: that opinion\'s stance on that theme (positive, neutral, negative). '
                     .'evidence: copy the exact words from THAT SAME opinion (max 12 words) that support the theme. '
                     .'context: one sentence in Indonesian, max 25 words, in your own words, paraphrasing what was said — '
@@ -270,20 +273,27 @@ class LlmThemeExtractor
     }
 
     /**
-     * Labels already used for this entity first, then globally, so the LLM reuses
-     * them instead of inventing near-duplicates (lazy clustering, docs/25).
+     * Labels already used for this entity first, then for entities in the same root
+     * category, so the LLM reuses them instead of inventing near-duplicates (lazy
+     * clustering, docs/25). The fallback is category-scoped: a global list let
+     * "kualitas mobil bagus" leak onto a milk brand.
      *
      * @return list<string>
      */
     private function knownLabels(int $entityId): array
     {
-        $query = fn (?int $scopeEntityId): array => Cache::remember(
-            'themes:known-labels:'.($scopeEntityId ?? 'global'),
+        $categoryId = Entity::query()->whereKey($entityId)->value('category_id');
+        $rootCategoryId = $categoryId === null
+            ? null
+            : (Category::query()->whereKey($categoryId)->value('parent_id') ?? $categoryId);
+
+        $query = fn (string $scopeKey, Closure $scope): array => Cache::remember(
+            'themes:known-labels:'.$scopeKey,
             now()->addMinutes(10),
             fn () => Theme::query()
                 ->join('theme_observations', 'themes.id', '=', 'theme_observations.theme_id')
                 ->where('theme_observations.extractor', 'llm')
-                ->when($scopeEntityId !== null, fn ($q) => $q->where('theme_observations.entity_id', $scopeEntityId))
+                ->where($scope)
                 ->groupBy('themes.id', 'themes.display_label')
                 ->orderByRaw('count(*) desc')
                 ->limit(self::KNOWN_LABELS_PER_SCOPE)
@@ -291,7 +301,19 @@ class LlmThemeExtractor
                 ->all()
         );
 
-        return array_values(array_unique(array_merge($query($entityId), $query(null))));
+        $labels = $query('entity:'.$entityId, fn ($q) => $q->where('theme_observations.entity_id', $entityId));
+
+        if ($rootCategoryId !== null) {
+            $labels = array_merge($labels, $query('category:'.$rootCategoryId, fn ($q) => $q->whereIn(
+                'theme_observations.entity_id',
+                Entity::query()
+                    ->select('entities.id')
+                    ->join('categories', 'categories.id', '=', 'entities.category_id')
+                    ->where(fn ($c) => $c->where('categories.id', $rootCategoryId)->orWhere('categories.parent_id', $rootCategoryId))
+            )));
+        }
+
+        return array_values(array_unique($labels));
     }
 
     /**
