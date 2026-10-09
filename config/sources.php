@@ -10,8 +10,11 @@ return [
     ],
 
     'search_priority' => [
-        'penalty_hours_per_opinion' => (int) env('SEARCH_PRIORITY_PENALTY_HOURS', 2),
-        'max_penalty_days' => (int) env('SEARCH_PRIORITY_MAX_PENALTY_DAYS', 60),
+        // Wait before re-searching = days since the newest published opinion
+        // (or since the entity was added) * hours_per_idle_day, clamped.
+        'hours_per_idle_day' => (float) env('SEARCH_PRIORITY_HOURS_PER_IDLE_DAY', 4),
+        'min_interval_hours' => (int) env('SEARCH_PRIORITY_MIN_INTERVAL_HOURS', 24),
+        'max_interval_days' => (int) env('SEARCH_PRIORITY_MAX_INTERVAL_DAYS', 90),
     ],
 
     'kaskus' => [

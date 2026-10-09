@@ -2,20 +2,14 @@
 
 namespace App\Domains\Entities\Controllers;
 
-use App\Domains\Entities\Enums\AliasType;
-use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
-use App\Domains\Entities\Models\EntityAlias;
 use App\Domains\Entities\Models\EntityCandidate;
 use App\Domains\Entities\Requests\ApproveEntityCandidateRequest;
-use App\Domains\Entities\Services\AliasPolicy;
-use App\Domains\Entities\Services\TextNormalizer;
+use App\Domains\Entities\Services\EntityCandidateApprover;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -44,58 +38,15 @@ class AdminEntityCandidatesController extends Controller
      * additional aliases) using the admin's (possibly edited) fields, and
      * link the candidate to it.
      */
-    public function approve(ApproveEntityCandidateRequest $request, EntityCandidate $entityCandidate): RedirectResponse
+    public function approve(ApproveEntityCandidateRequest $request, EntityCandidate $entityCandidate, EntityCandidateApprover $approver): RedirectResponse
     {
-        $validated = $request->validated();
-
-        DB::transaction(function () use ($validated, $entityCandidate, $request): void {
-            $entity = Entity::create([
-                'category_id' => $validated['category_id'],
-                'parent_id' => $validated['parent_id'] ?? null,
-                'type' => $validated['entity_type'],
-                'name' => $validated['name'],
-                'slug' => Str::slug($validated['name']),
-                'status' => EntityStatus::Active,
-            ]);
-
-            $primaryNormalized = TextNormalizer::normalize($entity->name);
-
-            EntityAlias::create([
-                'entity_id' => $entity->id,
-                'alias' => $entity->name,
-                'normalized_alias' => $primaryNormalized,
-                'alias_type' => AliasType::Primary,
-            ]);
-
-            $seenNormalized = [$primaryNormalized => true];
-
-            foreach (($validated['aliases'] ?? []) as $alias) {
-                $alias = trim((string) $alias);
-                if ($alias === '') {
-                    continue;
-                }
-
-                $normalized = TextNormalizer::normalize($alias);
-                if (! AliasPolicy::isUsable($normalized) || isset($seenNormalized[$normalized])) {
-                    continue;
-                }
-                $seenNormalized[$normalized] = true;
-
-                EntityAlias::create([
-                    'entity_id' => $entity->id,
-                    'alias' => $alias,
-                    'normalized_alias' => $normalized,
-                    'alias_type' => AliasType::CommonVariant,
-                ]);
-            }
-
-            $entityCandidate->update([
-                'status' => 'approved',
-                'entity_id' => $entity->id,
-                'reviewed_by' => $request->user()->id,
-                'reviewed_at' => now(),
-            ]);
-        });
+        $approver->approve($entityCandidate, [
+            'name' => $request->string('name')->value(),
+            'entity_type' => $request->string('entity_type')->value(),
+            'category_id' => $request->integer('category_id'),
+            'parent_id' => $request->filled('parent_id') ? $request->integer('parent_id') : null,
+            'aliases' => array_values(array_map('strval', (array) $request->validated('aliases', []))),
+        ], $request->user()->id);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Entity created from candidate.']);
 

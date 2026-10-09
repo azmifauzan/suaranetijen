@@ -38,7 +38,8 @@ class ScanEntityCandidatesCommand extends Command
 
         $result = $aggregator->scan();
         $this->info("Created {$result['created']} new entity candidate(s) awaiting admin review "
-            ."({$result['auto_rejected']} auto-rejected as not a brand/product/service).");
+            ."({$result['auto_rejected']} auto-rejected as not a brand/product/service, "
+            ."{$result['auto_approved']} new product(s) of a known brand auto-approved).");
 
         return self::SUCCESS;
     }

@@ -31,7 +31,9 @@ it('enriches a candidate term and resolves the suggested category to an existing
         ->and($result['suggested_entity_type'])->toBe('product')
         ->and($result['suggested_category_id'])->toBe($category->id)
         ->and($result['suggested_aliases'])->toBe(['iphone 17 pro', 'ip17 pro'])
-        ->and($result['reasoning'])->toBe('Frequently searched new Apple smartphone model.');
+        ->and($result['reasoning'])->toBe('Frequently searched new Apple smartphone model.')
+        // No market verdict from the LLM means unsure, which must not unlock auto-approval.
+        ->and($result['sold_in_indonesia'])->toBeFalse();
 });
 
 it('leaves suggested_category_id null when the LLM suggests a category that does not exist', function () {

@@ -11,7 +11,7 @@ class EntityCandidateEnricher
 
     /**
      * @param  list<string>  $rawTerms
-     * @return array{is_relevant: bool, suggested_name: string|null, suggested_entity_type: string|null, suggested_category_id: int|null, suggested_aliases: list<string>, reasoning: string|null}
+     * @return array{is_relevant: bool, sold_in_indonesia: bool, suggested_name: string|null, suggested_entity_type: string|null, suggested_category_id: int|null, suggested_aliases: list<string>, reasoning: string|null}
      */
     public function enrich(string $normalizedTerm, array $rawTerms): array
     {
@@ -33,7 +33,9 @@ class EntityCandidateEnricher
                         .'a minister\'s name) — only the underlying policy/political topic is out of scope, not '
                         .'the person. Set is_relevant to false only for genuine noise, never just to avoid a '
                         .'person or an unfamiliar name — do not invent a brand interpretation just to fill the '
-                        .'other fields either.',
+                        .'other fields either. Set sold_in_indonesia to true only when you are confident the '
+                        .'brand/product is officially sold or marketed in Indonesia; false when it is a '
+                        .'region-only model or you are unsure.',
                 ],
                 [
                     'role' => 'user',
@@ -48,13 +50,14 @@ class EntityCandidateEnricher
                     'type' => 'object',
                     'properties' => [
                         'is_relevant' => ['type' => 'boolean'],
+                        'sold_in_indonesia' => ['type' => 'boolean'],
                         'suggested_name' => ['type' => 'string'],
                         'suggested_entity_type' => ['type' => 'string', 'enum' => array_column(EntityType::cases(), 'value')],
                         'suggested_category' => ['type' => 'string'],
                         'suggested_aliases' => ['type' => 'array', 'items' => ['type' => 'string']],
                         'reasoning' => ['type' => 'string'],
                     ],
-                    'required' => ['is_relevant', 'suggested_name', 'suggested_entity_type', 'suggested_category', 'suggested_aliases', 'reasoning'],
+                    'required' => ['is_relevant', 'sold_in_indonesia', 'suggested_name', 'suggested_entity_type', 'suggested_category', 'suggested_aliases', 'reasoning'],
                     'additionalProperties' => false,
                 ],
             ]
@@ -66,6 +69,8 @@ class EntityCandidateEnricher
 
         return [
             'is_relevant' => $isRelevant,
+            // Missing means unsure: only used to gate auto-approval, so default to the safe side.
+            'sold_in_indonesia' => $isRelevant && (bool) ($suggestion['sold_in_indonesia'] ?? false),
             'suggested_name' => $isRelevant ? ($suggestion['suggested_name'] ?? null) : null,
             'suggested_entity_type' => $isRelevant ? EntityType::tryFrom($entityType)?->value : null,
             'suggested_category_id' => $isRelevant

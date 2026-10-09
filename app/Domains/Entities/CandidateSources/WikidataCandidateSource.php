@@ -9,9 +9,10 @@ use Illuminate\Support\Facades\Http;
 /**
  * Free, structured, no-auth SPARQL feed of recently released smartphone and
  * vehicle models — covers Smartphone/Mobil/Motor in one query instead of
- * one adapter per manufacturer. Global data, not Indonesia-filtered: real
- * market relevance is still gated by the same LLM-enrichment + admin-review
- * step every other source goes through.
+ * one adapter per manufacturer. Global data, not Indonesia-filtered: a product
+ * whose brand already exists is auto-approved (EntityCandidateAggregator), so
+ * a model never sold here can become an entity; it gets no opinions, and
+ * SearchQueryPlanner then searches it less and less.
  */
 class WikidataCandidateSource implements EntityCandidateSource
 {
