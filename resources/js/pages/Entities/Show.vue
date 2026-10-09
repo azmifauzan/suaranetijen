@@ -977,7 +977,7 @@ async function removeRating(): Promise<void> {
                     :href="`https://www.youtube.com/watch?v=${activeVideo.youtube_id}`"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="mt-1 inline-block text-xs font-medium text-emerald-700 hover:underline focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none"
+                    class="inline-flex min-h-11 items-center text-xs font-medium text-emerald-700 hover:underline focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none"
                 >
                     Buka di YouTube
                 </a>
@@ -989,7 +989,7 @@ async function removeRating(): Promise<void> {
                     <li v-for="(video, index) in reviewVideos" :key="video.youtube_id">
                         <button
                             type="button"
-                            class="w-full rounded-lg border px-3 py-2 text-left text-xs focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none"
+                            class="min-h-11 w-full rounded-lg border px-3 py-2 text-left text-xs focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none"
                             :class="
                                 index === activeVideoIndex
                                     ? 'border-emerald-300 bg-emerald-50 font-semibold text-emerald-900'
