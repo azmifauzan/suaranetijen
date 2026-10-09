@@ -32,6 +32,17 @@ return [
         'jago' => ['bank', 'rekening', 'kantong', 'saldo', 'tabungan', 'transfer', 'aplikasi', 'app', 'nasabah', 'debit', 'kartu', 'atm', 'bunga', 'deposito', 'ojk', 'lps', 'syariah', 'mbanking', 'qris'],
         'vidio' => ['langganan', 'premier', 'platinum', 'diamond', 'streaming', 'siaran', 'sinetron', 'series', 'liga', 'aplikasi', 'app', 'akun', 'paket'],
         'flip' => ['transfer', 'antarbank', 'bank', 'rekening', 'saldo', 'topup', 'top up', 'ewallet', 'e wallet', 'kirim uang', 'biaya admin', 'qris', 'aplikasi', 'app', 'globe'],
+        'matahari' => ['department store', 'dept store', 'mall', 'gerai', 'store', 'outlet', 'belanja', 'kasir', 'diskon', 'toko'],
+        'ajaib' => ['saham', 'reksa dana', 'reksadana', 'investasi', 'sekuritas', 'trading', 'kripto', 'crypto', 'portofolio', 'aplikasi', 'app'],
+        'bibit' => ['saham', 'reksa dana', 'reksadana', 'investasi', 'sbn', 'obligasi', 'portofolio', 'aplikasi', 'app'],
+        'bonceng' => ['ojek', 'ojol', 'driver', 'order', 'orderan', 'tarif', 'mitra', 'aplikasi', 'app'],
+        'club' => ['air mineral', 'air minum', 'galon', 'amdk'],
+        'aqua' => ['air mineral', 'air minum', 'galon', 'amdk', 'danone', 'minum'],
+        'roma' => ['biskuit', 'biscuit', 'wafer', 'malkist', 'kelapa', 'camilan', 'cemilan', 'snack', 'mayora'],
+        'fiesta' => ['nugget', 'sosis', 'frozen', 'karaage', 'ayam', 'chicken', 'goreng'],
+        'lion' => ['pesawat', 'penerbangan', 'maskapai', 'terbang', 'bandara', 'tiket', 'bagasi', 'pilot', 'pramugari', 'flight', 'delay'],
+        'zoom' => ['meeting', 'rapat', 'meet', 'video call', 'vicon', 'webinar', 'kelas online', 'link', 'aplikasi', 'app'],
+        'cakap' => ['kursus', 'kelas', 'belajar', 'les', 'bahasa', 'aplikasi', 'app'],
     ],
 
     /*
