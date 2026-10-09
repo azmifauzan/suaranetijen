@@ -12,7 +12,7 @@ use Throwable;
 /**
  * Telegram alert when an LLM call fails, so an empty balance or a bad key is noticed before
  * summaries and themes silently stop. Reuses the sponsorship bot; queue workers run under
- * their own APP_ENV, so there is deliberately no environment filter here. Never throws.
+ * their own APP_ENV, so there is deliberately no staging/production filter here, only local dev is skipped. Never throws.
  */
 class LlmFailureNotifier
 {
@@ -25,7 +25,7 @@ class LlmFailureNotifier
         $botToken = trim((string) config('sponsorship.telegram.bot_token'));
         $chatId = trim((string) config('sponsorship.telegram.chat_id'));
 
-        if ($botToken === '' || $chatId === '') {
+        if ($botToken === '' || $chatId === '' || app()->environment('local')) {
             return;
         }
 
