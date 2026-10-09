@@ -80,3 +80,15 @@ test('household appliance brands import under Peralatan Rumah Tangga, including 
         ->and(Entity::where('category_id', $category->id)->pluck('name')->all())
         ->toContain('Philips', 'Sharp', 'Cosmos', 'Polytron', 'Miyako', 'Maspion');
 });
+
+test('household products import as children of their brand, with their model code as alias', function () {
+    app(SeedEntityImporter::class)->import(database_path('data/seed_entities.csv'));
+
+    $product = Entity::where('slug', 'philips-viva-collection-hd3138')->firstOrFail();
+
+    expect($product->type->value)->toBe('product')
+        ->and($product->parent?->name)->toBe('Philips')
+        ->and($product->category?->slug)->toBe('peralatan-rumah-tangga')
+        ->and($product->aliases()->pluck('normalized_alias')->all())->toContain('hd3138')
+        ->and(Entity::where('slug', 'xiaomi-robot-vacuum-x20')->firstOrFail()->parent?->name)->toBe('Xiaomi');
+});

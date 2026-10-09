@@ -53,7 +53,6 @@ return [
         'gea' => $applianceContext,
         'bosch' => $applianceContext,
         'mito' => $applianceContext,
-        'advance' => $applianceContext,
         'cakap' => ['kursus', 'kelas', 'belajar', 'les', 'bahasa', 'aplikasi', 'app'],
     ],
 

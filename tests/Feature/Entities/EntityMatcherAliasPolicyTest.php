@@ -126,6 +126,6 @@ it('matches an everyday-word brand only with a supporting context word', functio
     'sharp' => ['Sharp', 'layarnya sharp banget, kameranya jernih', 'Kulkas Sharp awet, garansi kompresor panjang'],
     'cosmos' => ['Cosmos', 'cosmos itu luas banget kata dokumenternya', 'Rice cooker Cosmos berasnya pulen'],
     'modena' => ['Modena', 'jalan-jalan ke modena italia seru', 'Kompor tanam Modena gampang dibersihkan'],
-    'advance' => ['Advance', 'kami advance ke babak final minggu depan', 'Blender Advance murah tapi tahan lama'],
+    'mito' => ['Mito', 'kota mito di jepang terkenal taman kairakuen', 'Air fryer Mito tahan lama dan hemat listrik'],
     'fiesta' => ['Fiesta', 'transmisi ford fiesta cukup responsif', 'nugget Fiesta enak buat bekal'],
 ]);
