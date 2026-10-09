@@ -97,6 +97,12 @@ test('PRD AC 3: public entity endpoint /e/{slug} reflects public score when opin
         ->component('Entities/Show')
         ->where('sentiment.is_eligible', false)
         ->where('sentiment.score', null)
+        // Counts are shown below the threshold, never a score or percentages.
+        ->where('sentiment.distribution', null)
+        ->where('sentiment.opinion_count', 22)
+        ->where('sentiment.positive_count', 15)
+        ->where('sentiment.neutral_count', 5)
+        ->where('sentiment.negative_count', 2)
         ->has('sentiment.empty_state_message')
     );
 });

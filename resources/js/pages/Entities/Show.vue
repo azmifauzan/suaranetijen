@@ -690,6 +690,45 @@ async function removeRating(): Promise<void> {
                             'Crawler opini publik belum mengumpulkan minimal 30 opini netizen untuk entitas ini. Skor agregat publik akan dihitung otomatis saat pipeline observasi aktif.'
                         }}
                     </p>
+
+                    <!-- Counts only: no score and no percentages below the threshold -->
+                    <div
+                        v-if="sentiment.opinion_count > 0"
+                        class="mx-auto mt-4 max-w-sm"
+                    >
+                        <div class="text-xs font-semibold text-neutral-600">
+                            {{ sentiment.opinion_count.toLocaleString() }}
+                            opini terkumpul (data masih terbatas)
+                        </div>
+                        <div
+                            class="mt-2 grid grid-cols-3 gap-2 text-center text-xs"
+                        >
+                            <div class="rounded-lg bg-emerald-50 p-2">
+                                <div class="font-bold text-emerald-700">
+                                    {{ sentiment.positive_count }}
+                                </div>
+                                <div class="text-[10px] text-emerald-800">
+                                    Positif
+                                </div>
+                            </div>
+                            <div class="rounded-lg bg-neutral-100 p-2">
+                                <div class="font-bold text-neutral-700">
+                                    {{ sentiment.neutral_count }}
+                                </div>
+                                <div class="text-[10px] text-neutral-500">
+                                    Netral
+                                </div>
+                            </div>
+                            <div class="rounded-lg bg-rose-50 p-2">
+                                <div class="font-bold text-rose-700">
+                                    {{ sentiment.negative_count }}
+                                </div>
+                                <div class="text-[10px] text-rose-800">
+                                    Negatif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Methodology & Source Transparency Disclosure per docs/04 -->
