@@ -120,7 +120,9 @@ class EntityCandidateAggregator
                 'entity_type' => EntityType::Product->value,
                 'category_id' => (int) $candidate->suggested_category_id,
                 'parent_id' => $parent->id,
-                'aliases' => $candidate->suggested_aliases ?? [],
+                // No LLM-suggested aliases: nobody reviewed them, and a loose alias is how
+                // opinions get attributed to the wrong entity. An admin can add them later.
+                'aliases' => [],
             ], null);
         } catch (Throwable $e) {
             // e.g. a slug clash: leave it pending for an admin rather than abort the scan.

@@ -202,7 +202,7 @@ it('auto-approves a new Wikidata product whose brand already exists', function (
     expect($entity->type)->toBe(EntityType::Product)
         ->and($entity->parent_id)->toBe(Entity::query()->where('name', 'Samsung Galaxy')->value('id'))
         ->and($entity->category_id)->toBe($smartphone->id)
-        ->and($entity->aliases()->pluck('normalized_alias')->all())->toEqualCanonicalizing(['samsung galaxy a58', 'a58'])
+        ->and($entity->aliases()->pluck('normalized_alias')->all())->toBe(['samsung galaxy a58'])
         ->and(EntityCandidate::query()->first()->only(['status', 'entity_id', 'reviewed_by']))
         ->toBe(['status' => 'approved', 'entity_id' => $entity->id, 'reviewed_by' => null]);
 });
