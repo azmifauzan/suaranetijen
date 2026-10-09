@@ -158,6 +158,59 @@ class LlmThemeExtractor
     }
 
     /**
+     * Relevance-only pass over short summaries of opinions already stored (raw text has expired),
+     * returning the keys judged not to be about the entity.
+     *
+     * @param  list<array{key: int|string, text: string}>  $items
+     * @return list<int|string>
+     */
+    public function judgeRelevance(int $entityId, string $entityName, array $items): array
+    {
+        if ($items === []) {
+            return [];
+        }
+
+        $numbered = [];
+        foreach ($items as $index => $item) {
+            $numbered[] = '['.($index + 1).'] '.mb_substr($item['text'], 0, self::MAX_CONTEXT_CHARS * 3);
+        }
+
+        $response = $this->client->chat([
+            [
+                'role' => 'system',
+                'content' => "You check which numbered notes really concern \"{$entityName}\". Each note is a short summary of one netizen "
+                    .'opinion that was attributed to this entity by a name match. Entity profile: '.$this->entityProfile($entityId, $entityName).'. '
+                    .$this->relevanceRule($entityName)
+                    .'Return every note with its about_entity verdict; opinion_index is 1-based.',
+            ],
+            ['role' => 'user', 'content' => implode("\n\n", $numbered)],
+        ], [
+            'name' => 'relevance_check',
+            'schema' => [
+                'type' => 'object',
+                'properties' => ['results' => ['type' => 'array', 'items' => [
+                    'type' => 'object',
+                    'properties' => ['opinion_index' => ['type' => 'integer'], 'about_entity' => ['type' => 'boolean']],
+                    'required' => ['opinion_index', 'about_entity'],
+                    'additionalProperties' => false,
+                ]]],
+                'required' => ['results'],
+                'additionalProperties' => false,
+            ],
+        ]);
+
+        $offTopic = [];
+        foreach ((array) ($response['results'] ?? []) as $result) {
+            $index = (int) ($result['opinion_index'] ?? 0) - 1;
+            if (is_array($result) && isset($items[$index]) && ($result['about_entity'] ?? true) === false) {
+                $offTopic[] = $items[$index]['key'];
+            }
+        }
+
+        return $offTopic;
+    }
+
+    /**
      * @param  array<mixed>  $item
      * @return array{label: string, sentiment: SentimentClass, context: string|null}|null
      */

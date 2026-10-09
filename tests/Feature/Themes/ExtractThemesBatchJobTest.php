@@ -5,8 +5,11 @@ use App\Domains\Sentiment\Jobs\AggregateDailySentimentJob;
 use App\Domains\Sentiment\Models\SentimentObservation;
 use App\Domains\Sources\Models\SourceItem;
 use App\Domains\Themes\Jobs\ExtractThemesBatchJob;
+use App\Domains\Themes\Jobs\RecheckRelevanceBatchJob;
 use App\Domains\Themes\Jobs\UpsertThemeObservationJob;
+use App\Domains\Themes\Models\ThemeObservation;
 use App\Domains\Themes\Services\LlmThemeExtractor;
+use App\Domains\Themes\Services\OffTopicOpinionRemover;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Contracts\Queue\Job;
 use Illuminate\Http\Client\RequestException;
@@ -118,4 +121,33 @@ it('removes off-topic opinions and their observations so the score stops countin
     expect(SentimentObservation::query()->whereKey($dropped->id)->exists())->toBeFalse()
         ->and(SentimentObservation::query()->whereKey($kept->id)->exists())->toBeTrue();
     Queue::assertPushed(AggregateDailySentimentJob::class);
+});
+
+it('rechecks stored opinions from their contexts and deletes the off-topic ones', function () {
+    [$entity, $source, , $llmTheme] = themeModeFixture();
+    Queue::fake();
+
+    $items = collect([1, 2])->map(function ($n) use ($entity, $source, $llmTheme) {
+        $item = SourceItem::factory()->create(['source_id' => $source->id]);
+        $obs = SentimentObservation::factory()->create(['entity_id' => $entity->id, 'source_id' => $source->id, 'source_item_id' => $item->id]);
+        ThemeObservation::create([
+            'entity_id' => $entity->id, 'theme_id' => $llmTheme->id, 'source_id' => $source->id, 'source_item_id' => $item->id,
+            'sentiment' => 'positive', 'confidence' => 0.8, 'extractor' => 'llm', 'context' => "Konteks {$n}",
+        ]);
+
+        return [$item, $obs];
+    });
+
+    $this->mock(LlmThemeExtractor::class)
+        ->shouldReceive('judgeRelevance')->once()
+        ->andReturn([$items[1][0]->id]);
+
+    $this->artisan('themes:recheck-relevance', ['--entity' => ['samsung']])->assertSuccessful();
+    Queue::assertPushed(RecheckRelevanceBatchJob::class, 1);
+
+    $job = Queue::pushed(RecheckRelevanceBatchJob::class)->first();
+    $job->handle(app(LlmThemeExtractor::class), app(OffTopicOpinionRemover::class));
+
+    expect(SentimentObservation::query()->whereKey($items[0][1]->id)->exists())->toBeTrue()
+        ->and(SentimentObservation::query()->whereKey($items[1][1]->id)->exists())->toBeFalse();
 });
