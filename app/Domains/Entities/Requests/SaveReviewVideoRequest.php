@@ -13,6 +13,10 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class SaveReviewVideoRequest extends FormRequest
 {
+    private ?string $verifiedVideoId = null;
+
+    private ?string $verifiedTitle = null;
+
     public function authorize(): bool
     {
         return $this->user()?->isAdmin() ?? false;
@@ -59,8 +63,26 @@ class SaveReviewVideoRequest extends FormRequest
                 return;
             }
 
-            $this->merge(['youtube_id' => $id, 'lookup_title' => $title]);
+            // Kept on the request object, never merged into input, so a client cannot post its own values.
+            $this->verifiedVideoId = $id;
+            $this->verifiedTitle = $title;
         }];
+    }
+
+    /**
+     * The video id parsed from the link and confirmed embeddable, or null when no link was checked.
+     */
+    public function verifiedVideoId(): ?string
+    {
+        return $this->verifiedVideoId;
+    }
+
+    /**
+     * The title YouTube reported for the verified video.
+     */
+    public function verifiedTitle(): ?string
+    {
+        return $this->verifiedTitle;
     }
 
     private function existingVideo(): ?EntityReviewVideo

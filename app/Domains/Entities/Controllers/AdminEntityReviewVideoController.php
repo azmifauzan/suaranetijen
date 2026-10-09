@@ -25,9 +25,9 @@ class AdminEntityReviewVideoController extends Controller
 
         // A link to a video the search already found (or an admin hid) becomes a manual one.
         EntityReviewVideo::query()->updateOrCreate(
-            ['entity_id' => $entity->id, 'youtube_id' => $request->string('youtube_id')->value()],
+            ['entity_id' => $entity->id, 'youtube_id' => (string) $request->verifiedVideoId()],
             [
-                'title' => $title !== '' ? $title : $request->string('lookup_title')->value(),
+                'title' => $title !== '' ? $title : (string) $request->verifiedTitle(),
                 'source' => EntityReviewVideo::SOURCE_MANUAL,
                 'hidden_at' => null,
             ]
@@ -49,9 +49,9 @@ class AdminEntityReviewVideoController extends Controller
             $changes['title'] = $title;
         }
 
-        $newId = $request->string('youtube_id')->value();
+        $newId = $request->verifiedVideoId();
 
-        if ($video->source === EntityReviewVideo::SOURCE_MANUAL && $newId !== '' && $newId !== $video->youtube_id) {
+        if ($video->source === EntityReviewVideo::SOURCE_MANUAL && $newId !== null && $newId !== $video->youtube_id) {
             if (EntityReviewVideo::query()->where('entity_id', $entity->id)->where('youtube_id', $newId)->exists()) {
                 return redirect()->back()->withErrors(['url' => 'This video is already listed for the product.']);
             }
@@ -59,7 +59,7 @@ class AdminEntityReviewVideoController extends Controller
             $changes['youtube_id'] = $newId;
 
             if ($title === '') {
-                $changes['title'] = $request->string('lookup_title')->value();
+                $changes['title'] = (string) $request->verifiedTitle();
             }
         }
 

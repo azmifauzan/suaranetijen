@@ -226,3 +226,23 @@ it('lists every video, hidden ones included, on the admin edit page', function (
         ->where('review_videos.1.is_hidden', true)
         ->where('review_videos.1.source', 'auto'));
 });
+
+it('ignores a video id or title the client posts itself instead of a checked link', function () {
+    fakeOembed('Judul dari YouTube');
+    $manual = EntityReviewVideo::factory()->create(['entity_id' => $this->product->id, 'youtube_id' => 'MANUALvid01', 'title' => 'Judul lama', 'source' => 'manual']);
+
+    $this->actingAs($this->admin)
+        ->put("/admin/entities/{$this->product->id}/review-videos/{$manual->id}", [
+            'youtube_id' => '../../evil?x=1', 'lookup_title' => str_repeat('x', 400), 'url' => '',
+        ])
+        ->assertRedirect();
+    expect($manual->fresh()->only(['youtube_id', 'title']))->toBe(['youtube_id' => 'MANUALvid01', 'title' => 'Judul lama']);
+
+    $this->actingAs($this->admin)
+        ->post("/admin/entities/{$this->product->id}/review-videos", [
+            'url' => 'https://youtu.be/NBfx6HKwlcw', 'youtube_id' => '../../evil?x=1', 'lookup_title' => 'dipalsukan',
+        ])
+        ->assertRedirect();
+    expect(EntityReviewVideo::where('youtube_id', 'NBfx6HKwlcw')->sole()->title)->toBe('Judul dari YouTube')
+        ->and(EntityReviewVideo::where('youtube_id', '../../evil?x=1')->exists())->toBeFalse();
+});
