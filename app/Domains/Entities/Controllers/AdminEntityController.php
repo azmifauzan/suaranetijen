@@ -8,6 +8,7 @@ use App\Domains\Entities\Enums\EntityType;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Models\EntityAlias;
+use App\Domains\Entities\Models\EntityReviewVideo;
 use App\Domains\Entities\Requests\StoreEntityRequest;
 use App\Domains\Entities\Requests\UpdateEntityRequest;
 use App\Domains\Entities\Services\TextNormalizer;
@@ -118,6 +119,19 @@ class AdminEntityController extends Controller
             'entity' => $entity,
             'categories' => $categories,
             'parent_brands' => $parentBrands,
+            'review_videos' => $entity->reviewVideos()
+                ->orderByRaw("CASE WHEN source = 'manual' THEN 0 ELSE 1 END")
+                ->orderByDesc('published_at')
+                ->orderByDesc('id')
+                ->get()
+                ->map(fn (EntityReviewVideo $video): array => [
+                    'id' => $video->id,
+                    'youtube_id' => $video->youtube_id,
+                    'title' => $video->title,
+                    'source' => $video->source,
+                    'is_hidden' => $video->hidden_at !== null,
+                ])
+                ->values(),
         ]);
     }
 

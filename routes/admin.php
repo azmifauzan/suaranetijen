@@ -6,6 +6,7 @@ use App\Domains\Entities\Controllers\AdminCategoryController;
 use App\Domains\Entities\Controllers\AdminEntityAliasController;
 use App\Domains\Entities\Controllers\AdminEntityCandidatesController;
 use App\Domains\Entities\Controllers\AdminEntityController;
+use App\Domains\Entities\Controllers\AdminEntityReviewVideoController;
 use App\Domains\Entities\Controllers\AdminLlmSettingsController;
 use App\Domains\Search\Controllers\AdminTopicsController;
 use App\Domains\Sources\Controllers\AdminSourceController;
@@ -31,6 +32,10 @@ Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')
     // Aliases management
     Route::post('/entities/{entity}/aliases', [AdminEntityAliasController::class, 'store'])->name('entities.aliases.store');
     Route::delete('/entities/{entity}/aliases/{alias}', [AdminEntityAliasController::class, 'destroy'])->name('entities.aliases.destroy');
+    Route::post('/entities/{entity}/review-videos', [AdminEntityReviewVideoController::class, 'store'])->name('entities.review-videos.store');
+    Route::put('/entities/{entity}/review-videos/{video}', [AdminEntityReviewVideoController::class, 'update'])->name('entities.review-videos.update');
+    Route::delete('/entities/{entity}/review-videos/{video}', [AdminEntityReviewVideoController::class, 'destroy'])->name('entities.review-videos.destroy');
+    Route::post('/entities/{entity}/review-videos/{video}/restore', [AdminEntityReviewVideoController::class, 'restore'])->name('entities.review-videos.restore');
 
     // Sources management & Kill Switch
     Route::get('/sources', [AdminSourceController::class, 'index'])->name('sources.index');

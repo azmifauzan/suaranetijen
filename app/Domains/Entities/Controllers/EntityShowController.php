@@ -46,8 +46,10 @@ class EntityShowController extends Controller
         }
 
         return array_values($entity->reviewVideos()
+            ->visible()
+            ->orderByRaw("CASE WHEN source = 'manual' THEN 0 ELSE 1 END")
             ->orderByDesc('published_at')
-            ->limit(3)
+            ->limit(5)
             ->get(['youtube_id', 'title'])
             ->map(fn (EntityReviewVideo $video): array => ['youtube_id' => $video->youtube_id, 'title' => $video->title])
             ->all());

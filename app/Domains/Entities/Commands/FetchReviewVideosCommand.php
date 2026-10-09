@@ -37,7 +37,8 @@ class FetchReviewVideosCommand extends Command
         $entities = Entity::query()
             ->active()
             ->where('type', EntityType::Product)
-            ->whereDoesntHave('reviewVideos')
+            // Videos an admin added by hand do not stop the automatic search.
+            ->whereDoesntHave('reviewVideos', fn ($query) => $query->where('source', EntityReviewVideo::SOURCE_AUTO))
             ->leftJoin('sentiment_snapshots', function ($join) {
                 $join->on('entities.id', '=', 'sentiment_snapshots.entity_id')
                     ->where('sentiment_snapshots.period', '=', 'all');
@@ -64,7 +65,8 @@ class FetchReviewVideosCommand extends Command
             }
 
             foreach ($videos as $video) {
-                EntityReviewVideo::query()->updateOrCreate(
+                // firstOrCreate: never overwrite an admin's manual or hidden copy of the same video.
+                EntityReviewVideo::query()->firstOrCreate(
                     ['entity_id' => $entity->id, 'youtube_id' => $video['youtube_id']],
                     ['title' => $video['title'], 'published_at' => $video['published_at']]
                 );

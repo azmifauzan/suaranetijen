@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import ReviewVideosPanel from '@/components/ReviewVideosPanel.vue';
 
 interface AliasItem {
     id: number;
@@ -84,6 +85,13 @@ const props = defineProps<{
     entity: EntityDetail;
     categories: Array<{ id: number; name: string; slug: string }>;
     parent_brands: Array<{ id: number; name: string }>;
+    review_videos: Array<{
+        id: number;
+        youtube_id: string;
+        title: string;
+        source: 'auto' | 'manual';
+        is_hidden: boolean;
+    }>;
 }>();
 
 const emptySmartphoneSpec: SmartphoneSpec = {
@@ -570,6 +578,14 @@ function removeAlias(aliasId: number) {
                     </div>
                 </div>
             </div>
+
+            <!-- Review videos: only products have them on the public page -->
+            <ReviewVideosPanel
+                v-if="entity.type === 'product'"
+                :entity-id="entity.id"
+                :videos="review_videos"
+                class="lg:col-span-3"
+            />
         </div>
     </div>
 </template>
