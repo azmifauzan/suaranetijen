@@ -30,6 +30,8 @@ return [
     */
     'context_required_aliases' => [
         'jago' => ['bank', 'rekening', 'kantong', 'saldo', 'tabungan', 'transfer', 'aplikasi', 'app', 'nasabah', 'debit', 'kartu', 'atm', 'bunga', 'deposito', 'ojk', 'lps', 'syariah', 'mbanking', 'qris'],
+        'vidio' => ['langganan', 'premier', 'platinum', 'diamond', 'streaming', 'siaran', 'sinetron', 'series', 'liga', 'aplikasi', 'app', 'akun', 'paket'],
+        'flip' => ['transfer', 'antarbank', 'bank', 'rekening', 'saldo', 'topup', 'top up', 'ewallet', 'e wallet', 'kirim uang', 'biaya admin', 'qris', 'aplikasi', 'app', 'globe'],
     ],
 
     /*

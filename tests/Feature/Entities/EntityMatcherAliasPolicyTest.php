@@ -114,9 +114,13 @@ it('serves entities from the candidate cache within its ttl', function () {
     expect(app(EntityMatcher::class)->match('Biznet Gio stabil'))->not->toBeNull();
 });
 
-it('matches an everyday-word brand only with a supporting context word', function () {
-    $jago = entityWithAliases('Jago', []);
+it('matches an everyday-word brand only with a supporting context word', function (string $name, string $offTopic, string $onTopic) {
+    $entity = entityWithAliases($name, []);
 
-    expect(app(EntityMatcher::class)->match('mobil ini jago banget nanjak, radiatornya kecil'))->toBeNull()
-        ->and(app(EntityMatcher::class)->match('Aplikasi Jago gampang buat transfer')?->id)->toBe($jago->id);
-});
+    expect(app(EntityMatcher::class)->match($offTopic))->toBeNull()
+        ->and(app(EntityMatcher::class)->match($onTopic)?->id)->toBe($entity->id);
+})->with([
+    'jago' => ['Jago', 'mobil ini jago banget nanjak, radiatornya kecil', 'Aplikasi Jago gampang buat transfer'],
+    'vidio' => ['Vidio', 'vidio nya bagus banget, mobilnya keren', 'Langganan Vidio buat nonton liga lancar'],
+    'flip' => ['Flip', 'kemasan flip top praktis, wanginya soft', 'Flip gratis biaya admin transfer antarbank'],
+]);
