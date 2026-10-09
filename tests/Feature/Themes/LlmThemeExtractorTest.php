@@ -179,3 +179,42 @@ it('only offers known labels from the same root category, never from unrelated o
 
     Http::assertSent(fn (Request $request) => ! str_contains($request['messages'][1]['content'], 'Kualitas mobil bagus'));
 });
+
+it('reports opinions the model judges not to be about the entity and extracts no themes for them', function () {
+    LlmSetting::create(['base_url' => 'https://llm.test/v1', 'model' => 'm', 'api_key' => 'k', 'max_tokens' => 800, 'temperature' => 0.1, 'timeout_seconds' => 20]);
+    Http::preventStrayRequests();
+    Http::fake(['llm.test/*' => Http::response([
+        'choices' => [['message' => ['content' => json_encode([
+            'results' => [
+                ['opinion_index' => 1, 'about_entity' => true, 'themes' => [
+                    ['label' => 'biaya admin murah', 'sentiment' => 'positive', 'evidence' => 'admin murah', 'context' => 'Biaya admin dinilai murah.'],
+                ]],
+                ['opinion_index' => 2, 'about_entity' => false, 'themes' => [
+                    ['label' => 'kemasan praktis', 'sentiment' => 'positive', 'evidence' => 'tutup flip top praktis', 'context' => 'Tutup botol praktis.'],
+                ]],
+            ],
+        ])]]],
+    ])]);
+
+    $offTopic = [];
+    $result = app(LlmThemeExtractor::class)->extractBatch(1, 'Flip', [
+        'a' => ['key' => 'a', 'text' => 'Transfer pakai Flip admin murah banget.'],
+        'b' => ['key' => 'b', 'text' => 'Sampo ini tutup flip top praktis dan wangi.'],
+    ], $offTopic);
+
+    expect($offTopic)->toBe(['b'])
+        ->and($result)->toHaveKey('a')
+        ->and($result)->not->toHaveKey('b');
+});
+
+it('sends the entity profile so the model can tell the brand from a coincidental word', function () {
+    $category = Category::factory()->create(['name' => 'Bank & E-Wallet']);
+    $entity = Entity::factory()->create(['name' => 'Flip', 'category_id' => $category->id, 'description' => 'Aplikasi transfer uang antarbank']);
+    fakeThemeLlm([]);
+
+    app(LlmThemeExtractor::class)->extract($entity->id, 'Flip', OPINION);
+
+    Http::assertSent(fn (Request $r) => str_contains($r->body(), 'Aplikasi transfer uang antarbank')
+        && str_contains($r->body(), 'Bank & E-Wallet')
+        && str_contains($r->body(), 'about_entity'));
+});

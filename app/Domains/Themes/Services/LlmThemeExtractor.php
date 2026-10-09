@@ -39,9 +39,12 @@ class LlmThemeExtractor
     ) {}
 
     /**
+     * $aboutEntity is set to false when the model judges the opinion is not about this entity at all
+     * (the name only coincides with an everyday word); the caller must then drop the opinion.
+     *
      * @return list<array{theme: Theme, sentiment: SentimentClass, confidence: float, context: string|null}>
      */
-    public function extract(int $entityId, string $entityName, string $text): array
+    public function extract(int $entityId, string $entityName, string $text, bool &$aboutEntity = true): array
     {
         $text = mb_substr($text, 0, self::MAX_INPUT_CHARS);
         $normalizedText = TextNormalizer::normalize($text);
@@ -51,6 +54,11 @@ class LlmThemeExtractor
         }
 
         $response = $this->client->chat($this->messages($entityId, $entityName, $text), $this->schema());
+
+        $aboutEntity = ($response['about_entity'] ?? true) !== false;
+        if (! $aboutEntity) {
+            return [];
+        }
 
         $found = [];
 
@@ -83,10 +91,14 @@ class LlmThemeExtractor
      * the model reuse one label across them instead of each opinion minting its own
      * near-duplicate ("baterai boros" / "baterai cepat habis" / "baterai drop").
      *
+     * Keys of opinions the model judged not to be about the entity at all are appended to
+     * $offTopic; the caller must drop those opinions.
+     *
      * @param  array<int|string, array{key: int|string, text: string}>  $items  keyed however the caller likes; that key is echoed back
+     * @param  list<int|string>  $offTopic
      * @return array<int|string, list<array{theme: Theme, sentiment: SentimentClass, confidence: float, context: string|null}>>
      */
-    public function extractBatch(int $entityId, string $entityName, array $items): array
+    public function extractBatch(int $entityId, string $entityName, array $items, array &$offTopic = []): array
     {
         $items = array_values($items);
         if ($items === []) {
@@ -114,6 +126,12 @@ class LlmThemeExtractor
 
             $key = $items[$index]['key'];
             $normalizedText = $normalizedTexts[$index];
+
+            if (($result['about_entity'] ?? true) === false) {
+                $offTopic[] = $key;
+
+                continue;
+            }
 
             foreach (array_slice((array) ($result['themes'] ?? []), 0, self::MAX_THEMES) as $themeItem) {
                 $parsed = is_array($themeItem) ? $this->parseItem($themeItem, $normalizedText) : null;
@@ -197,6 +215,35 @@ class LlmThemeExtractor
     }
 
     /**
+     * What the entity actually is, so the model can tell a real mention from a coincidental word
+     * ("flip top" packaging vs. the Flip transfer app).
+     */
+    private function entityProfile(int $entityId, string $entityName): string
+    {
+        $entity = Entity::query()->with('category')->find($entityId);
+        $profile = $entityName;
+
+        if ($entity?->category !== null) {
+            $profile .= " (kategori: {$entity->category->name})";
+        }
+
+        if (filled($entity?->description)) {
+            $profile .= ' — '.$entity->description;
+        }
+
+        return $profile;
+    }
+
+    private function relevanceRule(string $entityName): string
+    {
+        return 'about_entity: false when the opinion is NOT about this specific entity as described in its profile — '
+            .'the name merely coincides with an everyday word, another product, a person, a place or a different topic '
+            .'(e.g. "flip top" packaging for a transfer app, "vidio" meaning any video, "aqua" as an ingredient, '
+            .'a football club for a snack brand). Judge by what the opinion is actually about, not by the word alone. '
+            .'When false, return no themes. ';
+    }
+
+    /**
      * @return list<array{role: string, content: string}>
      */
     private function messages(int $entityId, string $entityName, string $text): array
@@ -207,6 +254,8 @@ class LlmThemeExtractor
             [
                 'role' => 'system',
                 'content' => "You extract what Indonesian netizens say about \"{$entityName}\" from ONE opinion. "
+                    .'Entity profile: '.$this->entityProfile($entityId, $entityName).'. '
+                    .$this->relevanceRule($entityName)
                     .'Return at most 5 themes, only about '.$entityName.' itself. '
                     .'label: a short Indonesian phrase, 2-6 words, lowercase, naming the specific thing AND the judgement '
                     .'(e.g. "baterai cepat habis", "kamera malam bagus", "cs lambat merespons", "harga seri a terjangkau"). '
@@ -246,7 +295,9 @@ class LlmThemeExtractor
             [
                 'role' => 'system',
                 'content' => "You extract what Indonesian netizens say about \"{$entityName}\" from a numbered list of "
-                    .'independent opinions. Process EACH opinion on its own — never let one opinion\'s content leak '
+                    .'independent opinions. Entity profile: '.$this->entityProfile($entityId, $entityName).'. '
+                    .$this->relevanceRule($entityName)
+                    .'Process EACH opinion on its own — never let one opinion\'s content leak '
                     .'into another\'s themes/evidence. For each opinion, return at most 5 themes, only about '.$entityName.' itself. '
                     .'label: a short Indonesian phrase, 2-6 words, lowercase, naming the specific thing AND the judgement '
                     .'(e.g. "baterai cepat habis", "kamera malam bagus", "cs lambat merespons", "harga seri a terjangkau"). '
@@ -261,8 +312,8 @@ class LlmThemeExtractor
                     .'evidence: copy the exact words from THAT SAME opinion (max 12 words) that support the theme. '
                     .'context: one sentence in Indonesian, max 25 words, in your own words, paraphrasing what was said — '
                     .'never names, usernames, links or direct quotes. '
-                    .'No numeric scores. opinion_index is 1-based and must match the numbered opinion below. Skip an '
-                    .'opinion entirely (omit it from results) if it has no concrete judgement about '.$entityName.'.',
+                    .'No numeric scores. opinion_index is 1-based and must match the numbered opinion below. Include EVERY opinion in results '
+                    .'with its about_entity verdict; use an empty themes list if it has no concrete judgement about '.$entityName.'.',
             ],
             [
                 'role' => 'user',
@@ -326,6 +377,7 @@ class LlmThemeExtractor
             'schema' => [
                 'type' => 'object',
                 'properties' => [
+                    'about_entity' => ['type' => 'boolean'],
                     'themes' => [
                         'type' => 'array',
                         'items' => [
@@ -341,7 +393,7 @@ class LlmThemeExtractor
                         ],
                     ],
                 ],
-                'required' => ['themes'],
+                'required' => ['about_entity', 'themes'],
                 'additionalProperties' => false,
             ],
         ];
@@ -363,6 +415,7 @@ class LlmThemeExtractor
                             'type' => 'object',
                             'properties' => [
                                 'opinion_index' => ['type' => 'integer'],
+                                'about_entity' => ['type' => 'boolean'],
                                 'themes' => [
                                     'type' => 'array',
                                     'items' => [
@@ -378,7 +431,7 @@ class LlmThemeExtractor
                                     ],
                                 ],
                             ],
-                            'required' => ['opinion_index', 'themes'],
+                            'required' => ['opinion_index', 'about_entity', 'themes'],
                             'additionalProperties' => false,
                         ],
                     ],

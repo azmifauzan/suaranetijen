@@ -78,10 +78,16 @@ class LlmClient
             ];
         }
 
-        $response = Http::withToken($settings['api_key'])
-            ->timeout($timeoutSeconds ?? $settings['timeout_seconds'])
-            ->post(rtrim((string) $settings['base_url'], '/').'/chat/completions', $body);
-        $response->throw();
+        try {
+            $response = Http::withToken($settings['api_key'])
+                ->timeout($timeoutSeconds ?? $settings['timeout_seconds'])
+                ->post(rtrim((string) $settings['base_url'], '/').'/chat/completions', $body);
+            $response->throw();
+        } catch (ConnectionException|RequestException $e) {
+            app(LlmFailureNotifier::class)->notify($e, $model);
+
+            throw $e;
+        }
 
         $content = (string) $response->json('choices.0.message.content', '{}');
 

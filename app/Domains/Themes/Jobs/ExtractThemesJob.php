@@ -6,6 +6,7 @@ use App\Domains\Entities\Models\Entity;
 use App\Domains\Sentiment\Enums\SentimentClass;
 use App\Domains\Themes\Models\ThemeObservation;
 use App\Domains\Themes\Services\LlmThemeExtractor;
+use App\Domains\Themes\Services\OffTopicOpinionRemover;
 use App\Domains\Themes\Services\ThemeExtractor;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
@@ -88,13 +89,20 @@ class ExtractThemesJob implements ShouldQueue
             }
 
             try {
-                $extracted = $llmExtractor->extract($this->entityId, $entityName, $this->text);
+                $aboutEntity = true;
+                $extracted = $llmExtractor->extract($this->entityId, $entityName, $this->text, $aboutEntity);
             } catch (RequestException $e) {
                 if ($e->response->status() !== 429) {
                     throw $e;
                 }
 
                 $this->release(max(1, (int) $e->response->header('Retry-After') ?: 60));
+
+                return;
+            }
+
+            if (! $aboutEntity) {
+                app(OffTopicOpinionRemover::class)->remove($this->entityId, array_filter([$this->sourceItemId]));
 
                 return;
             }

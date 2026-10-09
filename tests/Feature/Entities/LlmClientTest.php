@@ -144,3 +144,33 @@ it('still throws when no fallback model is configured', function () {
 
     expect(fn () => (new LlmClient)->chat([['role' => 'user', 'content' => 'hi']]))->toThrow(ConnectionException::class);
 });
+
+function failingLlm(int $status, string $body): void
+{
+    config(['sponsorship.telegram.bot_token' => 'bot', 'sponsorship.telegram.chat_id' => '42']);
+    LlmSetting::create(['base_url' => 'https://llm.internal/v1', 'model' => 'm', 'api_key' => 'k', 'max_tokens' => 100, 'temperature' => 0.1, 'timeout_seconds' => 5]);
+    Http::preventStrayRequests();
+    Http::fake([
+        'llm.internal/*' => Http::response($body, $status),
+        'api.telegram.org/*' => Http::response(['ok' => true]),
+    ]);
+}
+
+it('alerts telegram once when the llm balance is exhausted', function () {
+    failingLlm(402, '{"error":"insufficient balance"}');
+
+    foreach ([1, 2] as $_) {
+        expect(fn () => app(LlmClient::class)->chat([['role' => 'user', 'content' => 'x']]))->toThrow(RequestException::class);
+    }
+
+    Http::assertSentCount(3);
+    Http::assertSent(fn (Request $r) => str_contains($r->url(), 'api.telegram.org') && str_contains($r['text'], 'saldo/kuota habis'));
+});
+
+it('stays quiet on a routine 429 rate limit', function () {
+    failingLlm(429, '{"error":"rate limit, slow down"}');
+
+    expect(fn () => app(LlmClient::class)->chat([['role' => 'user', 'content' => 'x']]))->toThrow(RequestException::class);
+
+    Http::assertNotSent(fn (Request $r) => str_contains($r->url(), 'api.telegram.org'));
+});

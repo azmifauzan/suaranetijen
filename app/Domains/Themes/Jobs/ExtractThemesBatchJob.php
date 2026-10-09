@@ -5,6 +5,7 @@ namespace App\Domains\Themes\Jobs;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Sentiment\Models\SentimentObservation;
 use App\Domains\Themes\Services\LlmThemeExtractor;
+use App\Domains\Themes\Services\OffTopicOpinionRemover;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
@@ -72,8 +73,10 @@ class ExtractThemesBatchJob implements ShouldQueue
             $keyedItems[$index] = ['key' => $index, 'text' => $item['text']];
         }
 
+        $offTopic = [];
+
         try {
-            $results = $extractor->extractBatch($this->entityId, $entityName, $keyedItems);
+            $results = $extractor->extractBatch($this->entityId, $entityName, $keyedItems, $offTopic);
         } catch (RequestException $e) {
             if ($e->response->status() !== 429) {
                 throw $e;
@@ -83,6 +86,8 @@ class ExtractThemesBatchJob implements ShouldQueue
 
             return;
         }
+
+        $offTopicIds = array_map(fn ($index) => $this->items[(int) $index]['sourceItemId'], $offTopic);
 
         foreach ($results as $index => $themes) {
             $item = $this->items[(int) $index];
@@ -102,6 +107,8 @@ class ExtractThemesBatchJob implements ShouldQueue
                 );
             }
         }
+
+        app(OffTopicOpinionRemover::class)->remove($this->entityId, $offTopicIds);
 
         // Opinions with zero themes leave no theme_observations row, so mark them here
         // or themes:extract-pending would resend them every run.

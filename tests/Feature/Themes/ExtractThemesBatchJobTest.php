@@ -1,6 +1,9 @@
 <?php
 
 use App\Domains\Sentiment\Enums\SentimentClass;
+use App\Domains\Sentiment\Jobs\AggregateDailySentimentJob;
+use App\Domains\Sentiment\Models\SentimentObservation;
+use App\Domains\Sources\Models\SourceItem;
 use App\Domains\Themes\Jobs\ExtractThemesBatchJob;
 use App\Domains\Themes\Jobs\UpsertThemeObservationJob;
 use App\Domains\Themes\Services\LlmThemeExtractor;
@@ -16,7 +19,7 @@ it('dispatches an UpsertThemeObservationJob per theme, matched back to its own i
 
     $this->mock(LlmThemeExtractor::class)
         ->shouldReceive('extractBatch')->once()
-        ->with($entity->id, 'Samsung', [0 => ['key' => 0, 'text' => 'opini a'], 1 => ['key' => 1, 'text' => 'opini b']])
+        ->with($entity->id, 'Samsung', [0 => ['key' => 0, 'text' => 'opini a'], 1 => ['key' => 1, 'text' => 'opini b']], Mockery::any())
         ->andReturn([
             1 => [['theme' => $llmTheme, 'sentiment' => SentimentClass::Negative, 'confidence' => 0.8, 'context' => 'Baterai boros.']],
         ]);
@@ -87,4 +90,32 @@ it('does nothing for an empty entity name or empty items', function () {
     (new ExtractThemesBatchJob(1, []))->handle(app(LlmThemeExtractor::class));
 
     Queue::assertNothingPushed();
+});
+
+it('removes off-topic opinions and their observations so the score stops counting them', function () {
+    [$entity, $source, , $llmTheme] = themeModeFixture();
+    Queue::fake();
+
+    $itemA = SourceItem::factory()->create(['source_id' => $source->id]);
+    $itemB = SourceItem::factory()->create(['source_id' => $source->id]);
+    $kept = SentimentObservation::factory()->create(['entity_id' => $entity->id, 'source_id' => $source->id, 'source_item_id' => $itemA->id]);
+    $dropped = SentimentObservation::factory()->create(['entity_id' => $entity->id, 'source_id' => $source->id, 'source_item_id' => $itemB->id]);
+
+    $this->mock(LlmThemeExtractor::class)
+        ->shouldReceive('extractBatch')->once()
+        ->andReturnUsing(function ($entityId, $name, $items, &$offTopic) {
+            $offTopic = [1];
+
+            return [];
+        });
+
+    $job = new ExtractThemesBatchJob($entity->id, [
+        ['sourceItemId' => $itemA->id, 'sourceId' => $source->id, 'sourceDocumentHash' => null, 'publishedAt' => null, 'text' => 'opini a'],
+        ['sourceItemId' => $itemB->id, 'sourceId' => $source->id, 'sourceDocumentHash' => null, 'publishedAt' => null, 'text' => 'opini b'],
+    ]);
+    $job->handle(app(LlmThemeExtractor::class));
+
+    expect(SentimentObservation::query()->whereKey($dropped->id)->exists())->toBeFalse()
+        ->and(SentimentObservation::query()->whereKey($kept->id)->exists())->toBeTrue();
+    Queue::assertPushed(AggregateDailySentimentJob::class);
 });

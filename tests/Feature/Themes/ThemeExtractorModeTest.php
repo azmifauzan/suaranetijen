@@ -69,7 +69,7 @@ it('uses the llm extractor and passes extractor + context when configured', func
     Queue::fake();
 
     $this->mock(LlmThemeExtractor::class)
-        ->shouldReceive('extract')->once()->with($entity->id, 'Samsung', 'Baterainya cepat habis sejak update kemarin.')
+        ->shouldReceive('extract')->once()->with($entity->id, 'Samsung', 'Baterainya cepat habis sejak update kemarin.', Mockery::any())
         ->andReturn([['theme' => $llmTheme, 'sentiment' => SentimentClass::Negative, 'confidence' => 0.8, 'context' => 'Baterai boros.']]);
 
     (new ExtractThemesJob(entityId: $entity->id, sourceId: $source->id, sourceItemId: null, text: 'Baterainya cepat habis sejak update kemarin.'))
