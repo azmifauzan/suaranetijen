@@ -9,6 +9,7 @@ use App\Domains\Ratings\Models\RatingSnapshot;
 use App\Domains\Ratings\Models\UserRating;
 use App\Domains\Search\Jobs\RefreshEntitySearchDocumentJob;
 use App\Domains\Search\Models\EntitySearchDocument;
+use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Http\Middleware\CachePublicPages;
 use Database\Factories\EntityFactory;
@@ -252,6 +253,28 @@ class Entity extends Model
     public function scopeRankable(Builder $query): Builder
     {
         return $query->where('rankable', true);
+    }
+
+    /**
+     * Scope query to entities whose page is indexable: the opinion count of the 365d snapshot (or the
+     * all-time one when no 365d snapshot exists) clears the public score threshold, same rule as the
+     * entity page's own robots decision. Used wherever an indexed page links to an entity.
+     *
+     * @param  Builder<$this>  $query
+     * @return Builder<$this>
+     */
+    public function scopePubliclyEligible(Builder $query): Builder
+    {
+        $min = (int) config('scoring.public_min_opinions');
+
+        return $query->where(function (Builder $q) use ($min): void {
+            $q->whereHas('sentimentSnapshots', fn (Builder $s) => $s
+                ->where('period', Period::OneYear->value)->where('opinion_count', '>=', $min))
+                ->orWhere(fn (Builder $o) => $o
+                    ->whereDoesntHave('sentimentSnapshots', fn (Builder $s) => $s->where('period', Period::OneYear->value))
+                    ->whereHas('sentimentSnapshots', fn (Builder $s) => $s
+                        ->where('period', Period::All->value)->where('opinion_count', '>=', $min)));
+        });
     }
 
     /**

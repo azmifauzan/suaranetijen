@@ -2,6 +2,7 @@
 
 namespace App\Domains\Search\Services;
 
+use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Services\TextNormalizer;
 use App\Domains\Ratings\Models\RatingSnapshot;
 use App\Domains\Search\Models\SearchQuery;
@@ -589,6 +590,9 @@ class SearchService
 
         if ($categorySlug !== null && $categorySlug !== '') {
             $query->where('c.slug', $categorySlug);
+        } else {
+            // The unscoped browse is the indexable /search page: it must not link noindex (thin) entity pages.
+            $query->whereIn('e.id', Entity::query()->publiclyEligible()->select('id'));
         }
 
         $rows = array_values($query->get()->map(fn (object $r): array => (array) $r)->all());

@@ -268,7 +268,7 @@ class EntityShowController extends Controller
      */
     private function buildRelatedEntities(Entity $entity): Collection
     {
-        $familyQuery = Entity::query()->active()->where('id', '!=', $entity->id);
+        $familyQuery = Entity::query()->active()->publiclyEligible()->where('id', '!=', $entity->id);
 
         if ($entity->parent_id !== null) {
             $familyQuery->where(fn ($q) => $q->where('parent_id', $entity->parent_id)->orWhere('id', $entity->parent_id));
@@ -285,6 +285,7 @@ class EntityShowController extends Controller
                 ->where('category_id', $entity->category_id)
                 ->whereNotIn('id', $exclude)
                 ->active()
+                ->publiclyEligible()
                 ->inRandomOrder()
                 ->limit(4 - $related->count())
                 ->get(['id', 'name', 'slug', 'type']);

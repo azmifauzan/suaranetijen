@@ -6,6 +6,7 @@ use App\Domains\Entities\Models\Entity;
 use App\Domains\Search\Models\SearchQuery;
 use App\Domains\Search\Services\EntitySearchDocumentBuilder;
 use App\Domains\Sentiment\Enums\Period;
+use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Domains\Sponsorships\Enums\SponsoredEntryStatus;
 use App\Domains\Sponsorships\Models\SponsoredEntry;
 use App\Domains\Sponsorships\Services\SponsorLeaderboardService;
@@ -98,16 +99,23 @@ test('GET /search?category=... scopes to category', function () {
         );
 });
 
-test('GET /search with no query browses all searchable entities instead of showing none', function () {
+test('GET /search with no query browses only publicly eligible searchable entities', function () {
     $category = Category::factory()->create();
-    Entity::factory()->count(3)->sequence(
+    $eligible = Entity::factory()->count(3)->sequence(
         ['name' => 'Alpha Brand'],
         ['name' => 'Beta Brand'],
         ['name' => 'Gamma Brand'],
     )->create(['category_id' => $category->id]);
+    $eligible->each(fn (Entity $e) => SentimentSnapshot::factory()->create(['entity_id' => $e->id]));
 
-    Entity::factory()->disabled()->create(['name' => 'Disabled Brand', 'category_id' => $category->id]);
-    Entity::factory()->create(['name' => 'Unsearchable Brand', 'category_id' => $category->id, 'searchable' => false]);
+    $thin = Entity::factory()->create(['name' => 'Thin Brand', 'category_id' => $category->id]);
+    SentimentSnapshot::factory()->create(['entity_id' => $thin->id, 'opinion_count' => 5]);
+    Entity::factory()->create(['name' => 'No Data Brand', 'category_id' => $category->id]);
+
+    $hidden = Entity::factory()->disabled()->create(['name' => 'Disabled Brand', 'category_id' => $category->id]);
+    SentimentSnapshot::factory()->create(['entity_id' => $hidden->id]);
+    $unsearchable = Entity::factory()->create(['name' => 'Unsearchable Brand', 'category_id' => $category->id, 'searchable' => false]);
+    SentimentSnapshot::factory()->create(['entity_id' => $unsearchable->id]);
 
     $this->get('/search')
         ->assertOk()

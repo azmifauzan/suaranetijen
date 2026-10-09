@@ -1,7 +1,9 @@
 <?php
 
+use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Services\SeedEntityImporter;
+use App\Domains\Sentiment\Models\SentimentSnapshot;
 
 test('public route /e/{slug} resolves 200 for active entity', function () {
     $importer = app(SeedEntityImporter::class);
@@ -55,4 +57,21 @@ test('public route /e/{slug} returns 404 for disabled entity', function () {
 
     $this->get("/e/{$entity->slug}")
         ->assertNotFound();
+});
+
+test('related entities link only publicly eligible entity pages', function () {
+    $category = Category::factory()->create();
+    $page = Entity::factory()->create(['category_id' => $category->id]);
+    $eligible = Entity::factory()->create(['category_id' => $category->id, 'name' => 'Eligible Peer']);
+    SentimentSnapshot::factory()->create(['entity_id' => $eligible->id]);
+    $thin = Entity::factory()->create(['category_id' => $category->id, 'name' => 'Thin Peer']);
+    SentimentSnapshot::factory()->create(['entity_id' => $thin->id, 'opinion_count' => 5]);
+    Entity::factory()->create(['category_id' => $category->id, 'name' => 'No Data Peer']);
+
+    $this->get('/e/'.$page->slug)
+        ->assertOk()
+        ->assertInertia(fn ($inertia) => $inertia
+            ->has('relatedEntities', 1)
+            ->where('relatedEntities.0.slug', $eligible->slug)
+        );
 });
