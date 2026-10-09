@@ -123,5 +123,8 @@ it('matches an everyday-word brand only with a supporting context word', functio
     'jago' => ['Jago', 'mobil ini jago banget nanjak, radiatornya kecil', 'Aplikasi Jago gampang buat transfer'],
     'vidio' => ['Vidio', 'vidio nya bagus banget, mobilnya keren', 'Langganan Vidio buat nonton liga lancar'],
     'flip' => ['Flip', 'kemasan flip top praktis, wanginya soft', 'Flip gratis biaya admin transfer antarbank'],
+    'sharp' => ['Sharp', 'layarnya sharp banget, kameranya jernih', 'Kulkas Sharp awet, garansi kompresor panjang'],
+    'cosmos' => ['Cosmos', 'cosmos itu luas banget kata dokumenternya', 'Rice cooker Cosmos berasnya pulen'],
+    'modena' => ['Modena', 'jalan-jalan ke modena italia seru', 'Kompor tanam Modena gampang dibersihkan'],
     'fiesta' => ['Fiesta', 'transmisi ford fiesta cukup responsif', 'nugget Fiesta enak buat bekal'],
 ]);

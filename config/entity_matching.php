@@ -2,6 +2,10 @@
 
 // Entity alias hygiene for EntityMatcher and source discovery (docs/10, precision over recall).
 
+// Words that show a brand name shared with an everyday or foreign word is about
+// household appliances ("sharp" the TV brand vs "sharp" the English adjective).
+$applianceContext = ['kompor', 'rice cooker', 'magic com', 'magic jar', 'penanak nasi', 'kulkas', 'freezer', 'mesin cuci', 'dispenser', 'kipas', 'setrika', 'blender', 'mixer', 'water heater', 'pemanas air', 'oven', 'microwave', 'air fryer', 'vacuum', 'penyedot debu', 'ac', 'tv', 'televisi', 'elektronik', 'peralatan', 'dapur', 'garansi', 'servis', 'service center'];
+
 return [
 
     /*
@@ -42,6 +46,12 @@ return [
         'fiesta' => ['nugget', 'sosis', 'frozen', 'karaage', 'ayam', 'chicken', 'goreng'],
         'lion' => ['pesawat', 'penerbangan', 'maskapai', 'terbang', 'bandara', 'tiket', 'bagasi', 'pilot', 'pramugari', 'flight', 'delay'],
         'zoom' => ['meeting', 'rapat', 'meet', 'video call', 'vicon', 'webinar', 'kelas online', 'link', 'aplikasi', 'app'],
+        'sharp' => $applianceContext,
+        'cosmos' => $applianceContext,
+        'modena' => $applianceContext,
+        'kirin' => $applianceContext,
+        'gea' => $applianceContext,
+        'bosch' => $applianceContext,
         'cakap' => ['kursus', 'kelas', 'belajar', 'les', 'bahasa', 'aplikasi', 'app'],
     ],
 

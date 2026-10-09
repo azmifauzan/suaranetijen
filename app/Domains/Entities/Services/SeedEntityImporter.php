@@ -31,6 +31,7 @@ class SeedEntityImporter
         'Ride Hailing' => 'Digital Services',
         'Logistics' => 'Digital Services',
         'Brand Umum' => 'Consumer Brands',
+        'Peralatan Rumah Tangga' => 'Consumer Brands',
         'Politisi' => 'Tokoh Publik',
         'Selebriti & Artis' => 'Tokoh Publik',
         'Atlet' => 'Tokoh Publik',

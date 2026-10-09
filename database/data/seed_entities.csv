@@ -205,9 +205,9 @@ Eiger,brand,Brand Umum,,Eiger Adventure|PT Eigerindo Multi Produk,Brand perlengk
 Erigo,brand,Brand Umum,,Erigo Apparel|Erigo Store,Brand fashion lokal streetwear karya anak bangsa yang mendunia
 Ventela,brand,Brand Umum,,Sepatu Ventela|Ventela Shoes,Brand sepatu vulcanized lokal berkualitas tinggi dengan harga bersahabat
 Compass,brand,Brand Umum,,Sepatu Compass|Compass Gazelle,Brand sepatu sneakers retro lokal paling dicari pencinta fashion
-Polytron,brand,Brand Umum,,Polytron Indonesia|PT Hartono Istana Teknologi,Perusahaan elektronik konsumen dan audio visual asli Indonesia
-Miyako,brand,Brand Umum,,Miyako Indonesia|Elektronik Miyako,Peralatan rumah tangga andalan keluarga Indonesia berstandar SNI
-Maspion,brand,Brand Umum,,Maspion Group|Cintailah Produk Produk Indonesia,Produsen peralatan dapur dan elektronik rumah tangga legendaris
+Polytron,brand,Peralatan Rumah Tangga,,Polytron Indonesia|PT Hartono Istana Teknologi,Perusahaan elektronik konsumen dan audio visual asli Indonesia
+Miyako,brand,Peralatan Rumah Tangga,,Miyako Indonesia|Elektronik Miyako,Peralatan rumah tangga andalan keluarga Indonesia berstandar SNI
+Maspion,brand,Peralatan Rumah Tangga,,Maspion Group|Cintailah Produk Produk Indonesia,Produsen peralatan dapur dan elektronik rumah tangga legendaris
 Joko Widodo,person,Politisi,,Jokowi|Presiden Jokowi,Presiden ke-7 Republik Indonesia periode 2014-2024
 Prabowo Subianto,person,Politisi,,Prabowo|Presiden Prabowo,"Presiden Republik Indonesia, mantan Menteri Pertahanan dan purnawirawan TNI"
 Anies Baswedan,person,Politisi,,Anies|Gubernur Anies,Mantan Gubernur DKI Jakarta dan tokoh politik nasional
@@ -496,3 +496,24 @@ JNE,brand,Logistics,,,
 SiCepat,brand,Logistics,,,
 TIKI,brand,Logistics,,,
 SAPX Express,brand,Logistics,,,
+Philips,brand,Peralatan Rumah Tangga,,Philips Indonesia|Philips Electronics,Merek elektronik dan peralatan rumah tangga global yang banyak dipakai di dapur dan perawatan rumah
+Sharp,brand,Peralatan Rumah Tangga,,Sharp Indonesia|Sharp Electronics Indonesia,Merek elektronik rumah tangga dengan kulkas AC mesin cuci dan TV
+Panasonic,brand,Peralatan Rumah Tangga,,Panasonic Indonesia|Panasonic Gobel,Merek elektronik rumah tangga Jepang dengan rice cooker kulkas AC dan mesin cuci
+Cosmos,brand,Peralatan Rumah Tangga,,Cosmos Indonesia|Cosmos Elektronik,Merek peralatan dapur dan elektronik rumah tangga lokal
+Oxone,brand,Peralatan Rumah Tangga,,Oxone Indonesia,Merek peralatan masak dan elektronik dapur seperti rice cooker dan blender
+Electrolux,brand,Peralatan Rumah Tangga,,Electrolux Indonesia,Merek peralatan rumah tangga premium seperti kulkas mesin cuci dan penyedot debu
+Modena,brand,Peralatan Rumah Tangga,,Modena Indonesia|Modena Kitchen,Merek peralatan dapur seperti kompor tanam oven dan cooker hood
+Rinnai,brand,Peralatan Rumah Tangga,,Rinnai Indonesia,Merek kompor gas dan pemanas air asal Jepang
+Kirin,brand,Peralatan Rumah Tangga,,Kirin Indonesia|Kirin Elektronik,Merek peralatan elektronik rumah tangga seperti rice cooker dispenser dan kipas
+Sanken,brand,Peralatan Rumah Tangga,,Sanken Indonesia,Merek pompa air dispenser dan rice cooker
+Yong Ma,brand,Peralatan Rumah Tangga,,Yongma|Yong Ma Indonesia,Merek mesin jahit dan peralatan rumah tangga lokal
+Denpoo,brand,Peralatan Rumah Tangga,,Denpoo Indonesia,Merek kipas angin dan peralatan elektronik rumah tangga
+Midea,brand,Peralatan Rumah Tangga,,Midea Indonesia,Merek AC kulkas mesin cuci dan peralatan dapur
+GEA,brand,Peralatan Rumah Tangga,,GEA Indonesia|Gea Elektronik,Merek kulkas dan peralatan elektronik rumah tangga
+Daikin,brand,Peralatan Rumah Tangga,,Daikin Indonesia,Merek AC asal Jepang
+Bosch,brand,Peralatan Rumah Tangga,,Bosch Indonesia|Bosch Home Appliances,Merek peralatan rumah tangga seperti kulkas mesin cuci dan oven
+Tefal,brand,Peralatan Rumah Tangga,,Tefal Indonesia,Merek peralatan masak dan setrika
+Kenwood,brand,Peralatan Rumah Tangga,,Kenwood Indonesia,Merek peralatan dapur seperti mixer dan blender
+Dyson,brand,Peralatan Rumah Tangga,,Dyson Indonesia,Merek penyedot debu pengering rambut dan pembersih udara
+Aqua Japan,brand,Peralatan Rumah Tangga,,Aqua Electronics,Merek kulkas dan mesin cuci
+Lock&Lock,brand,Peralatan Rumah Tangga,,Lock and Lock|LocknLock,Merek wadah makanan dan perlengkapan dapur

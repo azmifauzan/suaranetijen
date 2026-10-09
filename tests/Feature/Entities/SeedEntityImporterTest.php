@@ -70,3 +70,13 @@ test('seed entity importer configures parent-child relationships and aliases cor
         ->first();
     expect($extraAlias)->not->toBeNull();
 });
+
+test('household appliance brands import under Peralatan Rumah Tangga, including moved Brand Umum brands', function () {
+    app(SeedEntityImporter::class)->import(database_path('data/seed_entities.csv'));
+
+    $category = Category::where('slug', 'peralatan-rumah-tangga')->firstOrFail();
+
+    expect($category->parent?->slug)->toBe('consumer-brands')
+        ->and(Entity::where('category_id', $category->id)->pluck('name')->all())
+        ->toContain('Philips', 'Sharp', 'Cosmos', 'Polytron', 'Miyako', 'Maspion');
+});
