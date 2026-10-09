@@ -172,6 +172,16 @@ class Entity extends Model
     }
 
     /**
+     * YouTube review videos embedded on the product page.
+     *
+     * @return HasMany<EntityReviewVideo, $this>
+     */
+    public function reviewVideos(): HasMany
+    {
+        return $this->hasMany(EntityReviewVideo::class);
+    }
+
+    /**
      * Get the search document for this entity (docs/30).
      *
      * @return HasOne<EntitySearchDocument, $this>

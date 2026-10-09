@@ -7,6 +7,8 @@ return [
         'api_key' => env('YOUTUBE_API_KEY'),
         'max_results' => (int) env('YOUTUBE_MAX_RESULTS', 50),
         'max_comment_pages' => (int) env('YOUTUBE_MAX_COMMENT_PAGES', 3),
+        // Products searched per day for review videos; each search costs 100 quota units.
+        'review_video_daily_limit' => (int) env('YOUTUBE_REVIEW_VIDEO_DAILY_LIMIT', 20),
     ],
 
     'search_priority' => [
@@ -15,6 +17,12 @@ return [
         'hours_per_idle_day' => (float) env('SEARCH_PRIORITY_HOURS_PER_IDLE_DAY', 4),
         'min_interval_hours' => (int) env('SEARCH_PRIORITY_MIN_INTERVAL_HOURS', 24),
         'max_interval_days' => (int) env('SEARCH_PRIORITY_MAX_INTERVAL_DAYS', 90),
+
+        // Focus mode: comma-separated entity types searched first (e.g. "product").
+        // Empty = every type, rotating by due time only.
+        'focus_types' => array_values(array_filter(array_map('trim', explode(',', (string) env('SEARCH_PRIORITY_FOCUS_TYPES', ''))))),
+        'focus_active_days' => (int) env('SEARCH_PRIORITY_FOCUS_ACTIVE_DAYS', 90),
+        'focus_new_days' => (int) env('SEARCH_PRIORITY_FOCUS_NEW_DAYS', 60),
     ],
 
     'kaskus' => [

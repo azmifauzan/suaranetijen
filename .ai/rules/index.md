@@ -11,4 +11,5 @@ Before planning or editing, find the row whose globs match the file's path and r
 | resources/js/** | .ai/rules/js.md |
 | app/Domains/Search/Services/SearchService.php | .ai/rules/search-services.md |
 | app/Domains/Sentiment/** | .ai/rules/sentiment.md |
-| app/Domains/Entities/Services/HomepageCategoryBlockService.php, app/Domains/Entities/Services/EntityCandidate*.php | .ai/rules/services.md |
+| app/Domains/Entities/Services/HomepageCategoryBlockService.php, app/Domains/Entities/Services/EntityCandidate*.php, app/Domains/Entities/Services/EntityReviewVideoFinder.php | .ai/rules/services.md |
+| app/Domains/Sources/Services/SearchQueryPlanner.php | .ai/rules/sources-services.md |

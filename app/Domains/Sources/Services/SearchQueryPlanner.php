@@ -6,6 +6,7 @@ use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Services\AliasPolicy;
 use App\Domains\Entities\Services\TextNormalizer;
 use App\Domains\Sentiment\Models\SentimentObservation;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Picks the next entity a search-driven source (YouTube, Kaskus) should query.
@@ -18,6 +19,13 @@ use App\Domains\Sentiment\Models\SentimentObservation;
  * searched often; one fading from the sources is searched less and less, up to
  * max_interval_days, and speeds back up as soon as a fresh opinion lands.
  * One call yields one search, so the API quota spent per cycle does not change.
+ *
+ * Focus mode (config search_priority.focus_types, e.g. "product") narrows the
+ * pool to those entity types while any exist, and puts entities that are in
+ * play first: an opinion in the last focus_active_days, or added within
+ * focus_new_days and never searched. Everything else only gets a turn once no
+ * in-play entity is left, so a month of searches is not spent on 3,000
+ * dormant models.
  */
 class SearchQueryPlanner
 {
@@ -27,11 +35,13 @@ class SearchQueryPlanner
      */
     public function next(array $searchedAt): ?array
     {
-        $entities = Entity::query()
-            ->active()
-            ->searchable()
-            ->with('aliases:id,entity_id,normalized_alias')
-            ->get(['id', 'name', 'created_at']);
+        $focusTypes = array_values(array_filter((array) config('sources.search_priority.focus_types', [])));
+        $entities = $this->entities($focusTypes);
+
+        if ($entities->isEmpty() && $focusTypes !== []) {
+            $focusTypes = [];
+            $entities = $this->entities([]);
+        }
 
         $lastOpinionAt = SentimentObservation::query()
             ->selectRaw('entity_id, max(observed_at) as latest')
@@ -42,6 +52,9 @@ class SearchQueryPlanner
         $hoursPerIdleDay = max(0, (float) config('sources.search_priority.hours_per_idle_day', 4));
         $minInterval = max(0, (int) config('sources.search_priority.min_interval_hours', 24)) * 3600;
         $maxInterval = max(0, (int) config('sources.search_priority.max_interval_days', 90)) * 86400;
+
+        $activeSince = $now - max(0, (int) config('sources.search_priority.focus_active_days', 90)) * 86400;
+        $newSince = $now - max(0, (int) config('sources.search_priority.focus_new_days', 60)) * 86400;
 
         $best = null;
 
@@ -60,7 +73,10 @@ class SearchQueryPlanner
 
             $last = (int) ($searchedAt[$entity->id] ?? 0);
             $due = $last === 0 ? 0 : $last + $interval;
-            $rank = [$due, $idleDays, $entity->id];
+            $inPlay = $focusTypes === []
+                || (int) $activeAt >= $activeSince && isset($lastOpinionAt[$entity->id])
+                || $last === 0 && (int) $entity->created_at?->getTimestamp() >= $newSince;
+            $rank = [$inPlay ? 0 : 1, $due, $idleDays, $entity->id];
 
             if ($best === null || $rank < $best['rank']) {
                 $best = ['rank' => $rank, 'entity_id' => $entity->id, 'term' => $term];
@@ -68,6 +84,20 @@ class SearchQueryPlanner
         }
 
         return $best === null ? null : ['entity_id' => $best['entity_id'], 'term' => $best['term']];
+    }
+
+    /**
+     * @param  list<string>  $types
+     * @return Collection<int, Entity>
+     */
+    private function entities(array $types): Collection
+    {
+        return Entity::query()
+            ->active()
+            ->searchable()
+            ->when($types !== [], fn ($query) => $query->whereIn('type', $types))
+            ->with('aliases:id,entity_id,normalized_alias')
+            ->get(['id', 'name', 'created_at']);
     }
 
     private function termFor(Entity $entity): ?string

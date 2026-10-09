@@ -2,7 +2,9 @@
 
 namespace App\Domains\Entities\Controllers;
 
+use App\Domains\Entities\Enums\EntityType;
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Entities\Models\EntityReviewVideo;
 use App\Domains\Entities\Services\EntityComparison;
 use App\Domains\Entities\Services\EntityOgImage;
 use App\Domains\Entities\Services\EntitySeoService;
@@ -30,6 +32,26 @@ class EntityShowController extends Controller
         protected EntityOgImage $ogImage,
         protected EntityComparison $comparisons
     ) {}
+
+    /**
+     * YouTube review videos shown on a product page. Reference material only,
+     * never part of Sentimen Netijen.
+     *
+     * @return list<array{youtube_id: string, title: string}>
+     */
+    private function reviewVideos(Entity $entity): array
+    {
+        if ($entity->type !== EntityType::Product) {
+            return [];
+        }
+
+        return array_values($entity->reviewVideos()
+            ->orderByDesc('published_at')
+            ->limit(3)
+            ->get(['youtube_id', 'title'])
+            ->map(fn (EntityReviewVideo $video): array => ['youtube_id' => $video->youtube_id, 'title' => $video->title])
+            ->all());
+    }
 
     /**
      * Display the specified entity public page.
@@ -220,6 +242,7 @@ class EntityShowController extends Controller
                 'website_url' => $entity->website_url,
             ] : null,
             'themes' => $themesData,
+            'reviewVideos' => $this->reviewVideos($entity),
             'relatedEntities' => $relatedEntities->map(fn (Entity $e) => [
                 'id' => $e->id,
                 'name' => $e->name,

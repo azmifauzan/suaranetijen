@@ -13,9 +13,9 @@ use App\Domains\Sources\Services\SourceRegistry;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
-function plannedEntity(string $name, int $opinions = 0, ?int $lastOpinionDaysAgo = null): Entity
+function plannedEntity(string $name, int $opinions = 0, ?int $lastOpinionDaysAgo = null, string $type = 'brand'): Entity
 {
-    $entity = Entity::factory()->create(['name' => $name]);
+    $entity = Entity::factory()->create(['name' => $name, 'type' => $type]);
     SentimentObservation::factory()->count($opinions)->create([
         'entity_id' => $entity->id,
         'observed_at' => now()->subDays($lastOpinionDaysAgo ?? 0),
@@ -104,4 +104,37 @@ it('searches one entity per YouTube cycle, only page 1, and moves to the next en
         ->and($queries->pluck('pageToken')->filter()->all())->toBe([])
         ->and(array_keys(CrawlState::where('source_id', $source->id)->first()->metadata['searched_at']))
         ->toEqualCanonicalizing([$first->id, $second->id]);
+});
+
+it('searches only the focus types while any exist, active ones before dormant ones', function () {
+    config(['sources.search_priority.focus_types' => ['product']]);
+    plannedEntity('Merek Ramai', 20, 0, 'brand');
+    $dormant = plannedEntity('Produk Lama', 3, 300, 'product');
+    $active = plannedEntity('Produk Ramai', 3, 5, 'product');
+    $planner = app(SearchQueryPlanner::class);
+
+    expect($planner->next([])['entity_id'])->toBe($active->id);
+
+    // The brand is never picked while a product is available, even when the dormant product was searched recently.
+    $searched = [$active->id => now()->getTimestamp(), $dormant->id => now()->getTimestamp()];
+    expect($planner->next($searched)['entity_id'])->toBe($active->id);
+});
+
+it('treats a newly added product as in focus until it has been searched', function () {
+    config(['sources.search_priority.focus_types' => ['product']]);
+    $established = plannedEntity('Produk Ramai', 3, 5, 'product');
+    $fresh = plannedEntity('Produk Baru Rilis', 0, null, 'product');
+    $old = plannedEntity('Produk Lawas', 0, null, 'product');
+    $old->forceFill(['created_at' => now()->subDays(200)])->save();
+
+    expect(app(SearchQueryPlanner::class)->next([$established->id => now()->getTimestamp()])['entity_id'])->toBe($fresh->id);
+    expect(app(SearchQueryPlanner::class)->next([$established->id => now()->getTimestamp(), $fresh->id => now()->getTimestamp()])['entity_id'])
+        ->not->toBe($old->id);
+});
+
+it('falls back to every entity when no entity of a focus type exists', function () {
+    config(['sources.search_priority.focus_types' => ['product']]);
+    $brand = plannedEntity('Satu-satunya Merek', 1, 0, 'brand');
+
+    expect(app(SearchQueryPlanner::class)->next([])['entity_id'])->toBe($brand->id);
 });
