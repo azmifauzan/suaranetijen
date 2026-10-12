@@ -252,15 +252,7 @@ class EntityComparison
             $title = "{$a['name']} vs {$b['name']}: Sentimen Netizen";
         }
 
-        $description = sprintf(
-            'Bandingkan sentimen netizen: %s %s/100 dari %s opini, %s %s/100 dari %s opini. Lihat tema yang sering dipuji dan dikeluhkan.',
-            $a['name'],
-            $this->number($a['score']),
-            number_format($a['opinion_count'], 0, ',', '.'),
-            $b['name'],
-            $this->number($b['score']),
-            number_format($b['opinion_count'], 0, ',', '.'),
-        );
+        $description = $this->metaDescription($a, $b);
 
         $faq = [
             [
@@ -300,6 +292,40 @@ class EntityComparison
                 ], $faq),
             ],
         ];
+    }
+
+    /**
+     * Question-shaped lead plus one praised/complained theme per side. The two scores stay in the page body
+     * and FAQ, not here, so a searcher still has a reason to click.
+     *
+     * @param  array<string, mixed>  $a
+     * @param  array<string, mixed>  $b
+     */
+    protected function metaDescription(array $a, array $b): string
+    {
+        $total = number_format($a['opinion_count'] + $b['opinion_count'], 0, ',', '.');
+        $description = "{$a['name']} atau {$b['name']} bagus mana? Dibandingkan dari {$total} opini netizen.";
+
+        foreach ([$a, $b] as $side) {
+            $positive = $side['positive_themes'][0]['display_label'] ?? null;
+            $negative = $side['negative_themes'][0]['display_label'] ?? null;
+
+            $parts = array_filter([
+                $positive !== null ? "dipuji soal {$positive}" : null,
+                $negative !== null ? "dikeluhkan soal {$negative}" : null,
+            ]);
+
+            if ($parts === []) {
+                continue;
+            }
+
+            $addition = " {$side['name']}: ".implode(', ', $parts).'.';
+            if (mb_strlen($description.$addition) <= 160) {
+                $description .= $addition;
+            }
+        }
+
+        return $description;
     }
 
     /**

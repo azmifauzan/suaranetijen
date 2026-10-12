@@ -175,7 +175,7 @@ class EntitySeoService
         }
 
         $formattedCount = number_format($opinionCount, 0, ',', '.');
-        $desc = "{$formattedCount} opini netizen tentang {$name}: {$posPct}% positif, {$negPct}% negatif.";
+        $desc = "Apakah {$name} bagus? {$formattedCount} opini netizen: {$posPct}% positif, {$negPct}% negatif.";
 
         $topPos = $this->firstPublishableLabel($positiveThemes);
         $topNeg = $this->firstPublishableLabel($negativeThemes);

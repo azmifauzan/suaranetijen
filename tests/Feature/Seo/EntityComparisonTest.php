@@ -173,3 +173,14 @@ test('the public footer links to the comparison list and the list page is served
 
     expect(file_get_contents(resource_path('js/layouts/PublicLayout.vue')))->toContain('comparisonsIndex()');
 });
+
+test('the comparison meta description is question-shaped and does not reveal both scores', function () {
+    comparisonEntity('oppo', 'Oppo', 200, 70.2);
+    comparisonEntity('vivo', 'Vivo', 150, 89.1);
+
+    $this->get('/banding/oppo-vs-vivo')->assertInertia(fn (Assert $page) => $page
+        ->where('comparisonSeo.meta_description', fn (string $description): bool => str_starts_with($description, 'Oppo atau Vivo bagus mana?')
+            && str_contains($description, '350 opini')
+            && ! str_contains($description, '/100')
+            && mb_strlen($description) <= 160));
+});
