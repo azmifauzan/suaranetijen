@@ -4,6 +4,10 @@
 
 // Words that show a brand name shared with an everyday or foreign word is about
 // household appliances ("sharp" the TV brand vs "sharp" the English adjective).
+// Words that show an electric-motorcycle brand shared with a name or word ("alva" a first
+// name, "volta" the chemistry cell, "smoot" a typo of "smooth") is about the motorcycle.
+$electricMotorcycleContext = ['motor', 'skuter', 'skutik', 'sepeda listrik', 'kendaraan listrik', 'dealer', 'test ride', 'unit'];
+
 $applianceContext = ['kompor', 'rice cooker', 'magic com', 'magic jar', 'penanak nasi', 'kulkas', 'freezer', 'mesin cuci', 'dispenser', 'kipas', 'setrika', 'blender', 'mixer', 'water heater', 'pemanas air', 'oven', 'microwave', 'air fryer', 'vacuum', 'penyedot debu', 'ac', 'tv', 'televisi', 'elektronik', 'peralatan', 'dapur', 'garansi', 'servis', 'service center'];
 
 return [
@@ -53,6 +57,9 @@ return [
         'gea' => $applianceContext,
         'bosch' => $applianceContext,
         'mito' => $applianceContext,
+        'alva' => $electricMotorcycleContext,
+        'volta' => $electricMotorcycleContext,
+        'smoot' => $electricMotorcycleContext,
         'cakap' => ['kursus', 'kelas', 'belajar', 'les', 'bahasa', 'aplikasi', 'app'],
     ],
 

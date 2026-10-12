@@ -128,4 +128,7 @@ it('matches an everyday-word brand only with a supporting context word', functio
     'modena' => ['Modena', 'jalan-jalan ke modena italia seru', 'Kompor tanam Modena gampang dibersihkan'],
     'mito' => ['Mito', 'kota mito di jepang terkenal taman kairakuen', 'Air fryer Mito tahan lama dan hemat listrik'],
     'fiesta' => ['Fiesta', 'transmisi ford fiesta cukup responsif', 'nugget Fiesta enak buat bekal'],
+    'alva' => ['Alva', 'alva temanku jago masak', 'motor listrik Alva servisnya cepat'],
+    'volta' => ['Volta', 'sel volta di pelajaran kimia', 'dealer Volta dekat rumah'],
+    'smoot' => ['Smoot', 'tarikannya smoot banget', 'skuter Smoot kuat nanjak'],
 ]);
