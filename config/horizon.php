@@ -393,10 +393,10 @@ return [
                 'maxProcesses' => 1,
             ],
             'supervisor-analysis' => [
-                'maxProcesses' => 2,
+                'maxProcesses' => 1,
             ],
             'supervisor-themes' => [
-                'maxProcesses' => 2,
+                'maxProcesses' => 1,
             ],
             'supervisor-maintenance' => [
                 'minProcesses' => 1,
