@@ -1,5 +1,7 @@
 <?php
 
+use App\Domains\Entities\Enums\EntityStatus;
+use App\Domains\Entities\Enums\EntityType;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Services\SeedEntityImporter;
@@ -74,4 +76,12 @@ test('related entities link only publicly eligible entity pages', function () {
             ->has('relatedEntities', 1)
             ->where('relatedEntities.0.slug', $eligible->slug)
         );
+});
+
+test('a slug written with spaces redirects permanently to the real entity', function () {
+    $category = Category::query()->firstOrCreate(['slug' => 'smartphone'], ['name' => 'Smartphone', 'status' => 'active']);
+    Entity::query()->create(['name' => 'Xiaomi 15 Ultra', 'slug' => 'xiaomi-15-ultra', 'type' => EntityType::Product, 'status' => EntityStatus::Active, 'category_id' => $category->id, 'searchable' => true, 'rankable' => true]);
+
+    $this->get('/e/xiaomi%2015%20ultra')->assertRedirect('/e/xiaomi-15-ultra')->assertStatus(301);
+    $this->get('/e/not%20a%20real%20entity')->assertNotFound();
 });

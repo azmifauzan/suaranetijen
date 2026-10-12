@@ -20,7 +20,9 @@ use App\Domains\Themes\Services\TopThemesService;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\CachePublicPages;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -56,16 +58,33 @@ class EntityShowController extends Controller
     }
 
     /**
+     * A URL typed or linked with the entity name ("/e/xiaomi 15 ultra") 301s to the real slug; anything
+     * that does not resolve to an active entity stays a 404.
+     */
+    protected function redirectMalformedSlug(string $slug): RedirectResponse
+    {
+        $normalized = Str::slug($slug);
+
+        abort_if($normalized === '' || $normalized === $slug || ! Entity::query()->where('slug', $normalized)->active()->exists(), 404);
+
+        return redirect()->route('entities.show', ['slug' => $normalized], 301);
+    }
+
+    /**
      * Display the specified entity public page.
      */
-    public function show(string $slug, Request $request): Response
+    public function show(string $slug, Request $request): Response|RedirectResponse
     {
-        /** @var Entity $entity */
+        /** @var Entity|null $entity */
         $entity = Entity::query()
             ->with(['category', 'parent', 'aliases', 'ratingSnapshot'])
             ->where('slug', $slug)
             ->active()
-            ->firstOrFail();
+            ->first();
+
+        if ($entity === null) {
+            return $this->redirectMalformedSlug($slug);
+        }
 
         // Period resolution: query param or 365d default, fallback to 'all' if 365d empty
         $requestedPeriodStr = $request->query('period');

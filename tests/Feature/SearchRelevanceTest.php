@@ -134,7 +134,19 @@ it('returns entities matching descriptor-only queries such as "baterai awet"', f
 
 it('falls back to browse mode when query consists solely of stopwords or years', function () {
     $category = Category::factory()->create();
-    Entity::factory()->count(3)->create(['category_id' => $category->id, 'status' => EntityStatus::Active, 'searchable' => true]);
+    Entity::factory()->count(3)->create(['category_id' => $category->id, 'status' => EntityStatus::Active, 'searchable' => true])
+        ->each(fn (Entity $entity) => SentimentSnapshot::query()->create([
+            'entity_id' => $entity->id,
+            'period' => Period::OneYear->value,
+            'score' => 70,
+            'opinion_count' => 50,
+            'positive_count' => 35,
+            'neutral_count' => 5,
+            'negative_count' => 10,
+            'sentiment_model_version' => 'v1',
+            'score_formula_version' => 'v1',
+            'calculated_at' => now(),
+        ]));
 
     $service = app(SearchService::class);
 
