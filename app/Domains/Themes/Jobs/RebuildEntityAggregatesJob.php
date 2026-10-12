@@ -19,6 +19,19 @@ class RebuildEntityAggregatesJob implements ShouldBeUniqueUntilProcessing, Shoul
 
     public int $uniqueFor = 600;
 
+    /**
+     * A full rebuild can pass the 60s worker timeout while a big recheck loads the database; it is idempotent, so retry.
+     */
+    public int $tries = 3;
+
+    /**
+     * @return list<int>
+     */
+    public function backoff(): array
+    {
+        return [120, 300];
+    }
+
     public function __construct(public int $entityId)
     {
         $this->onQueue('aggregate');
