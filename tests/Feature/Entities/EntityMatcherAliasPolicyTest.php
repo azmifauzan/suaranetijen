@@ -132,3 +132,12 @@ it('matches an everyday-word brand only with a supporting context word', functio
     'volta' => ['Volta', 'sel volta di pelajaran kimia', 'dealer Volta dekat rumah'],
     'smoot' => ['Smoot', 'tarikannya smoot banget', 'skuter Smoot kuat nanjak'],
 ]);
+
+it('sends a brand vehicle-line phrase to the vehicle brand and plain mentions to the parent brand', function () {
+    $electronics = entityWithAliases('Polytron', []);
+    $vehicles = entityWithAliases('Polytron EV', ['Polytron Fox', 'motor listrik Polytron']);
+
+    expect(app(EntityMatcher::class)->match('motor listrik Polytron irit buat ojol')?->id)->toBe($vehicles->id)
+        ->and(app(EntityMatcher::class)->match('Polytron Fox bisa sewa baterai')?->id)->toBe($vehicles->id)
+        ->and(app(EntityMatcher::class)->match('TV Polytron cepat rusak')?->id)->toBe($electronics->id);
+});

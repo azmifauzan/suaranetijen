@@ -6,7 +6,7 @@ Oppo,brand,Smartphone,,Oppo Indonesia|OPPO ID,Produsen smartphone dan perangkat 
 Vivo,brand,Smartphone,,Vivo Indonesia|VIVO ID,Perusahaan teknologi produsen smartphone asal Tiongkok
 Realme,brand,Smartphone,,Realme Indonesia|realme ID,Brand smartphone dan teknologi konsumen
 Infinix,brand,Smartphone,,Infinix Indonesia|Infinix ID,Brand smartphone di bawah naungan Transsion Holdings
-Asus,brand,Smartphone,,Asus Indonesia|ASUS ID,Produsen perangkat keras komputer dan smartphone asal Taiwan
+Asus,brand,Technology,,Asus Indonesia|ASUS ID,Produsen perangkat keras komputer dan smartphone asal Taiwan
 Tecno,brand,Smartphone,,Tecno Mobile|Tecno Indonesia,Brand smartphone di bawah Transsion Holdings
 Samsung Galaxy S24 Ultra,product,Smartphone,Samsung,Galaxy S24 Ultra|S24 Ultra|Samsung S24 Ultra,Smartphone flagship Samsung dengan stylus S-Pen dan Snapdragon 8 Gen 3
 Samsung Galaxy S24,product,Smartphone,Samsung,Galaxy S24|S24|Samsung S24,Smartphone flagship kompak dari Samsung dengan fitur Galaxy AI
@@ -594,7 +594,8 @@ VinFast VF 5,product,Mobil,VinFast,VinFast VF5|VF5,Crossover listrik kompak VinF
 VinFast VF e34,product,Mobil,VinFast,VinFast VFe34|VF e34,SUV listrik kompak VinFast
 VinFast VF 6,product,Mobil,VinFast,VinFast VF6|VF6,SUV listrik VinFast
 VinFast VF 7,product,Mobil,VinFast,VinFast VF7|VF7,SUV coupe listrik VinFast
-Polytron G3,product,Mobil,Polytron,Polytron G3+,SUV listrik pertama Polytron
+Polytron EV,brand,Motor,,Polytron Fox|motor listrik Polytron|mobil listrik Polytron,Lini kendaraan listrik Polytron: motor Fox dan mobil G3
+Polytron G3,product,Mobil,Polytron EV,Polytron G3+,SUV listrik pertama Polytron
 Toyota bZ4X,product,Mobil,Toyota,bZ4X,SUV listrik Toyota
 Suzuki e Vitara,product,Mobil,Suzuki Mobil,Suzuki e-Vitara|e Vitara|eVitara,SUV listrik Suzuki
 Nissan Leaf,product,Mobil,Nissan,,Hatchback listrik Nissan
@@ -609,10 +610,10 @@ Seres E1,product,Mobil,Seres,,Mobil listrik mini Seres
 Volvo EX30,product,Mobil,Volvo Cars Indonesia,,SUV listrik kompak Volvo
 BMW iX1,product,Mobil,BMW Indonesia,,SUV listrik kompak BMW
 GWM Ora 03,product,Mobil,,,Hatchback listrik GWM Ora
-Polytron Fox-R,product,Motor,Polytron,,Skuter listrik Polytron
-Polytron Fox 200,product,Motor,Polytron,Polytron Fox-200,Skuter listrik ringan Polytron
-Polytron Fox 350,product,Motor,Polytron,Polytron Fox-350,Skuter listrik Polytron
-Polytron Fox 500,product,Motor,Polytron,Polytron Fox-500,Skuter listrik bertenaga besar Polytron
+Polytron Fox-R,product,Motor,Polytron EV,,Skuter listrik Polytron
+Polytron Fox 200,product,Motor,Polytron EV,Polytron Fox-200,Skuter listrik ringan Polytron
+Polytron Fox 350,product,Motor,Polytron EV,Polytron Fox-350,Skuter listrik Polytron
+Polytron Fox 500,product,Motor,Polytron EV,Polytron Fox-500,Skuter listrik bertenaga besar Polytron
 Honda ICON e,product,Motor,Honda Motor,Honda ICON e:|Honda Icon-e,Skuter listrik ringan Honda
 Honda CUV e,product,Motor,Honda Motor,Honda CUV e:|CUV e,Skuter listrik Honda dengan baterai tukar
 Honda EM1 e,product,Motor,Honda Motor,Honda EM1 e:|EM1 e,Skuter listrik Honda dengan baterai tukar
