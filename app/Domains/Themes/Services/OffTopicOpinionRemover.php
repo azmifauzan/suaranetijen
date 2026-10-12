@@ -2,8 +2,8 @@
 
 namespace App\Domains\Themes\Services;
 
-use App\Domains\Sentiment\Jobs\AggregateDailySentimentJob;
 use App\Domains\Sentiment\Models\SentimentObservation;
+use App\Domains\Themes\Jobs\RebuildEntityAggregatesJob;
 use App\Domains\Themes\Models\ThemeObservation;
 
 /**
@@ -22,23 +22,18 @@ class OffTopicOpinionRemover
             return 0;
         }
 
-        $observations = SentimentObservation::query()
+        $removed = SentimentObservation::query()
             ->where('entity_id', $entityId)
-            ->whereIn('source_item_id', $sourceItemIds);
-
-        $days = (clone $observations)->pluck('observed_at')
-            ->map(fn ($at) => $at->format('Y-m-d'))
-            ->unique();
-
-        $removed = $observations->delete();
+            ->whereIn('source_item_id', $sourceItemIds)
+            ->delete();
 
         ThemeObservation::query()
             ->where('entity_id', $entityId)
             ->whereIn('source_item_id', $sourceItemIds)
             ->delete();
 
-        foreach ($days as $day) {
-            AggregateDailySentimentJob::dispatch($entityId, $day);
+        if ($removed > 0) {
+            RebuildEntityAggregatesJob::dispatch($entityId)->delay(now()->addMinutes(2));
         }
 
         return $removed;

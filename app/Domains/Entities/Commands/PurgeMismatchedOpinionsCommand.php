@@ -4,18 +4,12 @@ namespace App\Domains\Entities\Commands;
 
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Services\AliasPolicy;
+use App\Domains\Entities\Services\EntityAggregateRebuilder;
 use App\Domains\Entities\Services\EntityMatcher;
-use App\Domains\Sentiment\Models\SentimentDaily;
 use App\Domains\Sentiment\Models\SentimentObservation;
-use App\Domains\Sentiment\Services\SentimentAggregator;
 use App\Domains\Sources\Models\RawPayload;
 use App\Domains\Sources\Models\Source;
-use App\Domains\Themes\Models\EntityThemeDaily;
-use App\Domains\Themes\Models\EntityThemeSnapshot;
-use App\Domains\Themes\Models\EntityThemeSummary;
 use App\Domains\Themes\Models\ThemeObservation;
-use App\Domains\Themes\Services\ThemeAggregator;
-use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -35,7 +29,7 @@ class PurgeMismatchedOpinionsCommand extends Command
      */
     protected $description = 'Delete opinions the current EntityMatcher would no longer attribute to their entity, then rebuild that entity\'s sentiment and theme aggregates';
 
-    public function handle(EntityMatcher $matcher, SentimentAggregator $sentiment, ThemeAggregator $themes): int
+    public function handle(EntityMatcher $matcher, EntityAggregateRebuilder $rebuilder): int
     {
         $dryRun = (bool) $this->option('dry-run');
         $unverifiableSlugs = (array) $this->option('purge-unverifiable');
@@ -90,7 +84,7 @@ class PurgeMismatchedOpinionsCommand extends Command
                 continue;
             }
 
-            $this->purge($entity, $mismatched, $sentiment, $themes);
+            $this->purge($entity, $mismatched, $rebuilder);
         }
 
         $this->info($dryRun ? 'Dry run, nothing changed.' : 'Done. Run themes:summarize to regenerate summaries.');
@@ -115,35 +109,14 @@ class PurgeMismatchedOpinionsCommand extends Command
     /**
      * @param  list<int>  $sourceItemIds
      */
-    private function purge(Entity $entity, array $sourceItemIds, SentimentAggregator $sentiment, ThemeAggregator $themes): void
+    private function purge(Entity $entity, array $sourceItemIds, EntityAggregateRebuilder $rebuilder): void
     {
         foreach (array_chunk($sourceItemIds, 500) as $chunk) {
             SentimentObservation::query()->where('entity_id', $entity->id)->whereIn('source_item_id', $chunk)->delete();
             ThemeObservation::query()->where('entity_id', $entity->id)->whereIn('source_item_id', $chunk)->delete();
         }
 
-        // One transaction per entity, same as themes:rebuild-aggregates: a page never sees a
-        // half-rebuilt mix, and lock counts stay bounded.
-        DB::transaction(function () use ($entity, $sentiment, $themes): void {
-            SentimentDaily::query()->where('entity_id', $entity->id)->delete();
-            $sentimentDays = SentimentObservation::query()->where('entity_id', $entity->id)
-                ->selectRaw('date(observed_at) as day')->distinct()->pluck('day');
-            foreach ($sentimentDays as $day) {
-                $sentiment->aggregateDaily($entity->id, CarbonImmutable::parse((string) $day));
-            }
-            $sentiment->refreshAllSnapshots($entity->id);
-
-            EntityThemeDaily::query()->where('entity_id', $entity->id)->delete();
-            EntityThemeSnapshot::query()->where('entity_id', $entity->id)->delete();
-            EntityThemeSummary::query()->where('entity_id', $entity->id)->delete();
-            $themeDays = ThemeObservation::query()->where('entity_id', $entity->id)
-                ->where('extractor', (string) config('themes.extractor', 'keyword'))
-                ->selectRaw('date(created_at) as day')->distinct()->pluck('day');
-            foreach ($themeDays as $day) {
-                $themes->aggregateDaily($entity->id, CarbonImmutable::parse((string) $day));
-            }
-            $themes->refreshAllSnapshots($entity->id);
-        });
+        $rebuilder->rebuild($entity->id);
 
         $this->info('Purged '.count($sourceItemIds)." opinion(s) for {$entity->name} and rebuilt its aggregates.");
     }

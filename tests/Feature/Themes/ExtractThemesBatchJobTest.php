@@ -1,10 +1,10 @@
 <?php
 
 use App\Domains\Sentiment\Enums\SentimentClass;
-use App\Domains\Sentiment\Jobs\AggregateDailySentimentJob;
 use App\Domains\Sentiment\Models\SentimentObservation;
 use App\Domains\Sources\Models\SourceItem;
 use App\Domains\Themes\Jobs\ExtractThemesBatchJob;
+use App\Domains\Themes\Jobs\RebuildEntityAggregatesJob;
 use App\Domains\Themes\Jobs\RecheckRelevanceBatchJob;
 use App\Domains\Themes\Jobs\UpsertThemeObservationJob;
 use App\Domains\Themes\Models\ThemeObservation;
@@ -120,7 +120,7 @@ it('removes off-topic opinions and their observations so the score stops countin
 
     expect(SentimentObservation::query()->whereKey($dropped->id)->exists())->toBeFalse()
         ->and(SentimentObservation::query()->whereKey($kept->id)->exists())->toBeTrue();
-    Queue::assertPushed(AggregateDailySentimentJob::class);
+    Queue::assertPushed(RebuildEntityAggregatesJob::class);
 });
 
 it('rechecks stored opinions from their contexts and deletes the off-topic ones', function () {

@@ -16,6 +16,7 @@ class RecheckRelevanceCommand extends Command
     protected $signature = 'themes:recheck-relevance
         {--entity=* : Entity slug(s) to recheck}
         {--ambiguous : Recheck every non-person entity whose name or an alias is a single word}
+        {--all : Recheck every non-person entity (multi-word everyday phrases like "So Good" slip past --ambiguous)}
         {--per-minute= : Pace batch dispatch (default: 80% of themes.llm_per_minute)}
         {--dry-run : Count what would be sent without calling the LLM}';
 
@@ -28,7 +29,7 @@ class RecheckRelevanceCommand extends Command
     {
         $entities = $this->targetEntities();
         if ($entities === []) {
-            $this->error('Give --entity=<slug> or --ambiguous.');
+            $this->error('Give --entity=<slug>, --ambiguous or --all.');
 
             return self::FAILURE;
         }
@@ -72,7 +73,9 @@ class RecheckRelevanceCommand extends Command
     {
         $query = Entity::query()->where('type', '<>', 'person');
 
-        if ($this->option('ambiguous')) {
+        if ($this->option('all')) {
+            // every non-person entity
+        } elseif ($this->option('ambiguous')) {
             $singleWordAliases = DB::table('entity_aliases')->whereRaw("normalized_alias !~ '\\s'")->pluck('entity_id');
             $query->where(fn ($q) => $q->whereIn('id', $singleWordAliases)->orWhereRaw("name !~ '\\s'"));
         } elseif ($this->option('entity') !== []) {
