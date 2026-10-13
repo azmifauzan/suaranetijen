@@ -57,6 +57,19 @@ class CategoryShowController extends Controller
                 minOpinions: (int) config('scoring.public_min_opinions', 30),
                 limit: 6
             );
+
+            // The entity page reads its 365d snapshot whenever one exists, so an entity eligible
+            // only all-time but thin over 365d has a noindex page: do not link it.
+            $thinOverOneYear = SentimentSnapshot::query()
+                ->whereIn('entity_id', $topRankings->map(fn ($item) => $item['entity']->id))
+                ->where('period', Period::OneYear->value)
+                ->where('opinion_count', '<', (int) config('scoring.public_min_opinions', 30))
+                ->pluck('entity_id')
+                ->all();
+            $topRankings = $topRankings
+                ->reject(fn ($item) => in_array((int) $item['entity']->id, array_map('intval', $thinOverOneYear), true))
+                ->values()
+                ->map(fn ($item, $index) => ['rank' => $index + 1] + $item);
         }
 
         // Most Discussed / Recently Updated link only to entity pages that clear the public

@@ -22,6 +22,21 @@ test('category page blocks leave out entities below the public threshold', funct
     );
 });
 
+test('category top list falling back to all-time skips entities thin over 365d', function () {
+    $category = Category::factory()->create(['slug' => 'kategori-lama']);
+    $stale = Entity::factory()->create(['category_id' => $category->id, 'status' => EntityStatus::Active, 'searchable' => true, 'rankable' => true]);
+    $allTimeOnly = Entity::factory()->create(['category_id' => $category->id, 'status' => EntityStatus::Active, 'searchable' => true, 'rankable' => true]);
+    SentimentSnapshot::factory()->create(['entity_id' => $stale->id, 'period' => Period::All->value, 'score' => 90.0, 'opinion_count' => 80]);
+    SentimentSnapshot::factory()->create(['entity_id' => $stale->id, 'period' => Period::OneYear->value, 'score' => 90.0, 'opinion_count' => 5]);
+    SentimentSnapshot::factory()->create(['entity_id' => $allTimeOnly->id, 'period' => Period::All->value, 'score' => 70.0, 'opinion_count' => 80]);
+
+    $this->get('/category/kategori-lama')->assertInertia(fn (AssertableInertia $page) => $page
+        ->has('topSentimen', 1)
+        ->where('topSentimen.0.slug', $allTimeOnly->slug)
+        ->where('topSentimen.0.rank', 1)
+    );
+});
+
 test('a top page without a ranking is noindex and left out of the sitemap', function () {
     Category::factory()->create(['slug' => 'tanpa-ranking']);
 
