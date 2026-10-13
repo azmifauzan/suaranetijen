@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import PublicLayout from '@/layouts/PublicLayout.vue';
-import { home } from '@/routes';
+import { home, methodology, sources } from '@/routes';
 import { Link } from '@inertiajs/vue3';
 import PublicSeo from '@/components/PublicSeo.vue';
 </script>
@@ -71,6 +71,59 @@ import PublicSeo from '@/components/PublicSeo.vue';
                         sah masing-masing. Penggunaan nama entitas semata-mata
                         bertujuan untuk kategorisasi dan analisis sentimen
                         publik secara wajar (fair use).
+                    </p>
+
+                    <h2 class="text-base font-bold text-neutral-900">
+                        4. Rating Netijen
+                    </h2>
+                    <p>
+                        Untuk memberi Rating Netijen, kamu perlu masuk ke akun.
+                        Setiap akun hanya punya satu rating untuk tiap entitas.
+                        Kalau kamu menilai entitas yang sama lagi, rating lama
+                        diganti, dan kamu bisa menghapus rating kapan saja.
+                        Jumlah pengiriman rating per menit dibatasi. Rating
+                        Netijen ditampilkan terpisah dan tidak mengubah skor
+                        Sentimen Netijen.
+                    </p>
+
+                    <h2 class="text-base font-bold text-neutral-900">
+                        5. Opini dari Situs Lain
+                    </h2>
+                    <p>
+                        Skor Sentimen Netijen dihitung dari opini yang terbuka
+                        untuk umum di
+                        <Link
+                            :href="sources()"
+                            class="font-semibold text-emerald-700 hover:underline"
+                            >sumber yang kami daftarkan</Link
+                        >. Teks aslinya hanya disimpan sementara untuk diproses,
+                        lalu dihapus otomatis. Yang kami simpan seterusnya adalah
+                        hasil olahannya: label positif, netral, atau negatif,
+                        dan tema yang dibahas. Kami tidak menyimpan nama
+                        pengguna, foto profil, atau data pribadi penulisnya.
+                        Klasifikasi dilakukan oleh model dan bisa keliru;
+                        penjelasan cara kerjanya ada di halaman
+                        <Link
+                            :href="methodology()"
+                            class="font-semibold text-emerald-700 hover:underline"
+                            >metodologi</Link
+                        >.
+                    </p>
+
+                    <h2 class="text-base font-bold text-neutral-900">
+                        6. Papan Sponsor
+                    </h2>
+                    <p>
+                        Papan Sponsor menjual posisi tampil, dibayar lewat QRIS.
+                        Posisi diurutkan berdasarkan nominal sponsor yang sudah
+                        terkonfirmasi dan berlaku untuk periode yang sedang
+                        berjalan. Sponsor tidak masuk ke skor Sentimen Netijen,
+                        ranking kategori, atau hasil pencarian, dan tidak
+                        menjamin kunjungan atau penjualan. Tokoh publik dan
+                        politisi tidak bisa disponsori. Admin bisa menjeda atau
+                        menghapus entri yang melanggar ketentuan ini, misalnya
+                        yang mengarah ke situs judi, pinjaman ilegal, konten
+                        dewasa, penipuan, atau malware.
                     </p>
                 </div>
             </div>

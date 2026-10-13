@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import PublicLayout from '@/layouts/PublicLayout.vue';
-import { home } from '@/routes';
+import { home, methodology, sources } from '@/routes';
 import { Link } from '@inertiajs/vue3';
 import PublicSeo from '@/components/PublicSeo.vue';
 </script>
@@ -66,6 +66,71 @@ import PublicSeo from '@/components/PublicSeo.vue';
                             digabung menjadi satu nilai.
                         </li>
                     </ul>
+
+                    <h2 class="pt-4 text-xl font-bold text-neutral-900">
+                        Apa yang Kami Nilai
+                    </h2>
+                    <p>
+                        Yang kami nilai adalah entitas: brand, produk, layanan,
+                        atau tokoh publik. Brand dan produknya punya halaman
+                        sendiri-sendiri. Opini tentang IDCloudHost dihitung
+                        untuk IDCloudHost, sedangkan opini tentang VPS
+                        IDCloudHost dihitung untuk VPS IDCloudHost. Opini
+                        tentang brand tidak otomatis menurun ke produk atau
+                        layanannya.
+                    </p>
+
+                    <h2 class="pt-4 text-xl font-bold text-neutral-900">
+                        Dari Mana Opininya
+                    </h2>
+                    <p>
+                        Crawler kami membaca forum komunitas, kolom komentar
+                        YouTube, situs keluhan konsumen, dan artikel media
+                        yang terbuka untuk umum. Daftar lengkapnya, beserta
+                        status tiap sumber, ada di halaman
+                        <Link
+                            :href="sources()"
+                            class="font-semibold text-emerald-700 hover:underline"
+                            >sumber data</Link
+                        >. Setiap opini dicocokkan dulu ke satu entitas. Kalau
+                        sebuah penyebutan bisa merujuk ke lebih dari satu
+                        entitas, atau tidak berisi pengalaman memakai produk,
+                        opini itu tidak dihitung. Kami lebih memilih kehilangan
+                        satu opini daripada menempelkannya ke entitas yang
+                        salah.
+                    </p>
+
+                    <h2 class="pt-4 text-xl font-bold text-neutral-900">
+                        Kapan Skor Ditampilkan
+                    </h2>
+                    <p>
+                        Skor Sentimen Netijen baru tampil setelah sebuah
+                        entitas punya minimal 30 opini relevan, dan entitas
+                        baru masuk ranking kategori setelah punya minimal 100
+                        opini. Di bawah angka itu, sampelnya terlalu kecil
+                        untuk ditarik kesimpulan. Periode bawaan adalah 365
+                        hari terakhir, dan kamu bisa memilih 30 hari, 90 hari,
+                        atau semua waktu. Rumus lengkapnya ada di halaman
+                        <Link
+                            :href="methodology()"
+                            class="font-semibold text-emerald-700 hover:underline"
+                            >metodologi</Link
+                        >.
+                    </p>
+
+                    <h2 class="pt-4 text-xl font-bold text-neutral-900">
+                        Yang Sengaja Tidak Kami Lakukan
+                    </h2>
+                    <p>
+                        Kami tidak memberi subskor per aspek, misalnya skor
+                        kamera atau skor layanan pelanggan. Tema yang sering
+                        dibahas ditampilkan sebagai frekuensi, bukan angka
+                        penilaian. Semua sumber diperlakukan setara dalam
+                        perhitungan skor. Kami juga tidak menyimpan nama
+                        pengguna, foto profil, atau data pribadi penulis opini
+                        dari situs lain. Yang dinilai adalah entitasnya, bukan
+                        orang yang menulis.
+                    </p>
 
                     <section
                         class="mt-8 rounded-xl border border-emerald-100 bg-emerald-50/60 p-5"

@@ -17,6 +17,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import PublicSeo from '@/components/PublicSeo.vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { getDirectWebsiteUrl, getFaviconUrl, trackSponsorClick } from '@/lib/sponsor';
+import { methodology, terms } from '@/routes';
 import { show as showEntity } from '@/routes/entities';
 import { index as leaderboardPage } from '@/routes/leaderboard';
 import { paymentStatus } from '@/routes/sponsor';
@@ -1261,6 +1262,52 @@ function formatRupiah(amount: number): string {
                     </button>
                 </div>
             </div>
+
+            <section class="mt-10 space-y-4 rounded-2xl border border-[#e5e9e2] bg-white p-5 text-sm leading-relaxed text-[#40524a] sm:p-6">
+                <h2 class="text-lg font-bold text-[#18392d]">Cara kerja Papan Sponsor</h2>
+                <p>
+                    Papan Sponsor adalah tempat brand, produk, atau layanan tampil lebih menonjol dengan membayar posisi.
+                    Papan ini terpisah dari ranking Sentimen Netijen. Nominal sponsor tidak masuk ke skor, tidak mengubah
+                    urutan ranking kategori, dan tidak memengaruhi hasil pencarian.
+                </p>
+                <ol class="list-decimal space-y-2 pl-5">
+                    <li>
+                        Tempel link website resmi entitas. Kami membaca judul situsnya, lalu mencocokkannya dengan entitas
+                        yang sudah terdaftar. Kalau belum ada, kamu bisa mendaftarkannya sebagai entitas baru dengan nama dan
+                        kategori pilihanmu.
+                    </li>
+                    <li>
+                        Isi nominal, mulai {{ formatRupiah(minAmount) }}. Pembayaran memakai QRIS. Kamu tidak perlu membuat
+                        akun lebih dulu: cukup isi email, dan kami kirim link untuk membuka status pesanan dari perangkat lain.
+                    </li>
+                    <li>
+                        Posisi baru berubah setelah pembayaran terkonfirmasi. Pesanan yang belum dibayar, kedaluwarsa, atau gagal
+                        tidak dihitung. Entitas baru yang didaftarkan lewat sponsor juga baru tampil setelah pembayarannya
+                        terkonfirmasi.
+                    </li>
+                </ol>
+
+                <h3 class="pt-2 text-base font-bold text-[#18392d]">Urutan papan</h3>
+                <p>
+                    Entitas diurutkan berdasarkan total nominal sponsor terkonfirmasi pada periode yang dipilih. Kalau totalnya
+                    sama, entitas yang lebih dulu terkonfirmasi ada di atas. Papan aktif berganti tiap minggu, sedangkan tab
+                    Semua Waktu menampilkan akumulasi sepanjang waktu.
+                </p>
+                <p>
+                    Satu entitas bisa disponsori banyak orang, jadi total yang tampil adalah jumlah semua kontribusi, bukan
+                    belanja satu sponsor. Tombol Rebut menghitung nominal yang kamu butuhkan untuk melewati posisi itu.
+                </p>
+
+                <h3 class="pt-2 text-base font-bold text-[#18392d]">Yang dibeli dan yang tidak</h3>
+                <p>
+                    Sponsor membeli posisi tampil di papan ini saja. Posisi itu tidak menjamin kunjungan, penjualan, atau
+                    sentimen yang lebih baik, dan tidak menghapus opini negatif tentang entitas tersebut. Tokoh publik dan
+                    politisi tidak bisa disponsori. Admin bisa menjeda atau menghapus entri yang melanggar
+                    <Link :href="terms()" class="font-semibold text-[#087f5b] hover:underline">syarat dan ketentuan</Link>.
+                    Cara skor sentimen dihitung ada di halaman
+                    <Link :href="methodology()" class="font-semibold text-[#087f5b] hover:underline">metodologi</Link>.
+                </p>
+            </section>
 
 
         </div>
