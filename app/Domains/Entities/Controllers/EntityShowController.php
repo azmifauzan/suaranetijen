@@ -223,6 +223,8 @@ class EntityShowController extends Controller
                 'type_label' => $entity->type->label(),
                 'description' => $entity->description,
                 'website_url' => $entity->website_url,
+                'image_url' => $entity->image_url,
+                'image_credit' => $entity->image_credit,
                 'searchable' => $entity->searchable,
                 'rankable' => $entity->rankable,
                 'category' => [

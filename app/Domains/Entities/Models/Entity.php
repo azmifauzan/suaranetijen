@@ -32,6 +32,8 @@ use Illuminate\Support\Carbon;
  * @property string $slug
  * @property string|null $description
  * @property string|null $website_url
+ * @property string|null $image_url
+ * @property string|null $image_credit
  * @property EntityStatus $status
  * @property bool $searchable
  * @property bool $rankable
@@ -56,6 +58,8 @@ use Illuminate\Support\Carbon;
     'slug',
     'description',
     'website_url',
+    'image_url',
+    'image_credit',
     'status',
     'searchable',
     'rankable',
@@ -72,7 +76,7 @@ class Entity extends Model
                 HomepageCategoryBlockService::clearCache();
             }
 
-            if ($entity->wasChanged(['name', 'slug', 'description', 'website_url', 'status', 'searchable', 'category_id', 'parent_id'])) {
+            if ($entity->wasChanged(['name', 'slug', 'description', 'website_url', 'image_url', 'status', 'searchable', 'category_id', 'parent_id'])) {
                 CachePublicPages::flush();
             }
         });

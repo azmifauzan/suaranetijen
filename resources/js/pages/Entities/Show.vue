@@ -42,6 +42,8 @@ interface EntityData {
     type_label: string;
     description: string | null;
     website_url?: string | null;
+    image_url?: string | null;
+    image_credit?: string | null;
     searchable: boolean;
     rankable: boolean;
     category: CategoryData;
@@ -451,10 +453,23 @@ async function removeRating(): Promise<void> {
                     v-if="
                         entity.description ||
                         entity.website_url ||
+                        entity.image_url ||
                         (leaderboard && leaderboard.is_active)
                     "
                     class="mt-4 w-full"
                 >
+                    <figure v-if="entity.image_url" class="mb-3">
+                        <img
+                            :src="entity.image_url"
+                            :alt="entity.name"
+                            loading="lazy"
+                            class="max-h-64 w-full rounded-lg bg-neutral-50 object-contain"
+                        />
+                        <figcaption v-if="entity.image_credit" class="mt-1 text-[11px] text-neutral-500">
+                            {{ entity.image_credit }}
+                        </figcaption>
+                    </figure>
+
                     <p
                         class="text-sm leading-relaxed text-neutral-600"
                     >

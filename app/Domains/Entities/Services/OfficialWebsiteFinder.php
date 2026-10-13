@@ -97,7 +97,7 @@ class OfficialWebsiteFinder
     /**
      * @return list<array<string, mixed>>
      */
-    private function searchCandidates(string $query, string $language): array
+    public function searchCandidates(string $query, string $language): array
     {
         try {
             $response = Http::timeout(10)
@@ -133,7 +133,7 @@ class OfficialWebsiteFinder
     /**
      * @param  array<string, mixed>  $candidate
      */
-    private function isIrrelevantCandidate(Entity $entity, array $candidate): bool
+    public function isIrrelevantCandidate(Entity $entity, array $candidate): bool
     {
         $description = mb_strtolower((string) ($candidate['description'] ?? ''));
 
@@ -317,7 +317,7 @@ class OfficialWebsiteFinder
         return false;
     }
 
-    private function normalizeToken(string $value): string
+    public function normalizeToken(string $value): string
     {
         return (string) preg_replace('/[^a-z0-9]/', '', mb_strtolower($value));
     }
