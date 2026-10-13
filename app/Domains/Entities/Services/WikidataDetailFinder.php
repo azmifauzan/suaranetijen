@@ -41,14 +41,14 @@ class WikidataDetailFinder
         $details = $entity->type === EntityType::Person
             ? [
                 'birth_date' => $this->birthDate($claims),
-                'birth_place' => $labels[$this->itemId($claims, 'P19')] ?? null,
-                'occupation' => $labels[$this->itemId($claims, 'P106')] ?? null,
-                'affiliation' => $labels[$this->itemId($claims, 'P102') ?? $this->itemId($claims, 'P108')] ?? null,
+                'birth_place' => $labels[$this->itemId($claims, 'P19') ?? ''] ?? null,
+                'occupation' => $labels[$this->itemId($claims, 'P106') ?? ''] ?? null,
+                'affiliation' => $labels[$this->itemId($claims, 'P102') ?? $this->itemId($claims, 'P108') ?? ''] ?? null,
             ]
             : [
                 'release_year' => $this->year($claims, ['P6949', 'P577', 'P571']),
-                'os' => $labels[$this->itemId($claims, 'P306')] ?? null,
-                'chipset' => $labels[$this->itemId($claims, 'P880')] ?? null,
+                'os' => $labels[$this->itemId($claims, 'P306') ?? ''] ?? null,
+                'chipset' => $labels[$this->itemId($claims, 'P880') ?? ''] ?? null,
             ];
 
         $image = $this->image($claims['P18'][0]['mainsnak']['datavalue']['value'] ?? $claims['P154'][0]['mainsnak']['datavalue']['value'] ?? null);
@@ -178,9 +178,9 @@ class WikidataDetailFinder
             'action' => 'query', 'titles' => 'File:'.$file, 'prop' => 'imageinfo', 'iiprop' => 'url|extmetadata', 'iiurlwidth' => 800,
         ])['query']['pages'] ?? [];
         $info = reset($pages)['imageinfo'][0] ?? null;
-        $url = $info['thumburl'] ?? null;
+        $url = is_string($info['thumburl'] ?? null) ? strtok($info['thumburl'], '?') : null;
 
-        if (! is_string($url) || ! str_starts_with($url, 'https://upload.wikimedia.org/')) {
+        if (! is_string($url) || ! preg_match('~^https://(upload|thumb)\.wikimedia\.org/~', $url)) {
             return null;
         }
 

@@ -18,7 +18,7 @@ function fakeWikidata(string $label): void
         ]]]]),
         '*wikidata.org*ids=Q4803*' => Http::response(['entities' => ['Q4803' => ['labels' => ['id' => ['value' => 'Surakarta']]]]]),
         '*commons.wikimedia.org*' => Http::response(['query' => ['pages' => ['9' => ['imageinfo' => [[
-            'thumburl' => 'https://upload.wikimedia.org/800px-Foto.jpg',
+            'thumburl' => 'https://thumb.wikimedia.org/x/800px-Foto.jpg?utm_source=commons',
             'extmetadata' => ['Artist' => ['value' => '<a href="#">Fotografer</a>'], 'LicenseShortName' => ['value' => 'CC BY 4.0']],
         ]]]]]]),
     ]);
@@ -32,7 +32,7 @@ it('fills image and person details from Wikidata without overwriting admin edits
     $this->artisan('entities:enrich', ['--delay' => 0])->assertSuccessful();
 
     $entity->refresh();
-    expect($entity->image_url)->toBe('https://upload.wikimedia.org/800px-Foto.jpg')
+    expect($entity->image_url)->toBe('https://thumb.wikimedia.org/x/800px-Foto.jpg')
         ->and($entity->image_credit)->toBe('Fotografer · CC BY 4.0 · Wikimedia Commons')
         ->and($entity->personProfile->birth_date->toDateString())->toBe('1961-06-21')
         ->and($entity->personProfile->birth_place)->toBe('Diisi admin');
