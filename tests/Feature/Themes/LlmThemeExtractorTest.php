@@ -218,3 +218,15 @@ it('sends the entity profile so the model can tell the brand from a coincidental
         && str_contains($r->body(), 'Bank & E-Wallet')
         && str_contains($r->body(), 'about_entity'));
 });
+
+it('drops a theme whose label judgement contradicts the opinion sentiment', function () {
+    fakeThemeLlm([
+        ['label' => 'kamera bagus', 'label_stance' => 'positive', 'sentiment' => 'negative', 'evidence' => 'kameranya bagus banget', 'context' => 'x'],
+        ['label' => 'baterai cepat habis', 'label_stance' => 'negative', 'sentiment' => 'negative', 'evidence' => 'baterainya cepat habis', 'context' => 'Baterai boros.'],
+    ]);
+
+    $result = app(LlmThemeExtractor::class)->extract(1, 'Samsung', OPINION);
+
+    expect($result)->toHaveCount(1)
+        ->and($result[0]['theme']->display_label)->toBe('Baterai cepat habis');
+});

@@ -220,10 +220,14 @@ class LlmThemeExtractor
         $sentiment = SentimentClass::tryFrom((string) ($item['sentiment'] ?? ''));
         $evidence = TextNormalizer::normalize((string) ($item['evidence'] ?? ''));
 
+        $labelStance = SentimentClass::tryFrom((string) ($item['label_stance'] ?? ''));
+        $contradicts = $labelStance !== null && $sentiment !== null
+            && $labelStance !== SentimentClass::Neutral && $sentiment !== SentimentClass::Neutral && $labelStance !== $sentiment;
+
         $wordCount = count(preg_split('/\s+/u', $label) ?: []);
 
         if ($label === '' || mb_strlen($label) > 60 || $wordCount > self::MAX_LABEL_WORDS
-            || $this->containsIdentifier($label) || $sentiment === null
+            || $this->containsIdentifier($label) || $sentiment === null || $contradicts
             || $evidence === '' || ! str_contains($normalizedText, $evidence)) {
             return null;
         }
@@ -317,6 +321,9 @@ class LlmThemeExtractor
                     .'gets the same label across opinions. If an opinion is really about a different model or variant than '
                     .$entityName.' (e.g. an FE, Plus or Ultra version), it has no theme about '.$entityName.'. '
                     .'If a known label below means the same thing, reuse that exact label; never reuse one that names a different kind of thing than '.$entityName.' (a car label for a food, a phone label for a bank). '
+                    .'label_stance: the judgement the LABEL itself states (positive for "kamera bagus", negative for "baterai cepat habis", neutral if it names a topic only). '
+                    .'It must agree with sentiment: when the opinion\'s stance is the opposite of a known label, do NOT reuse that label; write a new label with the opposite judgement '
+                    .'("kamera kurang bagus", not "kamera bagus" marked negative). '
                     .'sentiment: the opinion\'s stance on that theme (positive, neutral, negative). '
                     .'evidence: copy the exact words from the opinion (max 12 words) that support the theme. '
                     .'context: one sentence in Indonesian, max 25 words, in your own words, paraphrasing what was said — '
@@ -361,6 +368,9 @@ class LlmThemeExtractor
                     .'Reuse the exact same label across opinions that describe the same underlying theme — do not mint a '
                     .'new near-duplicate label ("baterai boros" vs "baterai cepat habis") for what is really one theme, '
                     .'either within this batch or against a known label below. Never reuse a known label that names a different kind of thing than '.$entityName.' (a car label for a food, a phone label for a bank). '
+                    .'label_stance: the judgement the LABEL itself states (positive for "kamera bagus", negative for "baterai cepat habis", neutral if it names a topic only). '
+                    .'It must agree with sentiment: when the opinion\'s stance is the opposite of a known label, do NOT reuse that label; write a new label with the opposite judgement '
+                    .'("kamera kurang bagus", not "kamera bagus" marked negative). '
                     .'sentiment: that opinion\'s stance on that theme (positive, neutral, negative). '
                     .'evidence: copy the exact words from THAT SAME opinion (max 12 words) that support the theme. '
                     .'context: one sentence in Indonesian, max 25 words, in your own words, paraphrasing what was said — '
@@ -437,11 +447,12 @@ class LlmThemeExtractor
                             'type' => 'object',
                             'properties' => [
                                 'label' => ['type' => 'string'],
+                                'label_stance' => ['type' => 'string', 'enum' => array_column(SentimentClass::cases(), 'value')],
                                 'sentiment' => ['type' => 'string', 'enum' => array_column(SentimentClass::cases(), 'value')],
                                 'evidence' => ['type' => 'string'],
                                 'context' => ['type' => 'string'],
                             ],
-                            'required' => ['label', 'sentiment', 'evidence', 'context'],
+                            'required' => ['label', 'label_stance', 'sentiment', 'evidence', 'context'],
                             'additionalProperties' => false,
                         ],
                     ],
@@ -475,11 +486,12 @@ class LlmThemeExtractor
                                         'type' => 'object',
                                         'properties' => [
                                             'label' => ['type' => 'string'],
+                                            'label_stance' => ['type' => 'string', 'enum' => array_column(SentimentClass::cases(), 'value')],
                                             'sentiment' => ['type' => 'string', 'enum' => array_column(SentimentClass::cases(), 'value')],
                                             'evidence' => ['type' => 'string'],
                                             'context' => ['type' => 'string'],
                                         ],
-                                        'required' => ['label', 'sentiment', 'evidence', 'context'],
+                                        'required' => ['label', 'label_stance', 'sentiment', 'evidence', 'context'],
                                         'additionalProperties' => false,
                                     ],
                                 ],
