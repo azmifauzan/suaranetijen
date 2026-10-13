@@ -7,8 +7,10 @@ use App\Domains\Search\Models\SearchLandingPage;
 use App\Domains\Search\Services\TopicEntityList;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
+use App\Domains\Sources\Models\Source;
 use App\Domains\Themes\Models\EntityThemeSnapshot;
 use App\Domains\Themes\Models\Theme;
+use App\Domains\Themes\Models\ThemeObservation;
 
 test('it orders entities by mention count desc, score desc nulls last, then name asc', function () {
     $category = Category::factory()->create();
@@ -297,4 +299,39 @@ test('it excludes Tokoh Publik category completely', function () {
 
     expect($result['entities'])->toBeEmpty()
         ->and($result['is_indexable'])->toBeFalse();
+});
+
+test('it quotes only a positive observation, never a newer negative one', function () {
+    $category = Category::factory()->create();
+    $theme = Theme::create(['slug' => 'kamera', 'display_label' => 'Kamera', 'canonical_key' => 'kamera']);
+    $topic = SearchLandingPage::factory()->published()->create(['category_id' => $category->id]);
+    $topic->themes()->attach($theme->id);
+
+    $entity = Entity::factory()->create(['category_id' => $category->id, 'status' => EntityStatus::Active, 'searchable' => true]);
+    EntityThemeSnapshot::create([
+        'entity_id' => $entity->id,
+        'theme_id' => $theme->id,
+        'window' => Period::OneYear,
+        'observation_count' => 2,
+        'positive_count' => 1,
+        'neutral_count' => 0,
+        'negative_count' => 1,
+        'rank' => 1,
+        'calculated_at' => now(),
+    ]);
+
+    $source = Source::factory()->create();
+    foreach ([['positive', 'kamera jernih'], ['negative', 'kualitas video kamera buruk']] as $i => [$sentiment, $context]) {
+        ThemeObservation::create([
+            'entity_id' => $entity->id,
+            'theme_id' => $theme->id,
+            'source_id' => $source->id,
+            'sentiment' => $sentiment,
+            'context' => $context,
+        ]);
+    }
+
+    $result = (new TopicEntityList)->get($topic, useCache: false);
+
+    expect($result['entities'][0]['quote'])->toBe('kamera jernih');
 });

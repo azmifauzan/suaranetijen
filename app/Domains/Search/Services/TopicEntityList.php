@@ -195,6 +195,7 @@ class TopicEntityList
         $quotes = ThemeObservation::query()
             ->whereIn('entity_id', $entityIds)
             ->whereIn('theme_id', $themeIds)
+            ->where('sentiment', 'positive')
             ->whereNotNull('context')
             ->where('context', '!=', '')
             ->orderByDesc('id')
