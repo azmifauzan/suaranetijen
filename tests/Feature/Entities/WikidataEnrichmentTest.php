@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Entities\Enums\EntityType;
+use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Models\PersonProfile;
 use Illuminate\Support\Facades\Http;
@@ -45,4 +46,30 @@ it('ignores a Wikidata item whose label is not the entity name', function () {
     $this->artisan('entities:enrich', ['--delay' => 0])->assertSuccessful();
 
     expect($entity->fresh()->image_url)->toBeNull();
+});
+
+it('skips a same-label Wikidata item of the wrong kind for the category', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        '*action=wbsearchentities*' => Http::response(['search' => [
+            ['id' => 'Q1', 'label' => 'Honda Beat', 'description' => 'Kei car roadster manufactured by Honda'],
+            ['id' => 'Q2', 'label' => 'Honda BeAT', 'description' => 'motor scooter model manufactured by Honda'],
+        ]]),
+        '*wikidata.org*ids=Q1*' => Http::response(['entities' => ['Q1' => ['claims' => [
+            'P18' => [['mainsnak' => ['datavalue' => ['value' => 'Mobil.jpg']]]],
+        ]]]]),
+        '*wikidata.org*ids=Q2*' => Http::response(['entities' => ['Q2' => ['claims' => [
+            'P18' => [['mainsnak' => ['datavalue' => ['value' => 'Skuter.jpg']]]],
+        ]]]]),
+        '*commons.wikimedia.org*' => fn ($request) => Http::response(['query' => ['pages' => ['9' => ['imageinfo' => [[
+            'thumburl' => 'https://thumb.wikimedia.org/'.(str_contains($request->url(), 'Skuter') ? 'skuter' : 'mobil').'.jpg?utm=1',
+            'extmetadata' => [],
+        ]]]]]]),
+    ]);
+    $category = Category::factory()->create(['slug' => 'motor']);
+    $entity = Entity::factory()->create(['type' => EntityType::Product, 'name' => 'Honda Beat', 'category_id' => $category->id]);
+
+    $this->artisan('entities:enrich', ['--delay' => 0])->assertSuccessful();
+
+    expect($entity->fresh()->image_url)->toBe('https://thumb.wikimedia.org/skuter.jpg');
 });

@@ -16,6 +16,16 @@ class WikidataDetailFinder
 
     private const COMMONS = 'https://commons.wikimedia.org/w/api.php';
 
+    /**
+     * What a Wikidata description must mention for a product in these categories: "Honda Beat" is both a 1991 kei car
+     * and a scooter, and the label alone cannot tell them apart.
+     */
+    private const CATEGORY_KEYWORDS = [
+        'motor' => ['scooter', 'skuter', 'motorcycle', 'sepeda motor', 'motor ', 'moped', 'underbone', 'cub', 'bike'],
+        'mobil' => ['car', 'mobil', 'mpv', 'suv', 'sedan', 'hatchback', 'crossover', 'pickup', 'van', 'truck', 'minivan', 'wagon', 'coupe'],
+        'smartphone' => ['phone', 'ponsel', 'smartphone', 'tablet'],
+    ];
+
     private const USER_AGENT = 'SuaraNetijen/1.0 (+https://suaranetijen.id/sources)';
 
     public function __construct(private OfficialWebsiteFinder $finder) {}
@@ -74,7 +84,7 @@ class WikidataDetailFinder
             foreach (['en', 'id'] as $language) {
                 foreach ($this->finder->searchCandidates($query, $language) as $candidate) {
                     $label = $this->finder->normalizeToken((string) preg_replace('/\s(5g|4g|lte)$/i', '', (string) ($candidate['label'] ?? '')));
-                    if ($this->finder->isIrrelevantCandidate($entity, $candidate) || ! in_array($label, $names, true)) {
+                    if ($this->finder->isIrrelevantCandidate($entity, $candidate) || ! in_array($label, $names, true) || ! $this->fitsCategory($entity, $candidate)) {
                         continue;
                     }
 
@@ -88,6 +98,21 @@ class WikidataDetailFinder
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $candidate
+     */
+    private function fitsCategory(Entity $entity, array $candidate): bool
+    {
+        $keywords = self::CATEGORY_KEYWORDS[$entity->category->slug] ?? null;
+        if ($keywords === null || $entity->type !== EntityType::Product) {
+            return true;
+        }
+
+        $description = mb_strtolower((string) ($candidate['description'] ?? '')).' ';
+
+        return array_any($keywords, fn (string $keyword): bool => str_contains($description, $keyword));
     }
 
     /**
