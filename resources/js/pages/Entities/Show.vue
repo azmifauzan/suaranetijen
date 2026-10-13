@@ -388,215 +388,211 @@ async function removeRating(): Promise<void> {
             <div
                 class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
             >
-                <div class="flex flex-col gap-5 sm:flex-row sm:items-start">
-                    <div class="min-w-0 flex-1">
-                        <!-- Top Header Row: Title/Category & Period Selector -->
-                        <div
-                            class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
-                        >
-                            <div class="min-w-0 flex-1">
-                                <div class="flex flex-wrap items-center gap-3">
-                                    <h1
-                                        class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl"
-                                    >
-                                        {{ entity.name }}
-                                    </h1>
-                                    <span
-                                        class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wider uppercase"
-                                        :class="{
-                                            'bg-blue-100 text-blue-800':
-                                                entity.type === 'brand',
-                                            'bg-purple-100 text-purple-800':
-                                                entity.type === 'product',
-                                            'bg-amber-100 text-amber-800':
-                                                entity.type === 'service',
-                                        }"
-                                    >
-                                        {{ entity.type_label }}
-                                    </span>
-                                </div>
-                                <p
-                                    class="mt-1 text-sm font-medium text-neutral-600 sm:text-base"
+                <div
+                    class="grid gap-x-6 gap-y-4 sm:grid-cols-[minmax(0,1fr)_15rem]"
+                >
+                    <!-- Top Header Row: Title/Category -->
+                    <div class="min-w-0 sm:col-start-1 sm:row-start-1">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-3">
+                                <h1
+                                    class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl"
                                 >
-                                    {{
-                                        entitySeo?.intent_subtitle ||
-                                        (sentiment.is_eligible
-                                            ? `Bagus atau tidak menurut netizen? Ringkasan dari ${sentiment.opinion_count} opini publik.`
-                                            : "Opini netizen dan indeks sentimen publik.")
-                                    }}
-                                </p>
-
-                                <div
-                                    class="mt-2 flex flex-wrap items-center gap-4 text-sm text-neutral-500"
-                                >
-                                    <div>
-                                        Kategori:
-                                        <Link
-                                            :href="
-                                                showRanking.url(
-                                                    entity.category.slug,
-                                                )
-                                            "
-                                            class="font-medium text-neutral-700 hover:text-emerald-600 hover:underline"
-                                        >
-                                            {{ entity.category.name }}
-                                        </Link>
-                                    </div>
-                                    <div v-if="entity.parent">
-                                        Brand / Induk:
-                                        <Link
-                                            :href="
-                                                showEntity.url(
-                                                    entity.parent.slug,
-                                                )
-                                            "
-                                            class="font-medium text-emerald-600 hover:underline"
-                                        >
-                                            {{ entity.parent.name }}
-                                        </Link>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Period Selector: always at top right -->
-                            <div
-                                class="inline-flex shrink-0 self-start rounded-lg bg-neutral-100 p-1"
-                            >
-                                <button
-                                    v-for="p in availablePeriods"
-                                    :key="p"
-                                    type="button"
-                                    :aria-pressed="period === p"
-                                    @click="switchPeriod(p)"
-                                    class="min-h-11 rounded-md px-3 py-2.5 text-xs font-medium transition-colors"
+                                    {{ entity.name }}
+                                </h1>
+                                <span
+                                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wider uppercase"
                                     :class="{
-                                        'bg-white text-neutral-900 shadow-sm':
-                                            period === p,
-                                        'text-neutral-600 hover:text-neutral-900':
-                                            period !== p,
+                                        'bg-blue-100 text-blue-800':
+                                            entity.type === 'brand',
+                                        'bg-purple-100 text-purple-800':
+                                            entity.type === 'product',
+                                        'bg-amber-100 text-amber-800':
+                                            entity.type === 'service',
                                     }"
                                 >
-                                    {{ periodLabels[p] || p }}
-                                </button>
+                                    {{ entity.type_label }}
+                                </span>
                             </div>
-                        </div>
-
-                        <!-- Entity Details: Full Width -->
-                        <div
-                            v-if="
-                                entity.description ||
-                                entity.website_url ||
-                                entity.image_url ||
-                                (leaderboard && leaderboard.is_active)
-                            "
-                            class="mt-4 w-full"
-                        >
-                            <p class="text-sm leading-relaxed text-neutral-600">
+                            <p
+                                class="mt-1 text-sm font-medium text-neutral-600 sm:text-base"
+                            >
                                 {{
-                                    entity.description ||
-                                    `${entity.name} adalah ${entity.type_label} dalam kategori ${entity.category.name} di Indonesia.`
+                                    entitySeo?.intent_subtitle ||
+                                    (sentiment.is_eligible
+                                        ? `Bagus atau tidak menurut netizen? Ringkasan dari ${sentiment.opinion_count} opini publik.`
+                                        : "Opini netizen dan indeks sentimen publik.")
                                 }}
                             </p>
 
-                            <!-- Direct Website Link -->
-                            <div v-if="entity.website_url" class="mt-3">
-                                <a
-                                    :href="
-                                        getDirectWebsiteUrl(
-                                            entity.website_url,
-                                            entity.slug,
-                                            { placement: 'entity_profile' },
-                                        )
-                                    "
-                                    :ping="`/api/sponsor/click/${entity.slug}`"
-                                    target="_blank"
-                                    rel="noopener"
-                                    class="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[#c2d6c6] bg-[#f0f7f2] px-3.5 py-2.5 text-xs font-semibold text-[#185b3b] transition hover:bg-[#e2f2e5]"
-                                    @click="
-                                        trackSponsorClick(entity.slug, {
-                                            placement: 'entity_profile',
-                                            url:
-                                                entity.website_url || undefined,
-                                        })
-                                    "
-                                >
-                                    <span>Kunjungi Website Resmi</span>
-                                    <ArrowUpRight class="size-3.5" />
-                                </a>
-                            </div>
-
-                            <!-- Leaderboard Badge: Full Width -->
                             <div
-                                v-if="leaderboard && leaderboard.is_active"
-                                class="mt-4 flex w-full flex-wrap items-center justify-between gap-3 rounded-xl border border-[#fed7aa] bg-[#fffaf0] p-3 text-xs"
+                                class="mt-2 flex flex-wrap items-center gap-4 text-sm text-neutral-500"
                             >
-                                <div class="flex items-center gap-2">
-                                    <Trophy class="size-4 text-[#d97706]" />
-                                    <span class="font-bold text-[#92400e]"
-                                        >Aktif di Leaderboard Sponsor</span
+                                <div>
+                                    Kategori:
+                                    <Link
+                                        :href="
+                                            showRanking.url(
+                                                entity.category.slug,
+                                            )
+                                        "
+                                        class="font-medium text-neutral-700 hover:text-emerald-600 hover:underline"
                                     >
-                                    <span class="font-medium text-[#b45309]"
-                                        >·
-                                        {{ leaderboard.views_count }} Pengunjung
-                                        · {{ leaderboard.clicks_count }} Klik
-                                        URL</span
-                                    >
+                                        {{ entity.category.name }}
+                                    </Link>
                                 </div>
-                                <a
-                                    :href="
-                                        getDirectWebsiteUrl(
-                                            leaderboard.website_url ||
-                                                entity.website_url,
-                                            entity.slug,
-                                            {
-                                                placement:
-                                                    'entity_sponsor_badge',
-                                            },
-                                        )
-                                    "
-                                    :ping="`/api/sponsor/click/${entity.slug}`"
-                                    target="_blank"
-                                    rel="noopener"
-                                    class="inline-flex items-center gap-1 font-bold text-[#b45309] hover:underline"
-                                    @click="
-                                        trackSponsorClick(entity.slug, {
-                                            placement: 'entity_sponsor_badge',
-                                            url:
-                                                leaderboard.website_url ||
-                                                entity.website_url ||
-                                                undefined,
-                                        })
-                                    "
-                                >
-                                    Buka Situs Resmi
-                                    <ArrowUpRight class="size-3.5" />
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- Aliases list -->
-                        <div
-                            v-if="entity.aliases.length > 0"
-                            class="mt-6 border-t border-neutral-100 pt-4"
-                        >
-                            <div
-                                class="text-xs font-medium tracking-wider text-neutral-400 uppercase"
-                            >
-                                Nama Alternatif / Alias:
-                            </div>
-                            <div class="mt-2 flex flex-wrap gap-1.5">
-                                <span
-                                    v-for="alias in entity.aliases"
-                                    :key="alias.id"
-                                    class="rounded-md bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600"
-                                >
-                                    {{ alias.alias }}
-                                </span>
+                                <div v-if="entity.parent">
+                                    Brand / Induk:
+                                    <Link
+                                        :href="
+                                            showEntity.url(entity.parent.slug)
+                                        "
+                                        class="font-medium text-emerald-600 hover:underline"
+                                    >
+                                        {{ entity.parent.name }}
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <figure v-if="entity.image_url" class="shrink-0 sm:w-56">
+                    <!-- Period Selector: right column, above the image -->
+                    <div
+                        class="inline-flex w-fit self-start rounded-lg bg-neutral-100 p-1 sm:col-start-2 sm:row-start-1 sm:flex sm:w-full"
+                    >
+                        <button
+                            v-for="p in availablePeriods"
+                            :key="p"
+                            type="button"
+                            :aria-pressed="period === p"
+                            @click="switchPeriod(p)"
+                            class="min-h-11 flex-1 rounded-md px-3 py-2.5 text-xs font-medium transition-colors"
+                            :class="{
+                                'bg-white text-neutral-900 shadow-sm':
+                                    period === p,
+                                'text-neutral-600 hover:text-neutral-900':
+                                    period !== p,
+                            }"
+                        >
+                            {{ periodLabels[p] || p }}
+                        </button>
+                    </div>
+
+                    <!-- Entity Details: Full Width -->
+                    <div
+                        v-if="
+                            entity.description ||
+                            entity.website_url ||
+                            entity.image_url ||
+                            (leaderboard && leaderboard.is_active)
+                        "
+                        class="w-full sm:col-start-1 sm:row-start-2"
+                    >
+                        <p class="text-sm leading-relaxed text-neutral-600">
+                            {{
+                                entity.description ||
+                                `${entity.name} adalah ${entity.type_label} dalam kategori ${entity.category.name} di Indonesia.`
+                            }}
+                        </p>
+
+                        <!-- Direct Website Link -->
+                        <div v-if="entity.website_url" class="mt-3">
+                            <a
+                                :href="
+                                    getDirectWebsiteUrl(
+                                        entity.website_url,
+                                        entity.slug,
+                                        { placement: 'entity_profile' },
+                                    )
+                                "
+                                :ping="`/api/sponsor/click/${entity.slug}`"
+                                target="_blank"
+                                rel="noopener"
+                                class="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[#c2d6c6] bg-[#f0f7f2] px-3.5 py-2.5 text-xs font-semibold text-[#185b3b] transition hover:bg-[#e2f2e5]"
+                                @click="
+                                    trackSponsorClick(entity.slug, {
+                                        placement: 'entity_profile',
+                                        url: entity.website_url || undefined,
+                                    })
+                                "
+                            >
+                                <span>Kunjungi Website Resmi</span>
+                                <ArrowUpRight class="size-3.5" />
+                            </a>
+                        </div>
+
+                        <!-- Leaderboard Badge: Full Width -->
+                        <div
+                            v-if="leaderboard && leaderboard.is_active"
+                            class="mt-4 flex w-full flex-wrap items-center justify-between gap-3 rounded-xl border border-[#fed7aa] bg-[#fffaf0] p-3 text-xs"
+                        >
+                            <div class="flex items-center gap-2">
+                                <Trophy class="size-4 text-[#d97706]" />
+                                <span class="font-bold text-[#92400e]"
+                                    >Aktif di Leaderboard Sponsor</span
+                                >
+                                <span class="font-medium text-[#b45309]"
+                                    >· {{ leaderboard.views_count }} Pengunjung
+                                    · {{ leaderboard.clicks_count }} Klik
+                                    URL</span
+                                >
+                            </div>
+                            <a
+                                :href="
+                                    getDirectWebsiteUrl(
+                                        leaderboard.website_url ||
+                                            entity.website_url,
+                                        entity.slug,
+                                        {
+                                            placement: 'entity_sponsor_badge',
+                                        },
+                                    )
+                                "
+                                :ping="`/api/sponsor/click/${entity.slug}`"
+                                target="_blank"
+                                rel="noopener"
+                                class="inline-flex items-center gap-1 font-bold text-[#b45309] hover:underline"
+                                @click="
+                                    trackSponsorClick(entity.slug, {
+                                        placement: 'entity_sponsor_badge',
+                                        url:
+                                            leaderboard.website_url ||
+                                            entity.website_url ||
+                                            undefined,
+                                    })
+                                "
+                            >
+                                Buka Situs Resmi
+                                <ArrowUpRight class="size-3.5" />
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Aliases list -->
+                    <div
+                        v-if="entity.aliases.length > 0"
+                        class="mt-6 border-t border-neutral-100 pt-4"
+                    >
+                        <div
+                            class="text-xs font-medium tracking-wider text-neutral-400 uppercase"
+                        >
+                            Nama Alternatif / Alias:
+                        </div>
+                        <div class="mt-2 flex flex-wrap gap-1.5">
+                            <span
+                                v-for="alias in entity.aliases"
+                                :key="alias.id"
+                                class="rounded-md bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600"
+                            >
+                                {{ alias.alias }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <figure
+                        v-if="entity.image_url"
+                        class="sm:col-start-2 sm:row-start-2"
+                    >
                         <img
                             :src="entity.image_url"
                             :alt="entity.name"
