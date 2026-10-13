@@ -374,6 +374,8 @@ async function removeRating(): Promise<void> {
             <div
                 class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
             >
+                <div class="flex flex-col gap-5 sm:flex-row sm:items-start">
+                <div class="min-w-0 flex-1">
                 <!-- Top Header Row: Title/Category & Period Selector -->
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div class="min-w-0 flex-1">
@@ -458,18 +460,6 @@ async function removeRating(): Promise<void> {
                     "
                     class="mt-4 w-full"
                 >
-                    <figure v-if="entity.image_url" class="mb-3">
-                        <img
-                            :src="entity.image_url"
-                            :alt="entity.name"
-                            loading="lazy"
-                            class="max-h-64 w-full rounded-lg bg-neutral-50 object-contain"
-                        />
-                        <figcaption v-if="entity.image_credit" class="mt-1 text-[11px] text-neutral-500">
-                            {{ entity.image_credit }}
-                        </figcaption>
-                    </figure>
-
                     <p
                         class="text-sm leading-relaxed text-neutral-600"
                     >
@@ -564,6 +554,20 @@ async function removeRating(): Promise<void> {
                             {{ alias.alias }}
                         </span>
                     </div>
+                </div>
+                </div>
+
+                <figure v-if="entity.image_url" class="shrink-0 sm:w-56">
+                    <img
+                        :src="entity.image_url"
+                        :alt="entity.name"
+                        loading="lazy"
+                        class="max-h-48 w-full rounded-lg bg-neutral-50 object-contain sm:max-h-56"
+                    />
+                    <figcaption v-if="entity.image_credit" class="mt-1 text-[11px] leading-snug text-neutral-500">
+                        {{ entity.image_credit }}
+                    </figcaption>
+                </figure>
                 </div>
             </div>
 
