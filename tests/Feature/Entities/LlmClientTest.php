@@ -147,6 +147,7 @@ it('still throws when no fallback model is configured', function () {
 
 function failingLlm(int $status, string $body): void
 {
+    app()->detectEnvironment(fn () => 'production');
     config(['sponsorship.telegram.bot_token' => 'bot', 'sponsorship.telegram.chat_id' => '42']);
     LlmSetting::create(['base_url' => 'https://llm.internal/v1', 'model' => 'm', 'api_key' => 'k', 'max_tokens' => 100, 'temperature' => 0.1, 'timeout_seconds' => 5]);
     Http::preventStrayRequests();
