@@ -165,3 +165,31 @@ test('duplicate normalized aliases are rejected for the same entity', function (
         ])
         ->assertSessionHasErrors('alias');
 });
+
+test('admin can set and clear website url on any entity type', function () {
+    $admin = User::factory()->admin()->create();
+    $category = Category::factory()->create();
+    $entity = Entity::factory()->create(['category_id' => $category->id, 'type' => EntityType::Brand]);
+
+    $payload = [
+        'name' => $entity->name,
+        'slug' => $entity->slug,
+        'type' => 'brand',
+        'category_id' => $category->id,
+        'status' => 'active',
+    ];
+
+    $this->actingAs($admin)
+        ->put("/admin/entities/{$entity->id}", $payload + ['website_url' => 'https://biznetgio.com'])
+        ->assertRedirect();
+    expect($entity->fresh()->website_url)->toBe('https://biznetgio.com');
+
+    $this->actingAs($admin)
+        ->put("/admin/entities/{$entity->id}", $payload + ['website_url' => 'bukan url'])
+        ->assertSessionHasErrors('website_url');
+
+    $this->actingAs($admin)
+        ->put("/admin/entities/{$entity->id}", $payload + ['website_url' => ''])
+        ->assertRedirect();
+    expect($entity->fresh()->website_url)->toBeNull();
+});

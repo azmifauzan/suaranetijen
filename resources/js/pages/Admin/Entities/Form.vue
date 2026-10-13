@@ -60,7 +60,6 @@ interface PersonProfile {
     occupation: string | null;
     affiliation: string | null;
     active_since_year: number | null;
-    official_website: string | null;
 }
 
 interface EntityDetail {
@@ -69,6 +68,7 @@ interface EntityDetail {
     slug: string;
     type: string;
     description: string | null;
+    website_url: string | null;
     category_id: number;
     parent_id: number | null;
     status: string;
@@ -144,7 +144,6 @@ const emptyPersonProfile: PersonProfile = {
     occupation: null,
     affiliation: null,
     active_since_year: null,
-    official_website: null,
 };
 
 const form = useForm({
@@ -154,6 +153,7 @@ const form = useForm({
     category_id: props.entity.category_id,
     parent_id: props.entity.parent_id,
     description: props.entity.description || '',
+    website_url: props.entity.website_url || '',
     status: props.entity.status,
     searchable: props.entity.searchable,
     rankable: props.entity.rankable,
@@ -285,6 +285,17 @@ function removeAlias(aliasId: number) {
                                 {{ b.name }}
                             </option>
                         </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-neutral-700 dark:text-neutral-300">Website Resmi</label>
+                        <input
+                            v-model="form.website_url"
+                            type="url"
+                            placeholder="https://..."
+                            class="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+                        />
+                        <p v-if="form.errors.website_url" class="mt-1 text-xs text-red-600">{{ form.errors.website_url }}</p>
                     </div>
 
                     <div>
@@ -481,10 +492,6 @@ function removeAlias(aliasId: number) {
                             <div>
                                 <label class="block text-[10px] font-medium text-neutral-500">Aktif Sejak (Tahun)</label>
                                 <input v-model.number="form.person_profile.active_since_year" type="number" class="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800" />
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-medium text-neutral-500">Website Resmi</label>
-                                <input v-model="form.person_profile.official_website" type="text" placeholder="https://..." class="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800" />
                             </div>
                         </div>
                     </div>

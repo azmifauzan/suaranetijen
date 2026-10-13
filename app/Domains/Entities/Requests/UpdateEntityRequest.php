@@ -40,6 +40,7 @@ class UpdateEntityRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', Rule::unique('entities', 'slug')->ignore($entity->id)],
             'description' => ['nullable', 'string'],
+            'website_url' => ['nullable', 'url', 'max:2048'],
             'status' => ['required', Rule::enum(EntityStatus::class)],
             'searchable' => ['boolean'],
             'rankable' => ['boolean'],
@@ -94,7 +95,6 @@ class UpdateEntityRequest extends FormRequest
             'person_profile.occupation' => ['nullable', 'string', 'max:255'],
             'person_profile.affiliation' => ['nullable', 'string', 'max:255'],
             'person_profile.active_since_year' => ['nullable', 'integer', 'min:1900', 'max:2100'],
-            'person_profile.official_website' => ['nullable', 'url', 'max:255'],
         ];
     }
 }

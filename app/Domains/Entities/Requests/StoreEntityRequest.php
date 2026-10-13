@@ -31,6 +31,7 @@ class StoreEntityRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:entities,slug'],
             'description' => ['nullable', 'string'],
+            'website_url' => ['nullable', 'url', 'max:2048'],
             'status' => ['nullable', Rule::enum(EntityStatus::class)],
             'searchable' => ['boolean'],
             'rankable' => ['boolean'],
