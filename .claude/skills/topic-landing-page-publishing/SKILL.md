@@ -1,23 +1,20 @@
 ---
 name: topic-landing-page-publishing
-description: Use when validating topic pages; state, slug, copy rules.
+description: Use when publishing topics with complaint-subject filter.
 category: search
 ---
 
-## State Guards
+Topics like "Penanganan keluhan baik" (good complaint handling) are fundamentally complaint-focused and mislead searchers, even with positive aggregate sentiment. Filter complaint-subject candidates during selection and detach such themes before publishing.
 
-Published topics cannot be re-published or regenerated; unpublish first. Rejected topics are terminal (never transition back). Only candidate or draft topics can move to published status.
+**Gate:**
+1. **Select**: Filter candidates against `config('landing_pages.complaint_terms')` — words like keluhan, komplain, lambat, masalah, refund, penipuan indicate complaint-subject topics and should be rejected.
+2. **Validate**: Detach themes with negation markers (`hasNegationMarker()`) or complaint-subject terms. Apply copy guard (title ≤60, meta ≤155, intro ≤1000). Require ≥3 qualifying entities per theme.
+3. **Verify**: Live — `/topik/{slug}` is 200, in sitemap, displays on homepage.
 
-## Slug Validation
+Implementation: `CandidateScannerService::hasComplaintSubject()` checks theme labels during publishing and candidate scanning.
 
-Lowercase alphanumeric with hyphens only (`/^[a-z0-9]+(?:-[a-z0-9]+)*$/`). Lock after publish — cannot be modified.
-
-## Copy Guard on Every Save
-
-Title ≤60, meta description ≤155, intro ≤1000 chars. No superlatives, percentages, or links. Applied on create, update, and publish — a published topic cannot be edited into a violation.
-
-## Preset Theme Prioritization
-
-When the LLM drafts themes, admin-attached themes come first (ranked by netizen mention count via `withSum('snapshots as mention_total', 'observation_count')`), then keyword matches. Guarantees admin curation never buried by LLM noise.
-
-See `references/topic-publishing-rules.md` for state transition diagram, copy-guard details, and theme ranking algorithm.
+**Choosing which drafts to publish:**
+- Skip a draft whose slug contains a superlative (e.g. `terbaik`) or whose title/meta frames a complaint. Slug is locked after publish, so fix it before publishing or leave the draft.
+- Rank the remaining drafts by theme signal count and publish only those that clearly read as neutral discussion topics. Report skipped drafts with the reason.
+- Publish through `AdminTopicsController::publish` (same validator and copy guard as the admin button). Tinker calls to the controller method are acceptable on staging when the user has approved publishing; do not hand-write status updates.
+- Verify after publish: `/topik/{slug}` returns 200 with `index, follow`, the slug is in `/sitemap.xml`, and the homepage "Topik Hangat" block links it. Allow ~20s for caches to clear.

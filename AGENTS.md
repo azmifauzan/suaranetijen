@@ -257,6 +257,10 @@ Detail: `docs/11-sentiment-scoring-ranking.md`.
 - **No aspect scoring.** No camera/support/performance subscores, no specs, no prices, no
   benchmarks, no verified purchase, no fact checking. Top Suara Netijen (`docs/25`) shows theme
   frequency and does not reopen this — it must never render a numeric per-theme score.
+- **Specs are internal reference data only.** `smartphone_specs`, `car_specs`, `motorcycle_specs`
+  and `person_profiles` exist (`docs/06`, `docs/21`) but are curated manually in the admin form,
+  never crawled or scheduled, and never shown on public pages (audit-001 finding 2). They only feed
+  search-document descriptor matching. Do not render them publicly or build automated spec collection.
 - **No source weighting.** Source role affects crawl priority only, never the score.
 - **Derived index first.** Raw payloads are temporary with a per-adapter TTL. Hashes and external
   IDs persist for deduplication; raw text does not.

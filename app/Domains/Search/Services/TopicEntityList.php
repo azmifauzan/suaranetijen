@@ -215,7 +215,8 @@ class TopicEntityList
             $themeBreakdown = [];
 
             foreach ($entitySnapshots as $snap) {
-                $count = (int) $snap->observation_count;
+                // Topics are positive-framed; a negative observation tagged with the same theme contradicts the title.
+                $count = (int) $snap->positive_count;
                 $mentionCount += $count;
 
                 $theme = $themesById->get($snap->theme_id);
