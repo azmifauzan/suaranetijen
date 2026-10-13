@@ -151,7 +151,10 @@ test('it orders entities by mention count desc, score desc nulls last, then name
         ->and($result['entities'][1]['name'])->toBe('Delta Cloud')
         ->and($result['entities'][2]['name'])->toBe('Charlie Cloud')
         ->and($result['entities'][3]['name'])->toBe('Alpha Cloud')
-        ->and($result['entities'][3]['score'])->toBeNull();
+        ->and($result['entities'][3]['score'])->toBeNull()
+        // Below the public threshold the entity page is noindex, so the topic page must not link to it.
+        ->and($result['entities'][3]['is_indexable'])->toBeFalse()
+        ->and($result['entities'][1]['is_indexable'])->toBeTrue();
 
     // Verify no per-theme scores exist in breakdown
     foreach ($result['entities'] as $entityItem) {

@@ -26,6 +26,12 @@ const seo = computed(
     () => (page.props.seo as SeoSharedProps | undefined) ?? {},
 );
 const siteName = computed(() => seo.value.site_name || 'SuaraNetijen');
+// Search results cut titles at about 60 characters; drop the suffix rather than the keyword.
+const fullTitle = computed(() => {
+    const withSuffix = `${props.title} | ${siteName.value}`;
+
+    return withSuffix.length > 60 ? props.title : withSuffix;
+});
 const canonicalUrl = computed(() => {
     const path = props.canonicalPath.startsWith('/')
         ? props.canonicalPath
@@ -43,7 +49,7 @@ const imageUrl = computed(() => {
 </script>
 
 <template>
-    <Head :title="`${title} | ${siteName}`">
+    <Head :title="fullTitle">
         <meta
             head-key="description"
             name="description"
@@ -54,7 +60,7 @@ const imageUrl = computed(() => {
         <meta
             head-key="og:title"
             property="og:title"
-            :content="`${title} | ${siteName}`"
+            :content="fullTitle"
         />
         <meta
             head-key="og:description"
@@ -80,7 +86,7 @@ const imageUrl = computed(() => {
         <meta
             head-key="twitter:title"
             name="twitter:title"
-            :content="`${title} | ${siteName}`"
+            :content="fullTitle"
         />
         <meta
             head-key="twitter:description"

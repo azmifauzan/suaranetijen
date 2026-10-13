@@ -13,9 +13,14 @@ void createInertiaApp({
             return appName;
         }
 
-        return title === appName || title.endsWith(` | ${appName}`)
+        const withSuffix = `${title} | ${appName}`;
+
+        // Search results cut titles at about 60 characters; drop the suffix rather than the keyword.
+        return title === appName ||
+            title.endsWith(` | ${appName}`) ||
+            withSuffix.length > 60
             ? title
-            : `${title} | ${appName}`;
+            : withSuffix;
     },
     layout: (name) => {
         switch (true) {

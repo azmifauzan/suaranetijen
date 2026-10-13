@@ -9,6 +9,7 @@ use App\Domains\Entities\Services\EntityComparison;
 use App\Domains\Search\Models\SearchLandingPage;
 use App\Domains\Search\Services\TopicEntityList;
 use App\Domains\Sentiment\Enums\Period;
+use App\Domains\Sentiment\Services\SentimentRankingService;
 use App\Domains\Themes\Models\EntityThemeSnapshot;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
@@ -87,6 +88,7 @@ class SitemapController extends Controller
         ];
 
         // 2. Active Categories & Top Lists
+        $rankingService = app(SentimentRankingService::class);
         $categories = Category::query()
             ->active()
             ->where(fn ($query) => $query
@@ -103,12 +105,15 @@ class SitemapController extends Controller
                 'changefreq' => 'daily',
                 'priority' => '0.8',
             ];
-            $urls[] = [
-                'loc' => "{$baseUrl}/top/{$category->slug}",
-                'lastmod' => $lastmod,
-                'changefreq' => 'daily',
-                'priority' => '0.8',
-            ];
+            // Same bar as TopRankingController's noindex: a /top page with no ranking is a stub.
+            if ($rankingService->getRanking($category->id, Period::OneYear, limit: 1)->isNotEmpty()) {
+                $urls[] = [
+                    'loc' => "{$baseUrl}/top/{$category->slug}",
+                    'lastmod' => $lastmod,
+                    'changefreq' => 'daily',
+                    'priority' => '0.8',
+                ];
+            }
         }
 
         // 3. Eligible entities ONLY (docs/13, docs/17, docs/31)

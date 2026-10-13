@@ -27,6 +27,7 @@ class TopicEntityList
      *         mention_count: int,
      *         score: float|null,
      *         quote: string|null,
+     *         is_indexable: bool,
      *         theme_breakdown: list<array{theme_id: int, display_label: string, mention_count: int}>
      *     }>,
      *     is_indexable: bool,
@@ -63,6 +64,7 @@ class TopicEntityList
      *         mention_count: int,
      *         score: float|null,
      *         quote: string|null,
+     *         is_indexable: bool,
      *         theme_breakdown: list<array{theme_id: int, display_label: string, mention_count: int}>
      *     }>,
      *     is_indexable: bool,
@@ -145,6 +147,7 @@ class TopicEntityList
      *     mention_count: int,
      *     score: float|null,
      *     quote: string|null,
+     *     is_indexable: bool,
      *     theme_breakdown: list<array{theme_id: int, display_label: string, mention_count: int}>
      * }>
      */
@@ -184,7 +187,7 @@ class TopicEntityList
         // Fetch sentiment scores for the entities
         $sentimentSnapshots = SentimentSnapshot::query()
             ->whereIn('entity_id', $entityIds)
-            ->whereIn('period', [$period->value, Period::All->value])
+            ->whereIn('period', [Period::OneYear->value, Period::All->value])
             ->get()
             ->groupBy('entity_id');
 
@@ -238,6 +241,11 @@ class TopicEntityList
                 $score = $sentimentSnap->score !== null ? (float) $sentimentSnap->score : null;
             }
 
+            // Same snapshot choice as EntityShowController: an entity page below the threshold is
+            // noindex, so link to it only when it clears the threshold.
+            $pageSnap = $entitySentiments?->firstWhere('period', Period::OneYear)
+                ?? $entitySentiments?->firstWhere('period', Period::All);
+
             $rawQuote = $quotes->get($entityId);
             $quote = $rawQuote ? mb_substr(trim($rawQuote), 0, 200) : null;
 
@@ -249,6 +257,7 @@ class TopicEntityList
                 'mention_count' => $mentionCount,
                 'score' => $score,
                 'quote' => $quote,
+                'is_indexable' => $pageSnap !== null && ScoreCalculator::isPublicScoreEligible((int) $pageSnap->opinion_count),
                 'theme_breakdown' => $themeBreakdown,
             ];
         }

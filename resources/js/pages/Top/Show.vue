@@ -137,6 +137,7 @@ function switchPeriod(p: string) {
             :title="`${category.name} dengan Sentimen Netizen Tertinggi`"
             :description="pageDescription"
             :canonical-path="`/top/${category.slug}`"
+            :robots="rankings.length > 0 ? 'index, follow' : 'noindex, follow'"
         >
             <component :is="'script'" type="application/ld+json">
                 {{ JSON.stringify(breadcrumbJsonLd) }}

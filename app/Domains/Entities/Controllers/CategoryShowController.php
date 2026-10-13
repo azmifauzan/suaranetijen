@@ -59,13 +59,17 @@ class CategoryShowController extends Controller
             );
         }
 
+        // Most Discussed / Recently Updated link only to entity pages that clear the public
+        // threshold; below it the entity page is noindex (docs/31).
+        $publicMinOpinions = (int) config('scoring.public_min_opinions', 30);
+
         // Most Discussed entities
         $mostDiscussed = SentimentSnapshot::query()
             ->join('entities', 'entities.id', '=', 'sentiment_snapshots.entity_id')
             ->whereIn('entities.category_id', $categoryIds)
             ->where('entities.status', EntityStatus::Active)
             ->where('sentiment_snapshots.period', Period::OneYear->value)
-            ->where('sentiment_snapshots.opinion_count', '>', 0)
+            ->where('sentiment_snapshots.opinion_count', '>=', $publicMinOpinions)
             ->orderByDesc('sentiment_snapshots.opinion_count')
             ->select('sentiment_snapshots.*')
             ->with('entity')
@@ -87,6 +91,7 @@ class CategoryShowController extends Controller
             ->whereIn('entities.category_id', $categoryIds)
             ->where('entities.status', EntityStatus::Active)
             ->where('sentiment_snapshots.period', Period::OneYear->value)
+            ->where('sentiment_snapshots.opinion_count', '>=', $publicMinOpinions)
             ->orderByDesc('sentiment_snapshots.updated_at')
             ->select('sentiment_snapshots.*')
             ->with('entity')

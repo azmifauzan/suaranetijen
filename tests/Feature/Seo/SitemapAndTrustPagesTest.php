@@ -283,9 +283,9 @@ test('sitemap indexes only active entities that clear public score threshold and
     expect($content)->not->toContain('/e/flip-baru');
     expect($content)->not->toContain('/e/indeks-tidak-selaras');
 
-    // Must include category & top ranking
+    // Must include the category; its top page has no entity at the ranking bar, so it stays out
     expect($content)->toContain('/category/fintech');
-    expect($content)->toContain('/top/fintech');
+    expect($content)->not->toContain('/top/fintech');
 
     // Must include static trust pages
     expect($content)->toContain('/methodology');

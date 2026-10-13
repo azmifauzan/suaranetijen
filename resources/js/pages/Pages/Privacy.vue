@@ -103,8 +103,11 @@ import PublicSeo from '@/components/PublicSeo.vue';
                         Apabila Anda memiliki pertanyaan atau masukan mengenai
                         tata kelola privasi kami, silakan hubungi tim kami
                         melalui surel di
-                        <span class="font-medium text-emerald-600"
-                            >privacy@suaranetijen.id</span
+                        <!-- email_off keeps Cloudflare from rewriting the address into a /cdn-cgi link that 404s for crawlers; Vue strips template comments, hence v-html. -->
+                        <span
+                            class="font-medium text-emerald-600"
+                            v-html="'<!--email_off-->privacy@suaranetijen.id<!--/email_off-->'"
+                        ></span
                         >.
                     </p>
                 </div>

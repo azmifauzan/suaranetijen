@@ -5,6 +5,7 @@ namespace App\Domains\Sentiment\Controllers;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Services\CategoryContext;
 use App\Domains\Search\Models\SearchLandingPage;
+use App\Domains\Search\Services\RobotsPolicy;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Services\SentimentRankingService;
 use App\Domains\Sponsorships\Services\SponsorLeaderboardService;
@@ -90,6 +91,11 @@ class TopRankingController extends Controller
         $period = Period::tryFrom((string) $periodParam) ?? Period::OneYear;
 
         $rankings = $this->rankingService->getRanking($category->id, $period);
+
+        // An empty ranking is a stub page ("Belum Ada Ranking"); keep it out of the index (docs/31).
+        if ($rankings->isEmpty()) {
+            RobotsPolicy::noindex();
+        }
 
         $otherCategories = Category::query()
             ->active()

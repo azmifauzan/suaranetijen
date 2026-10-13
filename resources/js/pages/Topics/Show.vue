@@ -23,6 +23,7 @@ interface TopicEntityItem {
     mention_count: number;
     score: number | null;
     quote: string | null;
+    is_indexable: boolean;
     theme_breakdown: ThemeBreakdown[];
 }
 
@@ -106,7 +107,7 @@ const itemListJsonLd = computed(() => ({
         '@type': 'ListItem',
         position: index + 1,
         name: item.name,
-        url: `${siteUrl.value}/e/${item.slug}`,
+        ...(item.is_indexable ? { url: `${siteUrl.value}/e/${item.slug}` } : {}),
     })),
 }));
 </script>
@@ -222,11 +223,17 @@ const itemListJsonLd = computed(() => ({
                             <div class="space-y-2">
                                 <div class="flex flex-wrap items-center gap-2">
                                     <Link
+                                        v-if="item.is_indexable"
                                         :href="showEntity.url(item.slug)"
                                         class="text-lg font-bold text-[#18392d] transition hover:text-[#087f5b] group-hover:underline"
                                     >
                                         {{ item.name }}
                                     </Link>
+                                    <span
+                                        v-else
+                                        class="text-lg font-bold text-[#18392d]"
+                                        >{{ item.name }}</span
+                                    >
                                     <span
                                         class="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs text-neutral-600"
                                     >
@@ -274,6 +281,7 @@ const itemListJsonLd = computed(() => ({
                             </div>
 
                             <Link
+                                v-if="item.is_indexable"
                                 :href="showEntity.url(item.slug)"
                                 class="inline-flex items-center text-xs font-semibold text-[#087f5b] hover:underline"
                             >
