@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import PublicLayout from '@/layouts/PublicLayout.vue';
-import { home, methodology, sources } from '@/routes';
-import { show as showEntity } from '@/routes/entities';
-import { show as showCategory } from '@/routes/categories';
-import { show as showRanking } from '@/routes/rankings';
-import { Link, router, useHttp } from '@inertiajs/vue3';
-import { ArrowUpRight, Play, Star, Trophy } from '@lucide/vue';
-import { computed, ref } from 'vue';
-import { login } from '@/routes';
-import PublicSeo from '@/components/PublicSeo.vue';
-import { trackEvent } from '@/lib/analytics';
-import { getDirectWebsiteUrl, trackSponsorClick } from '@/lib/sponsor';
+import PublicLayout from "@/layouts/PublicLayout.vue";
+import { home, methodology, sources } from "@/routes";
+import { show as showEntity } from "@/routes/entities";
+import { show as showCategory } from "@/routes/categories";
+import { show as showRanking } from "@/routes/rankings";
+import { Link, router, useHttp } from "@inertiajs/vue3";
+import { ArrowUpRight, Play, Star, Trophy } from "@lucide/vue";
+import { computed, ref } from "vue";
+import { login } from "@/routes";
+import PublicSeo from "@/components/PublicSeo.vue";
+import { trackEvent } from "@/lib/analytics";
+import { getDirectWebsiteUrl, trackSponsorClick } from "@/lib/sponsor";
 import {
     destroy as deleteRating,
     update as updateRating,
-} from '@/routes/api/entities/rating';
+} from "@/routes/api/entities/rating";
 
 interface CategoryData {
     id: number;
@@ -88,7 +88,11 @@ interface ThemesData {
     top_themes: ThemeItem[];
     positive_themes: ThemeItem[];
     negative_themes: ThemeItem[];
-    summary: { text: string; opinion_count: number; generated_at: string } | null;
+    summary: {
+        text: string;
+        opinion_count: number;
+        generated_at: string;
+    } | null;
 }
 
 interface RatingData {
@@ -166,7 +170,12 @@ const props = defineProps<{
     themes: ThemesData;
     relatedEntities: RelatedEntity[];
     trend?: TrendPoint[];
-    includedTopics?: Array<{ id: number; slug: string; title: string; keyword: string }>;
+    includedTopics?: Array<{
+        id: number;
+        slug: string;
+        title: string;
+        keyword: string;
+    }>;
     entitySeo?: SeoData;
     ogImage?: string | null;
     comparisons?: Array<{ pair: string; label: string }>;
@@ -185,13 +194,18 @@ function selectVideo(index: number): void {
 }
 
 const ratingData = ref<RatingData>({ ...props.rating });
-const ratingForm = useHttp<{ rating: number; review: string }, RatingMutationResponse>({
+const ratingForm = useHttp<
+    { rating: number; review: string },
+    RatingMutationResponse
+>({
     rating: props.rating.user_rating ?? 0,
-    review: props.rating.user_review ?? '',
+    review: props.rating.user_review ?? "",
 });
 
 const pageTitle = computed(
-    () => props.entitySeo?.title || `${props.entity.name}: Sentimen dan Rating Netizen`,
+    () =>
+        props.entitySeo?.title ||
+        `${props.entity.name}: Sentimen dan Rating Netizen`,
 );
 const metaDescription = computed(() => {
     if (props.entitySeo?.meta_description) {
@@ -205,13 +219,13 @@ const metaDescription = computed(() => {
 
 const jsonLd = computed(() => {
     const data: Record<string, unknown> = {
-        '@context': 'https://schema.org',
-        '@type':
-            props.entity.type === 'service'
-                ? 'Service'
-                : props.entity.type === 'brand'
-                  ? 'Organization'
-                  : 'Product',
+        "@context": "https://schema.org",
+        "@type":
+            props.entity.type === "service"
+                ? "Service"
+                : props.entity.type === "brand"
+                  ? "Organization"
+                  : "Product",
         name: props.entity.name,
         description:
             props.entity.description || `${props.entity.name} di SuaraNetijen`,
@@ -223,7 +237,7 @@ const jsonLd = computed(() => {
         ratingData.value.rating_average !== null
     ) {
         data.aggregateRating = {
-            '@type': 'AggregateRating',
+            "@type": "AggregateRating",
             ratingValue: ratingData.value.rating_average,
             reviewCount: ratingData.value.rating_count,
             bestRating: 5,
@@ -235,10 +249,10 @@ const jsonLd = computed(() => {
 });
 
 const periodLabels: Record<string, string> = {
-    '30d': '30 Hari',
-    '90d': '90 Hari',
-    '365d': '1 Tahun',
-    all: 'Semua Waktu',
+    "30d": "30 Hari",
+    "90d": "90 Hari",
+    "365d": "1 Tahun",
+    all: "Semua Waktu",
 };
 
 function switchPeriod(p: string) {
@@ -257,8 +271,8 @@ function updateRatingData(response: RatingMutationResponse): void {
         user_review: response.data.review,
     };
     ratingForm.rating = response.data.rating ?? 0;
-    ratingForm.review = response.data.review ?? '';
-    router.reload({ only: ['userReviews', 'rating'] });
+    ratingForm.review = response.data.review ?? "";
+    router.reload({ only: ["userReviews", "rating"] });
 }
 
 async function submitRating(): Promise<void> {
@@ -271,23 +285,23 @@ async function submitRating(): Promise<void> {
         await ratingForm.put(updateRating.url(props.entity.id), {
             onSuccess: (response) => {
                 updateRatingData(response);
-                trackEvent('submit_rating', {
+                trackEvent("submit_rating", {
                     entity_slug: props.entity.slug,
                     rating: response.data.rating,
                 });
             },
             onHttpException: (response) => {
                 ratingForm.setError(
-                    'rating',
+                    "rating",
                     response.status === 429
-                        ? 'Terlalu banyak percobaan rating. Coba lagi nanti.'
-                        : 'Rating gagal disimpan. Coba lagi.',
+                        ? "Terlalu banyak percobaan rating. Coba lagi nanti."
+                        : "Rating gagal disimpan. Coba lagi.",
                 );
             },
         });
     } catch {
         if (!ratingForm.hasErrors) {
-            ratingForm.setError('rating', 'Rating gagal disimpan. Coba lagi.');
+            ratingForm.setError("rating", "Rating gagal disimpan. Coba lagi.");
         }
     }
 }
@@ -299,16 +313,16 @@ async function removeRating(): Promise<void> {
             onSuccess: updateRatingData,
             onHttpException: (response) => {
                 ratingForm.setError(
-                    'rating',
+                    "rating",
                     response.status === 429
-                        ? 'Terlalu banyak percobaan rating. Coba lagi nanti.'
-                        : 'Rating gagal dihapus. Coba lagi.',
+                        ? "Terlalu banyak percobaan rating. Coba lagi nanti."
+                        : "Rating gagal dihapus. Coba lagi.",
                 );
             },
         });
     } catch {
         if (!ratingForm.hasErrors) {
-            ratingForm.setError('rating', 'Rating gagal dihapus. Coba lagi.');
+            ratingForm.setError("rating", "Rating gagal dihapus. Coba lagi.");
         }
     }
 }
@@ -375,199 +389,227 @@ async function removeRating(): Promise<void> {
                 class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
             >
                 <div class="flex flex-col gap-5 sm:flex-row sm:items-start">
-                <div class="min-w-0 flex-1">
-                <!-- Top Header Row: Title/Category & Period Selector -->
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div class="min-w-0 flex-1">
-                        <div class="flex flex-wrap items-center gap-3">
-                            <h1
-                                class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl"
-                            >
-                                {{ entity.name }}
-                            </h1>
-                            <span
-                                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wider uppercase"
-                                :class="{
-                                    'bg-blue-100 text-blue-800':
-                                        entity.type === 'brand',
-                                    'bg-purple-100 text-purple-800':
-                                        entity.type === 'product',
-                                    'bg-amber-100 text-amber-800':
-                                        entity.type === 'service',
-                                }"
-                            >
-                                {{ entity.type_label }}
-                            </span>
-                        </div>
-                        <p class="mt-1 text-sm font-medium text-neutral-600 sm:text-base">
-                            {{ entitySeo?.intent_subtitle || (sentiment.is_eligible ? `Bagus atau tidak menurut netizen? Ringkasan dari ${sentiment.opinion_count} opini publik.` : 'Opini netizen dan indeks sentimen publik.') }}
-                        </p>
-
+                        <!-- Top Header Row: Title/Category & Period Selector -->
                         <div
-                            class="mt-2 flex flex-wrap items-center gap-4 text-sm text-neutral-500"
+                            class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
                         >
-                            <div>
-                                Kategori:
-                                <Link
+                            <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <h1
+                                        class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl"
+                                    >
+                                        {{ entity.name }}
+                                    </h1>
+                                    <span
+                                        class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wider uppercase"
+                                        :class="{
+                                            'bg-blue-100 text-blue-800':
+                                                entity.type === 'brand',
+                                            'bg-purple-100 text-purple-800':
+                                                entity.type === 'product',
+                                            'bg-amber-100 text-amber-800':
+                                                entity.type === 'service',
+                                        }"
+                                    >
+                                        {{ entity.type_label }}
+                                    </span>
+                                </div>
+                                <p
+                                    class="mt-1 text-sm font-medium text-neutral-600 sm:text-base"
+                                >
+                                    {{
+                                        entitySeo?.intent_subtitle ||
+                                        (sentiment.is_eligible
+                                            ? `Bagus atau tidak menurut netizen? Ringkasan dari ${sentiment.opinion_count} opini publik.`
+                                            : "Opini netizen dan indeks sentimen publik.")
+                                    }}
+                                </p>
+
+                                <div
+                                    class="mt-2 flex flex-wrap items-center gap-4 text-sm text-neutral-500"
+                                >
+                                    <div>
+                                        Kategori:
+                                        <Link
+                                            :href="
+                                                showRanking.url(
+                                                    entity.category.slug,
+                                                )
+                                            "
+                                            class="font-medium text-neutral-700 hover:text-emerald-600 hover:underline"
+                                        >
+                                            {{ entity.category.name }}
+                                        </Link>
+                                    </div>
+                                    <div v-if="entity.parent">
+                                        Brand / Induk:
+                                        <Link
+                                            :href="
+                                                showEntity.url(
+                                                    entity.parent.slug,
+                                                )
+                                            "
+                                            class="font-medium text-emerald-600 hover:underline"
+                                        >
+                                            {{ entity.parent.name }}
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Period Selector: always at top right -->
+                            <div
+                                class="inline-flex shrink-0 self-start rounded-lg bg-neutral-100 p-1"
+                            >
+                                <button
+                                    v-for="p in availablePeriods"
+                                    :key="p"
+                                    type="button"
+                                    :aria-pressed="period === p"
+                                    @click="switchPeriod(p)"
+                                    class="min-h-11 rounded-md px-3 py-2.5 text-xs font-medium transition-colors"
+                                    :class="{
+                                        'bg-white text-neutral-900 shadow-sm':
+                                            period === p,
+                                        'text-neutral-600 hover:text-neutral-900':
+                                            period !== p,
+                                    }"
+                                >
+                                    {{ periodLabels[p] || p }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Entity Details: Full Width -->
+                        <div
+                            v-if="
+                                entity.description ||
+                                entity.website_url ||
+                                entity.image_url ||
+                                (leaderboard && leaderboard.is_active)
+                            "
+                            class="mt-4 w-full"
+                        >
+                            <p class="text-sm leading-relaxed text-neutral-600">
+                                {{
+                                    entity.description ||
+                                    `${entity.name} adalah ${entity.type_label} dalam kategori ${entity.category.name} di Indonesia.`
+                                }}
+                            </p>
+
+                            <!-- Direct Website Link -->
+                            <div v-if="entity.website_url" class="mt-3">
+                                <a
                                     :href="
-                                        showRanking.url(entity.category.slug)
+                                        getDirectWebsiteUrl(
+                                            entity.website_url,
+                                            entity.slug,
+                                            { placement: 'entity_profile' },
+                                        )
                                     "
-                                    class="font-medium text-neutral-700 hover:text-emerald-600 hover:underline"
+                                    :ping="`/api/sponsor/click/${entity.slug}`"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[#c2d6c6] bg-[#f0f7f2] px-3.5 py-2.5 text-xs font-semibold text-[#185b3b] transition hover:bg-[#e2f2e5]"
+                                    @click="
+                                        trackSponsorClick(entity.slug, {
+                                            placement: 'entity_profile',
+                                            url:
+                                                entity.website_url || undefined,
+                                        })
+                                    "
                                 >
-                                    {{ entity.category.name }}
-                                </Link>
+                                    <span>Kunjungi Website Resmi</span>
+                                    <ArrowUpRight class="size-3.5" />
+                                </a>
                             </div>
-                            <div v-if="entity.parent">
-                                Brand / Induk:
-                                <Link
-                                    :href="showEntity.url(entity.parent.slug)"
-                                    class="font-medium text-emerald-600 hover:underline"
+
+                            <!-- Leaderboard Badge: Full Width -->
+                            <div
+                                v-if="leaderboard && leaderboard.is_active"
+                                class="mt-4 flex w-full flex-wrap items-center justify-between gap-3 rounded-xl border border-[#fed7aa] bg-[#fffaf0] p-3 text-xs"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <Trophy class="size-4 text-[#d97706]" />
+                                    <span class="font-bold text-[#92400e]"
+                                        >Aktif di Leaderboard Sponsor</span
+                                    >
+                                    <span class="font-medium text-[#b45309]"
+                                        >·
+                                        {{ leaderboard.views_count }} Pengunjung
+                                        · {{ leaderboard.clicks_count }} Klik
+                                        URL</span
+                                    >
+                                </div>
+                                <a
+                                    :href="
+                                        getDirectWebsiteUrl(
+                                            leaderboard.website_url ||
+                                                entity.website_url,
+                                            entity.slug,
+                                            {
+                                                placement:
+                                                    'entity_sponsor_badge',
+                                            },
+                                        )
+                                    "
+                                    :ping="`/api/sponsor/click/${entity.slug}`"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="inline-flex items-center gap-1 font-bold text-[#b45309] hover:underline"
+                                    @click="
+                                        trackSponsorClick(entity.slug, {
+                                            placement: 'entity_sponsor_badge',
+                                            url:
+                                                leaderboard.website_url ||
+                                                entity.website_url ||
+                                                undefined,
+                                        })
+                                    "
                                 >
-                                    {{ entity.parent.name }}
-                                </Link>
+                                    Buka Situs Resmi
+                                    <ArrowUpRight class="size-3.5" />
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Aliases list -->
+                        <div
+                            v-if="entity.aliases.length > 0"
+                            class="mt-6 border-t border-neutral-100 pt-4"
+                        >
+                            <div
+                                class="text-xs font-medium tracking-wider text-neutral-400 uppercase"
+                            >
+                                Nama Alternatif / Alias:
+                            </div>
+                            <div class="mt-2 flex flex-wrap gap-1.5">
+                                <span
+                                    v-for="alias in entity.aliases"
+                                    :key="alias.id"
+                                    class="rounded-md bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600"
+                                >
+                                    {{ alias.alias }}
+                                </span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Period Selector: always at top right -->
-                    <div class="inline-flex shrink-0 self-start rounded-lg bg-neutral-100 p-1">
-                        <button
-                            v-for="p in availablePeriods"
-                            :key="p"
-                            type="button"
-                            :aria-pressed="period === p"
-                            @click="switchPeriod(p)"
-                            class="min-h-11 rounded-md px-3 py-2.5 text-xs font-medium transition-colors"
-                            :class="{
-                                'bg-white text-neutral-900 shadow-sm':
-                                    period === p,
-                                'text-neutral-600 hover:text-neutral-900':
-                                    period !== p,
-                            }"
+                    <figure v-if="entity.image_url" class="shrink-0 sm:w-56">
+                        <img
+                            :src="entity.image_url"
+                            :alt="entity.name"
+                            loading="lazy"
+                            class="max-h-48 w-full rounded-lg bg-neutral-50 object-contain sm:max-h-56"
+                        />
+                        <figcaption
+                            v-if="entity.image_credit"
+                            class="mt-1 text-[11px] leading-snug text-neutral-500"
                         >
-                            {{ periodLabels[p] || p }}
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Entity Details: Full Width -->
-                <div
-                    v-if="
-                        entity.description ||
-                        entity.website_url ||
-                        entity.image_url ||
-                        (leaderboard && leaderboard.is_active)
-                    "
-                    class="mt-4 w-full"
-                >
-                    <p
-                        class="text-sm leading-relaxed text-neutral-600"
-                    >
-                        {{ entity.description || `${entity.name} adalah ${entity.type_label} dalam kategori ${entity.category.name} di Indonesia.` }}
-                    </p>
-
-                    <!-- Direct Website Link -->
-                    <div v-if="entity.website_url" class="mt-3">
-                        <a
-                            :href="
-                                getDirectWebsiteUrl(
-                                    entity.website_url,
-                                    entity.slug,
-                                    { placement: 'entity_profile' },
-                                )
-                            "
-                            :ping="`/api/sponsor/click/${entity.slug}`"
-                            target="_blank"
-                            rel="noopener"
-                            class="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[#c2d6c6] bg-[#f0f7f2] px-3.5 py-2.5 text-xs font-semibold text-[#185b3b] transition hover:bg-[#e2f2e5]"
-                            @click="
-                                trackSponsorClick(entity.slug, {
-                                    placement: 'entity_profile',
-                                    url: entity.website_url || undefined,
-                                })
-                            "
-                        >
-                            <span>Kunjungi Website Resmi</span>
-                            <ArrowUpRight class="size-3.5" />
-                        </a>
-                    </div>
-
-                    <!-- Leaderboard Badge: Full Width -->
-                    <div
-                        v-if="leaderboard && leaderboard.is_active"
-                        class="mt-4 flex w-full flex-wrap items-center justify-between gap-3 rounded-xl border border-[#fed7aa] bg-[#fffaf0] p-3 text-xs"
-                    >
-                        <div class="flex items-center gap-2">
-                            <Trophy class="size-4 text-[#d97706]" />
-                            <span class="font-bold text-[#92400e]"
-                                >Aktif di Leaderboard Sponsor</span
-                            >
-                            <span class="font-medium text-[#b45309]"
-                                >· {{ leaderboard.views_count }} Pengunjung ·
-                                {{ leaderboard.clicks_count }} Klik URL</span
-                            >
-                        </div>
-                        <a
-                            :href="
-                                getDirectWebsiteUrl(
-                                    leaderboard.website_url ||
-                                        entity.website_url,
-                                    entity.slug,
-                                    { placement: 'entity_sponsor_badge' },
-                                )
-                            "
-                            :ping="`/api/sponsor/click/${entity.slug}`"
-                            target="_blank"
-                            rel="noopener"
-                            class="inline-flex items-center gap-1 font-bold text-[#b45309] hover:underline"
-                            @click="
-                                trackSponsorClick(entity.slug, {
-                                    placement: 'entity_sponsor_badge',
-                                    url:
-                                        leaderboard.website_url ||
-                                        entity.website_url ||
-                                        undefined,
-                                })
-                            "
-                        >
-                            Buka Situs Resmi <ArrowUpRight class="size-3.5" />
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Aliases list -->
-                <div
-                    v-if="entity.aliases.length > 0"
-                    class="mt-6 border-t border-neutral-100 pt-4"
-                >
-                    <div
-                        class="text-xs font-medium tracking-wider text-neutral-400 uppercase"
-                    >
-                        Nama Alternatif / Alias:
-                    </div>
-                    <div class="mt-2 flex flex-wrap gap-1.5">
-                        <span
-                            v-for="alias in entity.aliases"
-                            :key="alias.id"
-                            class="rounded-md bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600"
-                        >
-                            {{ alias.alias }}
-                        </span>
-                    </div>
-                </div>
-                </div>
-
-                <figure v-if="entity.image_url" class="shrink-0 sm:w-56">
-                    <img
-                        :src="entity.image_url"
-                        :alt="entity.name"
-                        loading="lazy"
-                        class="max-h-48 w-full rounded-lg bg-neutral-50 object-contain sm:max-h-56"
-                    />
-                    <figcaption v-if="entity.image_credit" class="mt-1 text-[11px] leading-snug text-neutral-500">
-                        {{ entity.image_credit }}
-                    </figcaption>
-                </figure>
+                            {{ entity.image_credit }}
+                        </figcaption>
+                    </figure>
                 </div>
             </div>
 
@@ -676,9 +718,7 @@ async function removeRating(): Promise<void> {
                                             sentiment.distribution.positive_pct
                                         }}%
                                     </div>
-                                    <div
-                                        class="text-[10px] text-emerald-800"
-                                    >
+                                    <div class="text-[10px] text-emerald-800">
                                         Positif ({{ sentiment.positive_count }})
                                     </div>
                                 </div>
@@ -718,7 +758,7 @@ async function removeRating(): Promise<void> {
                     <p class="mt-1 text-xs text-neutral-500">
                         {{
                             sentiment.empty_state_message ||
-                            'Crawler opini publik belum mengumpulkan minimal 30 opini netizen untuk entitas ini. Skor agregat publik akan dihitung otomatis saat pipeline observasi aktif.'
+                            "Crawler opini publik belum mengumpulkan minimal 30 opini netizen untuk entitas ini. Skor agregat publik akan dihitung otomatis saat pipeline observasi aktif."
                         }}
                     </p>
 
@@ -796,7 +836,8 @@ async function removeRating(): Promise<void> {
                         Top Suara Netijen
                     </h2>
                     <p class="mt-0.5 text-xs text-neutral-500">
-                        Hal yang paling sering dibahas netizen tentang entitas ini, diurutkan berdasarkan jumlah opini.
+                        Hal yang paling sering dibahas netizen tentang entitas
+                        ini, diurutkan berdasarkan jumlah opini.
                     </p>
                 </div>
 
@@ -809,7 +850,9 @@ async function removeRating(): Promise<void> {
                         <h3 class="text-sm font-semibold text-neutral-900">
                             Ringkasan Suara Netijen
                         </h3>
-                        <p class="mt-1.5 text-sm leading-relaxed text-neutral-700">
+                        <p
+                            class="mt-1.5 text-sm leading-relaxed text-neutral-700"
+                        >
                             {{ themes.summary.text }}
                         </p>
                         <p class="mt-2 text-xs text-neutral-500">
@@ -819,10 +862,10 @@ async function removeRating(): Promise<void> {
                             {{
                                 new Date(
                                     themes.summary.generated_at,
-                                ).toLocaleDateString('id-ID', {
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric',
+                                ).toLocaleDateString("id-ID", {
+                                    day: "numeric",
+                                    month: "long",
+                                    year: "numeric",
                                 })
                             }}. Bisa kurang tepat.
                         </p>
@@ -870,7 +913,9 @@ async function removeRating(): Promise<void> {
 
                     <!-- Groups: Kelebihan & Kekurangan Menurut Netizen (docs/31 Fase 1) -->
                     <div class="pt-4">
-                        <h4 class="text-xs font-bold tracking-wider text-neutral-500 uppercase">
+                        <h4
+                            class="text-xs font-bold tracking-wider text-neutral-500 uppercase"
+                        >
                             Kelebihan dan Kekurangan Menurut Netizen
                         </h4>
                         <div class="mt-2.5 grid gap-4 sm:grid-cols-2">
@@ -890,10 +935,14 @@ async function removeRating(): Promise<void> {
                                         :key="t.id"
                                         class="inline-flex items-center rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800"
                                     >
-                                        {{ t.display_label }} (disebut {{ t.observation_count }} kali)
+                                        {{ t.display_label }} (disebut
+                                        {{ t.observation_count }} kali)
                                     </span>
                                 </div>
-                                <div v-else class="mt-2 text-xs text-neutral-400">
+                                <div
+                                    v-else
+                                    class="mt-2 text-xs text-neutral-400"
+                                >
                                     Belum ada tema positif yang dominan.
                                 </div>
                             </div>
@@ -914,10 +963,14 @@ async function removeRating(): Promise<void> {
                                         :key="t.id"
                                         class="inline-flex items-center rounded-md bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-800"
                                     >
-                                        {{ t.display_label }} (disebut {{ t.observation_count }} kali)
+                                        {{ t.display_label }} (disebut
+                                        {{ t.observation_count }} kali)
                                     </span>
                                 </div>
-                                <div v-else class="mt-2 text-xs text-neutral-400">
+                                <div
+                                    v-else
+                                    class="mt-2 text-xs text-neutral-400"
+                                >
                                     Belum ada keluhan berulang yang terdeteksi.
                                 </div>
                             </div>
@@ -933,7 +986,7 @@ async function removeRating(): Promise<void> {
                     <p class="text-xs text-neutral-500">
                         {{
                             themes.empty_state_message ||
-                            'Belum cukup opini untuk merangkum Suara Netijen.'
+                            "Belum cukup opini untuk merangkum Suara Netijen."
                         }}
                     </p>
                 </div>
@@ -962,7 +1015,13 @@ async function removeRating(): Promise<void> {
                         :src="`https://www.youtube-nocookie.com/embed/${activeVideo.youtube_id}?autoplay=1&rel=0`"
                         :title="activeVideo.title"
                         class="absolute inset-0 h-full w-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                        allow="
+                            accelerometer;
+                            autoplay;
+                            clipboard-write;
+                            encrypted-media;
+                            picture-in-picture;
+                        "
                         referrerpolicy="strict-origin-when-cross-origin"
                         allowfullscreen
                     />
@@ -1005,7 +1064,10 @@ async function removeRating(): Promise<void> {
                     v-if="reviewVideos && reviewVideos.length > 1"
                     class="mt-4 space-y-2 border-t border-neutral-100 pt-4"
                 >
-                    <li v-for="(video, index) in reviewVideos" :key="video.youtube_id">
+                    <li
+                        v-for="(video, index) in reviewVideos"
+                        :key="video.youtube_id"
+                    >
                         <button
                             type="button"
                             class="min-h-11 w-full rounded-lg border px-3 py-2 text-left text-xs focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none"
@@ -1071,7 +1133,7 @@ async function removeRating(): Promise<void> {
                                         'text-rose-600': (pt.score ?? 0) < 50,
                                     }"
                                 >
-                                    {{ pt.score !== null ? pt.score : '—' }}
+                                    {{ pt.score !== null ? pt.score : "—" }}
                                 </span>
                                 <span
                                     v-if="pt.score !== null"
@@ -1144,8 +1206,8 @@ async function removeRating(): Promise<void> {
                             >
                                 {{
                                     ratingData.user_rating === null
-                                        ? 'Beri rating Anda'
-                                        : 'Rating Anda'
+                                        ? "Beri rating Anda"
+                                        : "Rating Anda"
                                 }}
                             </div>
                             <div
@@ -1185,8 +1247,8 @@ async function removeRating(): Promise<void> {
                             >
                                 {{
                                     ratingForm.processing
-                                        ? 'Menyimpan...'
-                                        : 'Simpan rating & ulasan'
+                                        ? "Menyimpan..."
+                                        : "Simpan rating & ulasan"
                                 }}
                             </button>
                             <button
@@ -1203,7 +1265,10 @@ async function removeRating(): Promise<void> {
 
                     <!-- Optional written review textarea -->
                     <div class="mt-4">
-                        <label for="review-input" class="block text-xs font-semibold text-neutral-700">
+                        <label
+                            for="review-input"
+                            class="block text-xs font-semibold text-neutral-700"
+                        >
                             Tulis Ulasan (opsional)
                         </label>
                         <textarea
@@ -1236,7 +1301,10 @@ async function removeRating(): Promise<void> {
                 </div>
 
                 <!-- Public User Reviews Section -->
-                <div v-if="userReviews && userReviews.length > 0" class="mt-8 border-t border-neutral-100 pt-6">
+                <div
+                    v-if="userReviews && userReviews.length > 0"
+                    class="mt-8 border-t border-neutral-100 pt-6"
+                >
                     <h3 class="text-sm font-bold text-neutral-900">
                         Ulasan Terbaru Netijen ({{ userReviews.length }})
                     </h3>
@@ -1248,18 +1316,28 @@ async function removeRating(): Promise<void> {
                         >
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-xs font-bold text-neutral-900">
+                                    <span
+                                        class="text-xs font-bold text-neutral-900"
+                                    >
                                         {{ rev.user_name }}
                                     </span>
-                                    <div class="flex items-center gap-0.5 text-xs text-amber-500">
-                                        <Star v-for="s in rev.rating" :key="s" class="size-3.5 fill-amber-400 text-amber-400" />
+                                    <div
+                                        class="flex items-center gap-0.5 text-xs text-amber-500"
+                                    >
+                                        <Star
+                                            v-for="s in rev.rating"
+                                            :key="s"
+                                            class="size-3.5 fill-amber-400 text-amber-400"
+                                        />
                                     </div>
                                 </div>
                                 <span class="text-[11px] text-neutral-400">
                                     {{ rev.created_at }}
                                 </span>
                             </div>
-                            <p class="mt-2 text-xs leading-relaxed text-neutral-700">
+                            <p
+                                class="mt-2 text-xs leading-relaxed text-neutral-700"
+                            >
                                 {{ rev.review }}
                             </p>
                         </div>
@@ -1277,7 +1355,8 @@ async function removeRating(): Promise<void> {
                         Pertanyaan Seputar {{ entity.name }}
                     </h2>
                     <p class="mt-0.5 text-xs text-neutral-500">
-                        Jawaban ringkas berdasarkan agregasi data opini publik dan analisis sentimen netizen.
+                        Jawaban ringkas berdasarkan agregasi data opini publik
+                        dan analisis sentimen netizen.
                     </p>
                 </div>
 
@@ -1290,7 +1369,9 @@ async function removeRating(): Promise<void> {
                         <h3 class="text-sm font-bold text-neutral-900">
                             {{ item.question }}
                         </h3>
-                        <p class="mt-1.5 text-xs leading-relaxed text-neutral-600 sm:text-sm">
+                        <p
+                            class="mt-1.5 text-xs leading-relaxed text-neutral-600 sm:text-sm"
+                        >
                             {{ item.answer }}
                         </p>
                     </div>
@@ -1303,7 +1384,10 @@ async function removeRating(): Promise<void> {
                 class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
                 aria-labelledby="comparisons-heading"
             >
-                <h3 id="comparisons-heading" class="text-sm font-bold text-neutral-900">
+                <h3
+                    id="comparisons-heading"
+                    class="text-sm font-bold text-neutral-900"
+                >
                     Bandingkan {{ entity.name }} dengan yang lain
                 </h3>
                 <ul class="mt-3 flex flex-wrap gap-2">
@@ -1355,14 +1439,18 @@ async function removeRating(): Promise<void> {
                 <h3 class="text-sm font-bold text-neutral-900">
                     Masuk dalam Topik Pembahasan Netizen
                 </h3>
-                <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+                <div
+                    class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4"
+                >
                     <Link
                         v-for="topic in includedTopics"
                         :key="topic.id"
                         :href="`/topik/${topic.slug}`"
                         class="block rounded-xl border border-neutral-100 bg-neutral-50 p-3.5 transition hover:border-[#185b3b]/30 hover:bg-[#edf8f0]/30 hover:shadow-xs"
                     >
-                        <div class="text-xs font-bold text-[#18392d] hover:text-[#087f5b]">
+                        <div
+                            class="text-xs font-bold text-[#18392d] hover:text-[#087f5b]"
+                        >
                             {{ topic.title }}
                         </div>
                         <div class="mt-1 text-[11px] text-neutral-500">
