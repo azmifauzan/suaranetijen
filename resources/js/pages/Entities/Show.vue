@@ -484,6 +484,7 @@ async function removeRating(): Promise<void> {
                             entity.description ||
                             entity.website_url ||
                             entity.image_url ||
+                            entity.aliases.length > 0 ||
                             (leaderboard && leaderboard.is_active)
                         "
                         class="w-full sm:col-start-1 sm:row-start-2"
@@ -566,26 +567,26 @@ async function removeRating(): Promise<void> {
                                 <ArrowUpRight class="size-3.5" />
                             </a>
                         </div>
-                    </div>
 
-                    <!-- Aliases list -->
-                    <div
-                        v-if="entity.aliases.length > 0"
-                        class="mt-6 border-t border-neutral-100 pt-4"
-                    >
+                        <!-- Aliases list -->
                         <div
-                            class="text-xs font-medium tracking-wider text-neutral-400 uppercase"
+                            v-if="entity.aliases.length > 0"
+                            class="mt-6 border-t border-neutral-100 pt-4"
                         >
-                            Nama Alternatif / Alias:
-                        </div>
-                        <div class="mt-2 flex flex-wrap gap-1.5">
-                            <span
-                                v-for="alias in entity.aliases"
-                                :key="alias.id"
-                                class="rounded-md bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600"
+                            <div
+                                class="text-xs font-medium tracking-wider text-neutral-400 uppercase"
                             >
-                                {{ alias.alias }}
-                            </span>
+                                Nama Alternatif / Alias:
+                            </div>
+                            <div class="mt-2 flex flex-wrap gap-1.5">
+                                <span
+                                    v-for="alias in entity.aliases"
+                                    :key="alias.id"
+                                    class="rounded-md bg-neutral-100 px-2.5 py-1 text-xs text-neutral-600"
+                                >
+                                    {{ alias.alias }}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
