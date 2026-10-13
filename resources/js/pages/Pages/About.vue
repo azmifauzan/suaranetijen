@@ -73,11 +73,11 @@ import PublicSeo from '@/components/PublicSeo.vue';
                     <p>
                         Yang kami nilai adalah entitas: brand, produk, layanan,
                         atau tokoh publik. Brand dan produknya punya halaman
-                        sendiri-sendiri. Opini tentang IDCloudHost dihitung
-                        untuk IDCloudHost, sedangkan opini tentang VPS
-                        IDCloudHost dihitung untuk VPS IDCloudHost. Opini
-                        tentang brand tidak otomatis menurun ke produk atau
-                        layanannya.
+                        sendiri-sendiri. Opini yang menyebut nama brand
+                        dihitung untuk brand itu, sedangkan opini yang
+                        menyebut produk atau layanan tertentu dihitung untuk
+                        produk atau layanan tersebut. Opini tentang brand tidak
+                        otomatis menurun ke produk atau layanannya.
                     </p>
 
                     <h2 class="pt-4 text-xl font-bold text-neutral-900">
