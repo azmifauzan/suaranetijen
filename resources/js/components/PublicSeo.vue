@@ -17,7 +17,7 @@ const props = withDefaults(
     }>(),
     {
         robots: 'index, follow',
-        image: '/og-image.png',
+        image: '/og-image.png?v=2',
     },
 );
 
@@ -76,6 +76,11 @@ const imageUrl = computed(() => {
         />
         <meta head-key="og:locale" property="og:locale" content="id_ID" />
         <meta head-key="og:image" property="og:image" :content="imageUrl" />
+        <meta
+            head-key="og:image:alt"
+            property="og:image:alt"
+            :content="fullTitle"
+        />
         <meta
             head-key="twitter:card"
             name="twitter:card"

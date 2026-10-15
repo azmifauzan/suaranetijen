@@ -193,7 +193,9 @@ test('default og image in app blade is png and exists in public', function () {
     $response = $this->get('/');
     $response->assertOk();
 
-    expect($response->getContent())->toContain('/og-image.png');
+    expect($response->getContent())->toContain('/og-image.png?v=2')
+        ->toContain('property="og:image:alt"');
+    expect(array_slice(getimagesize(public_path('og-image.png')) ?: [], 0, 2))->toBe([1200, 630]);
     expect(file_exists(public_path('og-image.png')))->toBeTrue();
 });
 

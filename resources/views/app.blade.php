@@ -58,11 +58,12 @@
             <meta data-inertia="og:type" property="og:type" content="website">
             <meta data-inertia="og:site_name" property="og:site_name" content="{{ config('app.name', 'SuaraNetijen') }}">
             <meta data-inertia="og:locale" property="og:locale" content="id_ID">
-            <meta data-inertia="og:image" property="og:image" content="{{ rtrim(config('app.url'), '/') }}/og-image.png">
+            <meta data-inertia="og:image" property="og:image" content="{{ rtrim(config('app.url'), '/') }}/og-image.png?v=2">
+            <meta data-inertia="og:image:alt" property="og:image:alt" content="SuaraNetijen — Indeks Sentimen Publik Indonesia">
             <meta data-inertia="twitter:card" name="twitter:card" content="summary_large_image">
             <meta data-inertia="twitter:title" name="twitter:title" content="SuaraNetijen — Indeks Sentimen Publik Indonesia">
             <meta data-inertia="twitter:description" name="twitter:description" content="Cari tahu opini netizen tentang brand, produk, dan layanan di Indonesia lewat sentimen publik dan rating pengguna di SuaraNetijen.">
-            <meta data-inertia="twitter:image" name="twitter:image" content="{{ rtrim(config('app.url'), '/') }}/og-image.png">
+            <meta data-inertia="twitter:image" name="twitter:image" content="{{ rtrim(config('app.url'), '/') }}/og-image.png?v=2">
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">
