@@ -27,7 +27,7 @@ class CachePublicPages
     public const SKIP_ATTRIBUTE = 'page_cache.skip';
 
     private const ROUTES = [
-        'home', 'about', 'methodology', 'sources', 'terms', 'privacy',
+        'home', 'about', 'methodology', 'sources', 'terms', 'privacy', 'contact',
         'entities.show', 'categories.show', 'rankings.index', 'rankings.show',
         'topics.index', 'topics.show', 'comparisons.index', 'comparisons.show',
     ];

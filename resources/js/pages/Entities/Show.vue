@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import PublicLayout from "@/layouts/PublicLayout.vue";
-import { home, methodology, sources } from "@/routes";
+import { contact, home, methodology, sources } from "@/routes";
 import { show as showEntity } from "@/routes/entities";
 import { show as showCategory } from "@/routes/categories";
 import { show as showRanking } from "@/routes/rankings";
@@ -10,6 +10,7 @@ import { computed, ref } from "vue";
 import { login } from "@/routes";
 import PublicSeo from "@/components/PublicSeo.vue";
 import { trackEvent } from "@/lib/analytics";
+import { buildEntityJsonLd } from "@/lib/entityJsonLd";
 import { getDirectWebsiteUrl, trackSponsorClick } from "@/lib/sponsor";
 import {
     destroy as deleteRating,
@@ -217,36 +218,9 @@ const metaDescription = computed(() => {
     return `Indeks sentimen dan opini netizen untuk ${props.entity.name} di SuaraNetijen.`;
 });
 
-const jsonLd = computed(() => {
-    const data: Record<string, unknown> = {
-        "@context": "https://schema.org",
-        "@type":
-            props.entity.type === "service"
-                ? "Service"
-                : props.entity.type === "brand"
-                  ? "Organization"
-                  : "Product",
-        name: props.entity.name,
-        description:
-            props.entity.description || `${props.entity.name} di SuaraNetijen`,
-    };
-
-    // AggregateRating schema used ONLY for first-party rating, NEVER for Sentimen Netijen (docs/13, ADR-007)
-    if (
-        ratingData.value.rating_count > 0 &&
-        ratingData.value.rating_average !== null
-    ) {
-        data.aggregateRating = {
-            "@type": "AggregateRating",
-            ratingValue: ratingData.value.rating_average,
-            reviewCount: ratingData.value.rating_count,
-            bestRating: 5,
-            worstRating: 1,
-        };
-    }
-
-    return data;
-});
+const jsonLd = computed(() =>
+    buildEntityJsonLd(props.entity, ratingData.value),
+);
 
 const periodLabels: Record<string, string> = {
     "30d": "30 Hari",
@@ -819,6 +793,13 @@ async function removeRating(): Promise<void> {
                             class="text-emerald-600 hover:underline"
                         >
                             Sumber Data
+                        </Link>
+                        <span>•</span>
+                        <Link
+                            :href="`${contact().url}#koreksi`"
+                            class="text-emerald-600 hover:underline"
+                        >
+                            Ajukan Koreksi
                         </Link>
                     </div>
                 </div>

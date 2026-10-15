@@ -65,6 +65,8 @@ Route::get('/sources', [StaticPageController::class, 'sources'])->name('sources'
 Route::get('/about', [StaticPageController::class, 'about'])->name('about');
 Route::get('/terms', [StaticPageController::class, 'terms'])->name('terms');
 Route::get('/privacy', [StaticPageController::class, 'privacy'])->name('privacy');
+Route::get('/contact', [StaticPageController::class, 'contact'])->name('contact');
+Route::get('/llms.txt', [StaticPageController::class, 'llms'])->name('llms');
 
 // SEO XML Sitemap (docs/13, docs/17)
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');

@@ -5,6 +5,7 @@ import { ref } from 'vue';
 import BrandLogo from '@/components/BrandLogo.vue';
 import {
     about,
+    contact,
     dashboard,
     home,
     login,
@@ -148,6 +149,7 @@ const navigation = [
                             ><Link :href="about()">Tentang SuaraNetijen</Link
                             ><Link :href="methodology()">Metodologi</Link
                             ><Link :href="sources()">Sumber data</Link
+                            ><Link :href="contact()">Kontak dan koreksi</Link
                             ><a
                                 href="https://github.com/azmifauzan/suaranetijen"
                                 target="_blank"

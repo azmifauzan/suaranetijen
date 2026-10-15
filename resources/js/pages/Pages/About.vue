@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import PublicLayout from '@/layouts/PublicLayout.vue';
-import { home, methodology, sources } from '@/routes';
+import { contact, home, methodology, sources } from '@/routes';
 import { Link } from '@inertiajs/vue3';
 import PublicSeo from '@/components/PublicSeo.vue';
 </script>
@@ -130,6 +130,20 @@ import PublicSeo from '@/components/PublicSeo.vue';
                         pengguna, foto profil, atau data pribadi penulis opini
                         dari situs lain. Yang dinilai adalah entitasnya, bukan
                         orang yang menulis.
+                    </p>
+
+                    <h2 class="pt-4 text-xl font-bold text-neutral-900">
+                        Siapa yang Mengelola
+                    </h2>
+                    <p>
+                        SuaraNetijen dikelola oleh Tim SuaraNetijen. Pertanyaan,
+                        hak jawab, dan permintaan koreksi data entitas bisa
+                        dikirim lewat halaman
+                        <Link
+                            :href="contact()"
+                            class="font-semibold text-emerald-700 hover:underline"
+                            >kontak dan koreksi</Link
+                        >. Kami membalas paling lambat 5 hari kerja.
                     </p>
 
                     <section

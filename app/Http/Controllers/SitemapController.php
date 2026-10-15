@@ -33,7 +33,7 @@ class SitemapController extends Controller
      * Only indexes:
      * - Active, searchable entities clearing the public-score threshold (opinion_count >= 30).
      * - Active categories (/category/{slug} and /top/{slug}).
-     * - Public static trust pages (/methodology, /sources, /about, /terms, /privacy).
+     * - Public static trust pages (/methodology, /sources, /about, /contact, /terms, /privacy).
      * Excludes /search per docs/31 item 0.7.
      */
     public function index(): Response
@@ -74,6 +74,11 @@ class SitemapController extends Controller
                 'loc' => "{$baseUrl}/about",
                 'changefreq' => 'monthly',
                 'priority' => '0.6',
+            ],
+            [
+                'loc' => "{$baseUrl}/contact",
+                'changefreq' => 'yearly',
+                'priority' => '0.4',
             ],
             [
                 'loc' => "{$baseUrl}/terms",

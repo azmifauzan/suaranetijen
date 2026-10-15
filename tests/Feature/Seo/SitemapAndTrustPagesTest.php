@@ -27,6 +27,22 @@ test('static trust and legal pages render successfully', function () {
     $this->get('/about')->assertOk()->assertInertia(fn (Assert $page) => $page->component('Pages/About'));
     $this->get('/terms')->assertOk()->assertInertia(fn (Assert $page) => $page->component('Pages/Terms'));
     $this->get('/privacy')->assertOk()->assertInertia(fn (Assert $page) => $page->component('Pages/Privacy'));
+    $this->get('/contact')->assertOk()->assertInertia(fn (Assert $page) => $page->component('Pages/Contact'));
+});
+
+test('llms.txt serves a plain-text site summary with the configured score thresholds', function () {
+    config(['app.url' => 'https://suaranetijen.id', 'scoring.public_min_opinions' => 30, 'scoring.ranking_min_opinions' => 100]);
+
+    $response = $this->get('/llms.txt');
+
+    $response->assertOk()->assertHeader('Content-Type', 'text/plain; charset=UTF-8');
+    expect($response->getContent())
+        ->toStartWith('# SuaraNetijen')
+        ->toContain('100 x (positif + 0,5 x netral) / jumlah opini')
+        ->toContain('minimal 30 opini relevan')
+        ->toContain('minimal 100 opini')
+        ->toContain('https://suaranetijen.id/methodology')
+        ->toContain('https://suaranetijen.id/contact');
 });
 
 test('public document shell exposes Indonesian SEO defaults', function () {
@@ -291,6 +307,7 @@ test('sitemap indexes only active entities that clear public score threshold and
     expect($content)->toContain('/methodology');
     expect($content)->toContain('/sources');
     expect($content)->toContain('/about');
+    expect($content)->toContain('/contact');
     expect($content)->toContain('/terms');
     expect($content)->toContain('/privacy');
 });
