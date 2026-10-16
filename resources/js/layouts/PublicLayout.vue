@@ -158,6 +158,14 @@ const navigation = [
                                 >Kode sumber di GitHub
                                 <ArrowUpRight class="size-4"
                             /></a>
+                            <a
+                                href="https://status.suaranetijen.id"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex items-center gap-2"
+                                >Status layanan
+                                <ArrowUpRight class="size-4"
+                            /></a>
                         </div>
                         <div class="flex flex-col gap-3">
                             <span class="mb-1 font-bold">Mulai di sini</span
