@@ -31,6 +31,11 @@ class ExtractThemesBatchJob implements ShouldQueue
     public int $maxExceptions = 3;
 
     /**
+     * Allows the 120s Codex runner limit plus HTTP and persistence overhead.
+     */
+    public int $timeout = 140;
+
+    /**
      * @param  list<array{sourceItemId: int, sourceId: int, sourceDocumentHash: string|null, publishedAt: string|null, text: string}>  $items
      */
     public function __construct(

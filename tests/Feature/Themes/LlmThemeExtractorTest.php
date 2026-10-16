@@ -230,3 +230,16 @@ it('drops a theme whose label judgement contradicts the opinion sentiment', func
     expect($result)->toHaveCount(1)
         ->and($result[0]['theme']->display_label)->toBe('Baterai cepat habis');
 });
+
+it('gives a batch call a longer timeout than the configured single-call default', function () {
+    Http::preventStrayRequests();
+    LlmSetting::create(['base_url' => 'https://llm.test/v1', 'model' => 'm', 'api_key' => 'k', 'max_tokens' => 800, 'temperature' => 0.1, 'timeout_seconds' => 20]);
+    Http::fake(['llm.test/*' => Http::response(['choices' => [['message' => ['content' => json_encode(['results' => []])]]]])]);
+
+    app(LlmThemeExtractor::class)->extractBatch(1, 'Samsung', [
+        'a' => ['key' => 'a', 'text' => 'Kameranya bagus banget buat foto malam.'],
+    ]);
+
+    Http::assertSent(fn ($request) => ($request->toPsrRequest()->getBody()->getContents() !== '') && true);
+    expect((new ReflectionClass(LlmThemeExtractor::class))->getReflectionConstant('BATCH_TIMEOUT_SECONDS')->getValue())->toBeGreaterThan(30);
+});

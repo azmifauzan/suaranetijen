@@ -33,6 +33,11 @@ class LlmThemeExtractor
 
     private const MAX_BATCH_ITEM_CHARS = 1200;
 
+    /**
+     * A batch asks for many opinions' themes in one completion, which routinely outlasts the 30s default.
+     */
+    private const BATCH_TIMEOUT_SECONDS = 50;
+
     public function __construct(
         private readonly LlmClient $client,
         private readonly ThemeNormalizer $normalizer,
@@ -110,7 +115,7 @@ class LlmThemeExtractor
             $normalizedTexts[$index] = TextNormalizer::normalize(mb_substr($item['text'], 0, self::MAX_BATCH_ITEM_CHARS));
         }
 
-        $response = $this->client->chat($this->batchMessages($entityId, $entityName, $items), $this->batchSchema());
+        $response = $this->client->chat($this->batchMessages($entityId, $entityName, $items), $this->batchSchema(), self::BATCH_TIMEOUT_SECONDS);
 
         $found = [];
 

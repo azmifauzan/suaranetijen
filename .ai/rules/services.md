@@ -3,6 +3,7 @@ paths:
   - app/Domains/Entities/Services/HomepageCategoryBlockService.php
   - 'app/Domains/Entities/Services/EntityCandidate*.php'
   - app/Domains/Entities/Services/EntityReviewVideoFinder.php
+  - app/Domains/Entities/Services/LlmClient.php
 ---
 
 # Services
@@ -15,3 +16,6 @@ EntityCandidateAggregator auto-approves a candidate only when all hold: source_t
 
 ## Review videos: exact-model titles only, stored as id + title, never scored
 entities:fetch-review-videos (daily 06:00, YOUTUBE_REVIEW_VIDEO_DAILY_LIMIT searches, 100 quota units each, shared with the crawler's key) stores up to 3 videos per product in entity_review_videos. A title is kept only if it reads as a review and contains the name's first word plus every model-code token; a variant word (pro, ultra, fe...) after the code must also be in the entity name. Only youtube_id and title are stored, never the channel. Shown on /e/{slug} (max 5 visible, manual first) as reference material, copy states it is not part of Sentimen Netijen (ADR-007/011). Products with no result are not searched again for 30 days (cache key review-videos:checked:{id}). Admins manage videos on the product's admin edit page (AdminEntityReviewVideoController): add by YouTube link (validated through the public oEmbed endpoint, no quota), edit title, delete a manual video, or hide an automatic one. An automatic video is only hidden (hidden_at), never deleted, so the daily search cannot re-add it; adding the same link as a manual video converts it. Manual videos do not stop the automatic search (it only skips products that already have an automatic row, hidden or not), and the search never overwrites a manual row. The public page shows visible videos, manual first, max 5.
+
+## Codex provider is node-local and never falls back to the paid API
+LLM_PROVIDER is per-node config, not the shared llm_settings row. codex_subscription sends schema-constrained inference to that node's private runner with its own ChatGPT login; OAuth credentials stay outside Laravel. Codex failures must propagate without invoking API model fallback. Pinned CLI runner disables every tool; reverify the outgoing tools list before upgrading it.

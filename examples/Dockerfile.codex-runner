@@ -1,0 +1,5 @@
+FROM python:3.13-slim
+WORKDIR /opt/runner
+COPY codex_runner.py /opt/runner/codex_runner.py
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 CODEX_BINARY=/opt/codex CODEX_HOME=/codex-auth
+ENTRYPOINT ["python3", "/opt/runner/codex_runner.py"]

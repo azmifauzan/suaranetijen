@@ -8,12 +8,12 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
+use UnexpectedValueException;
 
 /**
- * Thin HTTP client for an OpenAI-compatible chat completions endpoint. Every
- * LLM-backed feature resolves its settings through this class rather than
- * reading config()/env() or a provider SDK directly, so base_url/model/key
- * stay admin-editable from one place (see the llm_settings table).
+ * Shared JSON inference entry point. A node can opt into its private Codex runner;
+ * API nodes keep using the admin-managed llm_settings row.
  */
 class LlmClient
 {
@@ -29,6 +29,27 @@ class LlmClient
      */
     public function chat(array $messages, ?array $jsonSchema = null, ?int $timeoutSeconds = null): array
     {
+        if (config('services.llm.provider') === 'codex_subscription') {
+            if ($jsonSchema === null) {
+                throw new InvalidArgumentException('Codex inference requires a JSON schema.');
+            }
+
+            $response = Http::withToken(config('services.llm.codex_runner_token'))
+                ->connectTimeout(5)
+                ->timeout(125)
+                ->post(rtrim((string) config('services.llm.codex_runner_url'), '/').'/chat', [
+                    'messages' => $messages,
+                    'json_schema' => $jsonSchema,
+                ])->throw();
+
+            $result = $response->json();
+            if (! is_array($result) || ! is_object($response->object())) {
+                throw new UnexpectedValueException('Codex runner returned an invalid JSON object.');
+            }
+
+            return $result;
+        }
+
         $settings = $this->resolveSettings();
         $fallback = $settings['fallback_model'];
 

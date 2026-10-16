@@ -208,7 +208,7 @@ return [
             'maxJobs' => 0,
             'memory' => 128,
             'tries' => 1,
-            'timeout' => 60,
+            'timeout' => 150,
             'nice' => 0,
         ],
         'supervisor-crawl' => [
@@ -274,7 +274,7 @@ return [
             'maxJobs' => 0,
             'memory' => 128,
             'tries' => 1,
-            'timeout' => 60,
+            'timeout' => 150,
             'nice' => 0,
         ],
         'supervisor-maintenance' => [

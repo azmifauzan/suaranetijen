@@ -66,6 +66,10 @@ return [
     // (see LlmClient::resolveSettings()) — every LLM-backed feature shares
     // that one settings row instead of reading env/config directly.
     'llm' => [
+        // Per-node transport: subscription credentials stay outside the application.
+        'provider' => env('LLM_PROVIDER', 'openai_compatible'),
+        'codex_runner_url' => env('LLM_CODEX_RUNNER_URL', 'http://suaranetijen-codex:8080'),
+        'codex_runner_token' => env('LLM_CODEX_RUNNER_TOKEN'),
         'base_url' => env('LLM_BASE_URL', 'https://api.openai.com/v1'),
         'model' => env('LLM_MODEL', 'gpt-4o-mini'),
         'api_key' => env('LLM_API_KEY'),

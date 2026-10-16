@@ -1,0 +1,40 @@
+services:
+  suaranetijen-horizon-worker:
+    env_file:
+      - .codex-runner.env
+    environment:
+      LLM_PROVIDER: codex_subscription
+      LLM_CODEX_RUNNER_URL: http://suaranetijen-codex:8080
+      REDIS_QUEUE_RETRY_AFTER: 180
+    depends_on:
+      suaranetijen-codex:
+        condition: service_healthy
+
+  suaranetijen-codex:
+    image: ${CODEX_RUNNER_IMAGE:?Set CODEX_RUNNER_IMAGE to the released runner image}
+    container_name: suaranetijen-codex
+    restart: unless-stopped
+    user: ${CODEX_RUNNER_USER:?Set CODEX_RUNNER_USER to the credential owner UID:GID}
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 0.5
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=128m,mode=1777
+    env_file:
+      - .codex-runner.env
+    volumes:
+      - ${CODEX_NODE_ROOT:?Set CODEX_NODE_ROOT}/codex:/opt/codex:ro
+      - ${CODEX_NODE_ROOT}/auth:/codex-auth:rw
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import os,urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8080/health',headers={'Authorization':'Bearer '+os.environ['CODEX_RUNNER_TOKEN']}),timeout=12).read()"
+      interval: 30s
+      timeout: 15s
+      start_period: 20s
+      retries: 3

@@ -175,3 +175,77 @@ it('stays quiet on a routine 429 rate limit', function () {
 
     Http::assertNotSent(fn (Request $r) => str_contains($r->url(), 'api.telegram.org'));
 });
+
+function useCodexRunner(): void
+{
+    config([
+        'services.llm.provider' => 'codex_subscription',
+        'services.llm.codex_runner_url' => 'http://codex.local:8080',
+        'services.llm.codex_runner_token' => 'private-runner-key',
+    ]);
+}
+
+it('uses the node local codex runner instead of shared API settings', function () {
+    useCodexRunner();
+    llmSettingWithFallback();
+    Http::preventStrayRequests();
+    Http::fake(['codex.local:8080/chat' => Http::response(['themes' => []])]);
+    $schema = ['name' => 'themes', 'schema' => ['type' => 'object']];
+    $messages = [['role' => 'user', 'content' => 'synthetic opinion']];
+
+    expect(app(LlmClient::class)->chat($messages, $schema))->toBe(['themes' => []]);
+
+    Http::assertSent(fn (Request $request) => $request->url() === 'http://codex.local:8080/chat'
+        && $request->hasHeader('Authorization', 'Bearer private-runner-key')
+        && $request['messages'] === $messages && $request['json_schema'] === $schema
+        && ! isset($request['api_key']) && ! isset($request['model']));
+    Http::assertSentCount(1);
+    expect(LlmSetting::first()->api_key)->toBe('key');
+});
+
+it('does not fall back to the paid API after any codex runner failure', function (int $status) {
+    useCodexRunner();
+    llmSettingWithFallback();
+    Http::preventStrayRequests();
+    Http::fake(['codex.local:8080/chat' => Http::response(['error' => 'runner_failed'], $status, ['Retry-After' => '300'])]);
+
+    try {
+        app(LlmClient::class)->chat([['role' => 'user', 'content' => 'test']], ['name' => 'x', 'schema' => ['type' => 'object']]);
+        $this->fail('Expected a runner failure');
+    } catch (RequestException $exception) {
+        expect($exception->response->status())->toBe($status);
+        if ($status === 429) {
+            expect($exception->response->header('Retry-After'))->toBe('300');
+        }
+    }
+    Http::assertSentCount(1);
+})->with([401, 429, 502, 504]);
+
+it('does not fall back after a codex connection failure', function () {
+    useCodexRunner();
+    llmSettingWithFallback();
+    Http::preventStrayRequests();
+    Http::fake(fn () => throw new ConnectionException('runner unavailable'));
+
+    expect(fn () => app(LlmClient::class)->chat([['role' => 'user', 'content' => 'test']], ['name' => 'x', 'schema' => ['type' => 'object']]))
+        ->toThrow(ConnectionException::class);
+    Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'llm.internal'));
+});
+
+it('requires a schema before contacting codex', function () {
+    useCodexRunner();
+    Http::fake();
+
+    expect(fn () => app(LlmClient::class)->chat([['role' => 'user', 'content' => 'test']]))
+        ->toThrow(InvalidArgumentException::class);
+    Http::assertNothingSent();
+});
+
+it('rejects malformed or non object codex output', function (string $body) {
+    useCodexRunner();
+    Http::preventStrayRequests();
+    Http::fake(['codex.local:8080/chat' => Http::response($body)]);
+
+    expect(fn () => app(LlmClient::class)->chat([['role' => 'user', 'content' => 'test']], ['name' => 'x', 'schema' => ['type' => 'object']]))
+        ->toThrow(UnexpectedValueException::class);
+})->with(['broken JSON', 'null', '[]', '[{"theme":"x"}]']);
