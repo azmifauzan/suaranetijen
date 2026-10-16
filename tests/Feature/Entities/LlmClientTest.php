@@ -96,7 +96,7 @@ it('retries with the fallback model when the main model times out', function () 
         : llmOk());
 
     expect((new LlmClient)->chat([['role' => 'user', 'content' => 'hi']]))->toBe(['ok' => true]);
-    Http::assertSent(fn (Request $request) => $request['model'] === 'backup-model');
+    Http::assertSent(fn (Request $request) => ($request['model'] ?? null) === 'backup-model');
 });
 
 it('retries with the fallback model on a 5xx from the main model', function () {
@@ -249,3 +249,92 @@ it('rejects malformed or non object codex output', function (string $body) {
     expect(fn () => app(LlmClient::class)->chat([['role' => 'user', 'content' => 'test']], ['name' => 'x', 'schema' => ['type' => 'object']]))
         ->toThrow(UnexpectedValueException::class);
 })->with(['broken JSON', 'null', '[]', '[{"theme":"x"}]']);
+
+function useCodexApiFallback(): void
+{
+    useCodexRunner();
+    config(['services.llm.codex_api_fallback' => true]);
+    llmSettingWithFallback();
+}
+
+it('keeps codex primary when API fallback is enabled', function () {
+    useCodexApiFallback();
+    Http::preventStrayRequests();
+    Http::fake(['codex.local:8080/chat' => Http::response(['ok' => true])]);
+
+    expect(app(LlmClient::class)->chat([['role' => 'user', 'content' => 'test']], ['name' => 'x', 'schema' => ['type' => 'object']]))->toBe(['ok' => true]);
+
+    Http::assertSent(fn (Request $request) => $request['timeout_seconds'] === 45);
+    Http::assertSentCount(1);
+    expect(Cache::get('llm:codex-api-fallback:'.gethostname(), 0))->toBe(0);
+});
+
+it('uses saved API settings on codex quota auth or runtime failures when enabled', function (int $status, string $code) {
+    useCodexApiFallback();
+    Http::preventStrayRequests();
+    Http::fake([
+        'codex.local:8080/chat' => Http::response(['error' => $code], $status),
+        'llm.internal/*' => llmOk(),
+    ]);
+
+    expect(app(LlmClient::class)->chat([['role' => 'user', 'content' => 'test']], ['name' => 'x', 'schema' => ['type' => 'object']]))->toBe(['ok' => true]);
+    Http::assertSent(fn (Request $request) => $request->url() === 'https://llm.internal/v1/chat/completions'
+        && $request['model'] === 'main-model' && $request->hasHeader('Authorization', 'Bearer key'));
+    Http::assertSentCount(2);
+    expect(Cache::get('llm:codex-api-fallback:'.gethostname()))->toBe(1);
+})->with([[401, 'codex_login_required'], [403, 'unauthorized'], [429, 'codex_quota_limited'], [502, 'codex_inference_failed'], [503, 'runner_unavailable'], [504, 'inference_timeout']]);
+
+it('does not spend API credits on runner contention or invalid input', function (int $status, string $code) {
+    useCodexApiFallback();
+    Http::preventStrayRequests();
+    Http::fake(['codex.local:8080/chat' => Http::response(['error' => $code], $status, ['Retry-After' => '15'])]);
+
+    expect(fn () => app(LlmClient::class)->chat([['role' => 'user', 'content' => 'test']], ['name' => 'x', 'schema' => ['type' => 'object']]))->toThrow(RequestException::class);
+    Http::assertSentCount(1);
+    expect(Cache::get('llm:codex-api-fallback:'.gethostname(), 0))->toBe(0);
+})->with([[429, 'runner_busy'], [429, 'runner_rate_limited'], [422, 'invalid_request']]);
+
+it('uses API fallback for a lost codex connection or invalid JSON', function (bool $connectionFailure) {
+    useCodexApiFallback();
+    Http::preventStrayRequests();
+    Http::fake([
+        'codex.local:8080/chat' => $connectionFailure ? Http::failedConnection() : Http::response('broken JSON'),
+        'llm.internal/*' => llmOk(),
+    ]);
+
+    expect(app(LlmClient::class)->chat([['role' => 'user', 'content' => 'test']], ['name' => 'x', 'schema' => ['type' => 'object']]))->toBe(['ok' => true]);
+    Http::assertSent(fn (Request $request) => ($request['model'] ?? null) === 'main-model');
+    expect(Cache::get('llm:codex-api-fallback:'.gethostname()))->toBe(1);
+})->with([true, false]);
+
+it('preserves the API model fallback after codex fails', function () {
+    useCodexApiFallback();
+    Http::preventStrayRequests();
+    $timeouts = [];
+    Http::fake(function (Request $request, array $options) use (&$timeouts) {
+        $timeouts[] = $options['timeout'];
+
+        return match (true) {
+            str_contains($request->url(), 'codex.local') => Http::response(['error' => 'inference_timeout'], 504),
+            $request['model'] === 'main-model' => Http::response('bad gateway', 502),
+            default => llmOk(),
+        };
+    });
+
+    expect(app(LlmClient::class)->chat([['role' => 'user', 'content' => 'test']], ['name' => 'x', 'schema' => ['type' => 'object']]))->toBe(['ok' => true]);
+    Http::assertSent(fn (Request $request) => ($request['model'] ?? null) === 'backup-model');
+    Http::assertSentCount(3);
+    expect($timeouts)->toBe([50, 30, 30]);
+});
+
+it('propagates the API error when both codex and the saved provider fail', function () {
+    useCodexApiFallback();
+    Http::preventStrayRequests();
+    Http::fake([
+        'codex.local:8080/chat' => Http::response(['error' => 'inference_timeout'], 504),
+        'llm.internal/*' => Http::response('bad gateway', 502),
+    ]);
+
+    expect(fn () => app(LlmClient::class)->chat([['role' => 'user', 'content' => 'test']], ['name' => 'x', 'schema' => ['type' => 'object']]))->toThrow(RequestException::class);
+    Http::assertSentCount(3);
+});

@@ -4,6 +4,7 @@ services:
       - .codex-runner.env
     environment:
       LLM_PROVIDER: codex_subscription
+      LLM_CODEX_API_FALLBACK: ${LLM_CODEX_API_FALLBACK:-false}
       LLM_CODEX_RUNNER_URL: http://suaranetijen-codex:8080
       REDIS_QUEUE_RETRY_AFTER: 180
     depends_on:

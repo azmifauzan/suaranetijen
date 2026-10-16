@@ -19,3 +19,6 @@ entities:fetch-review-videos (daily 06:00, YOUTUBE_REVIEW_VIDEO_DAILY_LIMIT sear
 
 ## Codex provider is node-local and never falls back to the paid API
 LLM_PROVIDER is per-node config, not the shared llm_settings row. codex_subscription sends schema-constrained inference to that node's private runner with its own ChatGPT login; OAuth credentials stay outside Laravel. Codex failures must propagate without invoking API model fallback. Pinned CLI runner disables every tool; reverify the outgoing tools list before upgrading it.
+
+## Codex paid fallback requires explicit per-node opt-in
+The user's 16 Oct 2026 fallback request supersedes the earlier no-fallback decision above. LLM_CODEX_API_FALLBACK=true enables the saved OpenAI-compatible provider only on Codex quota/auth/connection/inference failure. runner_busy and runner_rate_limited stay HTTP 429 releases without API usage. Bound Codex to 45s process/50s HTTP and API attempts to 30s each under the 140s job timeout. Count/log provider fallback without prompts or secrets.

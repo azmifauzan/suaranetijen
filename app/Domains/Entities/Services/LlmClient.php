@@ -34,20 +34,46 @@ class LlmClient
                 throw new InvalidArgumentException('Codex inference requires a JSON schema.');
             }
 
-            $response = Http::withToken(config('services.llm.codex_runner_token'))
-                ->connectTimeout(5)
-                ->timeout(125)
-                ->post(rtrim((string) config('services.llm.codex_runner_url'), '/').'/chat', [
-                    'messages' => $messages,
-                    'json_schema' => $jsonSchema,
-                ])->throw();
+            $apiFallbackEnabled = (bool) config('services.llm.codex_api_fallback', false);
+            $codexTimeout = $apiFallbackEnabled ? 45 : 120;
 
-            $result = $response->json();
-            if (! is_array($result) || ! is_object($response->object())) {
-                throw new UnexpectedValueException('Codex runner returned an invalid JSON object.');
+            try {
+                $response = Http::withToken(config('services.llm.codex_runner_token'))
+                    ->connectTimeout(5)
+                    ->timeout($codexTimeout + 5)
+                    ->post(rtrim((string) config('services.llm.codex_runner_url'), '/').'/chat', [
+                        'messages' => $messages,
+                        'json_schema' => $jsonSchema,
+                        'timeout_seconds' => $codexTimeout,
+                    ])->throw();
+
+                $result = $response->json();
+                if (! is_array($result) || ! is_object($response->object())) {
+                    throw new UnexpectedValueException('Codex runner returned an invalid JSON object.');
+                }
+
+                return $result;
+            } catch (ConnectionException|RequestException|UnexpectedValueException $e) {
+                if (! $apiFallbackEnabled) {
+                    throw $e;
+                }
+
+                if ($e instanceof RequestException) {
+                    $status = $e->response->status();
+                    if (($status < 500 && ! in_array($status, [401, 403, 429], true))
+                        || ($status === 429 && in_array($e->response->json('error'), ['runner_busy', 'runner_rate_limited'], true))) {
+                        throw $e;
+                    }
+                }
+
+                Cache::increment('llm:codex-api-fallback:'.gethostname());
+                Log::warning('llm.codex_failed_using_api', [
+                    'exception' => $e::class,
+                    'http_status' => $e instanceof RequestException ? $e->response->status() : null,
+                ]);
+                // 50s Codex HTTP + two 30s API attempts fit the 140s job timeout.
+                $timeoutSeconds = 30;
             }
-
-            return $result;
         }
 
         $settings = $this->resolveSettings();

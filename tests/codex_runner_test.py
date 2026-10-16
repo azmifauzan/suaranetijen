@@ -45,6 +45,15 @@ class CodexRunnerTest(unittest.TestCase):
             handler.dispatch()
         handler.reply.assert_called_once_with(429, {'error': 'codex_quota_limited'}, 300)
 
+    def test_requested_timeout_bounds_the_cli_process(self):
+        with patch.dict(os.environ, {'CODEX_HOME': '/private/auth'}), \
+                patch.object(runner.subprocess, 'run', side_effect=subprocess.TimeoutExpired('codex', 45)) as execute:
+            self.error(lambda: runner.infer(*runner.validate_request({**BODY, 'timeout_seconds': 45})), 504, 'inference_timeout')
+            self.assertEqual(execute.call_args.kwargs['timeout'], 45)
+        for value in (0, 121, True, "45"):
+            with self.subTest(value=value):
+                self.error(lambda: runner.validate_request({**BODY, 'timeout_seconds': value}), 422, 'invalid_timeout')
+
     def test_invalid_requests_never_start_cli(self):
         for value in [None, {}, {**BODY, 'messages': [{'role': 'tool', 'content': 'x'}]},
                       {**BODY, 'json_schema': {'schema': {'type': 'array'}}}]:

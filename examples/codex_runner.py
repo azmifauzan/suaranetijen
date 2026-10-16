@@ -33,10 +33,13 @@ def validate_request(body):
             or not isinstance(schema, dict) or not isinstance(schema.get("schema"), dict)
             or schema["schema"].get("type") != "object"):
         raise RunnerError(422, "invalid_request")
-    return messages, schema["schema"]
+    timeout = body.get("timeout_seconds", TIMEOUT)
+    if type(timeout) is not int or not 1 <= timeout <= TIMEOUT:
+        raise RunnerError(422, "invalid_timeout")
+    return messages, schema["schema"], timeout
 
 
-def infer(messages, schema):
+def infer(messages, schema, timeout=TIMEOUT):
     with tempfile.TemporaryDirectory(prefix="codex-inference-") as folder:
         directory = Path(folder)
         schema_path, output_path = directory / "schema.json", directory / "result.json"
@@ -56,7 +59,7 @@ def infer(messages, schema):
                "CODEX_HOME": os.environ["CODEX_HOME"], "RUST_LOG": "off"}
         try:
             result = subprocess.run(command, input=prompt, text=True, capture_output=True,
-                                    cwd=folder, env=env, timeout=TIMEOUT)
+                                    cwd=folder, env=env, timeout=timeout)
         except subprocess.TimeoutExpired:
             raise RunnerError(504, "inference_timeout") from None
         if result.returncode:
@@ -85,7 +88,7 @@ class Runner:
         self.completed = self.failed = 0
 
     def chat(self, body):
-        messages, schema = validate_request(body)
+        messages, schema, timeout = validate_request(body)
         if not self.lock.acquire(blocking=False):
             raise RunnerError(429, "runner_busy", 15)
         try:
@@ -96,7 +99,7 @@ class Runner:
                 raise RunnerError(429, "runner_rate_limited", max(1, int(61 - (now - self.calls[0]))))
             self.calls.append(now)
             try:
-                result = infer(messages, schema)
+                result = infer(messages, schema, timeout)
             except RunnerError:
                 self.failed += 1
                 raise

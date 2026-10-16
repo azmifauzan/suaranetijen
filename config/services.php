@@ -70,6 +70,7 @@ return [
         'provider' => env('LLM_PROVIDER', 'openai_compatible'),
         'codex_runner_url' => env('LLM_CODEX_RUNNER_URL', 'http://suaranetijen-codex:8080'),
         'codex_runner_token' => env('LLM_CODEX_RUNNER_TOKEN'),
+        'codex_api_fallback' => (bool) env('LLM_CODEX_API_FALLBACK', false),
         'base_url' => env('LLM_BASE_URL', 'https://api.openai.com/v1'),
         'model' => env('LLM_MODEL', 'gpt-4o-mini'),
         'api_key' => env('LLM_API_KEY'),
