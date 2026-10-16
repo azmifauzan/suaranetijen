@@ -5,6 +5,7 @@ use App\Domains\Sources\Models\UnmatchedMention;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use Laravel\Horizon\Contracts\MasterSupervisorRepository;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -24,3 +25,11 @@ Schedule::command('search:rebuild-documents')->dailyAt('04:30')->withoutOverlapp
 Schedule::job(new ExpireRawPayloadJob)->everyTwoMinutes();
 Schedule::command('model:prune', ['--model' => [UnmatchedMention::class]])->dailyAt('05:00')->withoutOverlapping();
 Schedule::command('queue:prune-failed', ['--hours' => 168])->dailyAt('05:15')->withoutOverlapping();
+
+// Heartbeat proves two things at once: the scheduler fired, and Horizon has a live master supervisor.
+Schedule::call(fn () => null)
+    ->name('betterstack-heartbeat')
+    ->everyFiveMinutes()
+    ->when(fn () => filled(config('services.betterstack.heartbeat_url'))
+        && app(MasterSupervisorRepository::class)->all() !== [])
+    ->pingOnSuccess(config('services.betterstack.heartbeat_url') ?? '');

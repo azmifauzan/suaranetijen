@@ -74,4 +74,10 @@ return [
         'timeout_seconds' => (int) env('LLM_TIMEOUT_SECONDS', 30),
     ],
 
+    // Better Stack heartbeat URL, pinged by the scheduler while Horizon is running.
+    // Leave unset to disable the ping.
+    'betterstack' => [
+        'heartbeat_url' => env('BETTERSTACK_HEARTBEAT_URL'),
+    ],
+
 ];

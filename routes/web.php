@@ -16,12 +16,14 @@ use App\Domains\Sponsorships\Controllers\Api\SponsorshipOrderController;
 use App\Domains\Sponsorships\Controllers\Api\SponsorUrlPreviewController;
 use App\Domains\Sponsorships\Controllers\Api\SumopodRelayWebhookController;
 use App\Domains\Sponsorships\Controllers\SponsorBoardPageController;
+use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\HomePageController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\StaticPageController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomePageController::class)->name('home');
+Route::get('/health', HealthCheckController::class)->name('health');
 
 Route::get('/leaderboard', [SponsorBoardPageController::class, 'index'])->name('leaderboard.index');
 Route::get('/sponsor', fn () => redirect()->route('leaderboard.index', [], 301))->name('sponsor.index');
