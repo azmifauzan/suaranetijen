@@ -20,6 +20,7 @@ use GuzzleHttp\Psr7\Response as Psr7Response;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 
@@ -155,6 +156,9 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
 
             if ($this->flareSolverrTabCrashed($envelope)) {
                 $this->recoverFromFlareSolverrCrash($flareSolverrUrl, $sessionId);
+            } elseif (! $envelope->successful() || $envelope->json('status') !== 'ok'
+                || ! is_int($envelope->json('solution.status')) || ! is_string($envelope->json('solution.response'))) {
+                throw new RuntimeException('FlareSolverr did not confirm request completion.');
             }
 
             return $envelope;
@@ -179,15 +183,15 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
     private function recoverFromFlareSolverrCrash(string $flareSolverrUrl, string $sessionId): void
     {
         $this->flareSolverrCommand($flareSolverrUrl, ['cmd' => 'sessions.destroy', 'session' => $sessionId]);
-        Cache::forget('flaresolverr:session:'.gethostname().':'.$sessionId);
+        Cache::forget('flaresolverr:session:'.$this->flareSolverrInstanceId().':'.$sessionId);
 
         $cooldown = max(1, (int) config('services.flaresolverr.crash_cooldown_seconds', 60));
-        Cache::put('flaresolverr:cooldown:'.gethostname(), now()->addSeconds($cooldown)->getTimestamp(), $cooldown);
+        Cache::put('flaresolverr:cooldown:'.$this->flareSolverrInstanceId(), now()->addSeconds($cooldown)->getTimestamp(), $cooldown);
     }
 
     private function assertFlareSolverrNotCoolingDown(): void
     {
-        $until = Cache::get('flaresolverr:cooldown:'.gethostname());
+        $until = Cache::get('flaresolverr:cooldown:'.$this->flareSolverrInstanceId());
 
         if (is_int($until) && $until > now()->getTimestamp()) {
             throw new RateLimitExceededException('flaresolverr', $until - now()->getTimestamp());
@@ -224,11 +228,36 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
 
         do {
             for ($slot = 0; $slot < $slots; $slot++) {
-                $lock = Cache::lock('flaresolverr:slot:'.gethostname().':'.$slot, $holdSeconds);
+                $instance = $this->flareSolverrInstanceId();
+                $lock = Cache::lock('flaresolverr:slot:'.$instance.':'.$slot, $holdSeconds);
 
                 if ($lock->get()) {
                     try {
-                        return $callback($slot);
+                        $this->assertFlareSolverrNotCoolingDown();
+                        $inFlightKey = 'flaresolverr:in-flight:'.$instance.':'.$slot;
+                        if (Cache::has($inFlightKey)) {
+                            throw new RateLimitExceededException('flaresolverr', 60);
+                        }
+                        if (! Cache::forever($inFlightKey, true)) {
+                            throw new RateLimitExceededException('flaresolverr', 60);
+                        }
+
+                        try {
+                            $result = $callback($slot);
+                        } catch (Throwable $exception) {
+                            Cache::forget('flaresolverr:session:'.$instance.':'.$this->flareSolverrSessionId($slot));
+                            Log::warning('FlareSolverr slot quarantined; restart the sidecar before clearing its in-flight marker.', [
+                                'instance' => $instance,
+                                'slot' => $slot,
+                                'exception' => $exception::class,
+                            ]);
+
+                            throw new RateLimitExceededException('flaresolverr', 60);
+                        }
+
+                        Cache::forget($inFlightKey);
+
+                        return $result;
                     } finally {
                         $lock->release();
                     }
@@ -251,23 +280,18 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
         return 'src-slot'.$slot;
     }
 
+    private function flareSolverrInstanceId(): string
+    {
+        return (string) (config('services.flaresolverr.instance_id') ?: gethostname());
+    }
+
     /**
-     * Best-effort: a failure here just means the next request.get falls
-     * back to solving its own challenge from scratch, same as before this
-     * session-reuse existed — never worth failing the caller over.
-     *
-     * A session is one long-lived browser, and on staging three of them grew from ~40MB to the
-     * container's whole memory limit within ~3 hours (tab crashes, 502 on every discovery).
-     * So the session is rotated (destroyed, then created) once its lifetime has passed; only the
-     * request that wins the atomic Cache::add rotates it, the others carry on with the fresh one.
-     * The bookkeeping is per container (hostname): every worker runs its own FlareSolverr, and a
-     * cluster-wide key made a worker believe a session existed on a browser that never had it.
-     * Recovering a missing session only creates it: destroying would kill a session another job
-     * on the same container just created.
+     * Rotate under the slot lock, and record readiness only after acknowledged creation.
+     * Failed destruction must never be followed by creation of another resident browser.
      */
     private function ensureFlareSolverrSession(string $flareSolverrUrl, string $sessionId, bool $forceRecreate = false): void
     {
-        $cacheKey = 'flaresolverr:session:'.gethostname().':'.$sessionId;
+        $cacheKey = 'flaresolverr:session:'.$this->flareSolverrInstanceId().':'.$sessionId;
         $expiresAt = now()->addMinutes(max(1, (int) config('services.flaresolverr.session_ttl_minutes', 15)));
 
         if ($forceRecreate) {
@@ -277,12 +301,13 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
             return;
         }
 
-        if (! Cache::add($cacheKey, true, $expiresAt)) {
+        if (Cache::has($cacheKey)) {
             return;
         }
 
         $this->flareSolverrCommand($flareSolverrUrl, ['cmd' => 'sessions.destroy', 'session' => $sessionId]);
         $this->flareSolverrCommand($flareSolverrUrl, ['cmd' => 'sessions.create', 'session' => $sessionId]);
+        Cache::put($cacheKey, true, $expiresAt);
     }
 
     /**
@@ -290,10 +315,12 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
      */
     private function flareSolverrCommand(string $flareSolverrUrl, array $payload): void
     {
-        try {
-            Http::timeout(30)->post(rtrim($flareSolverrUrl, '/').'/v1', $payload);
-        } catch (Throwable) {
-            // best-effort, see ensureFlareSolverrSession()
+        $response = Http::timeout(30)->post(rtrim($flareSolverrUrl, '/').'/v1', $payload);
+        if ($payload['cmd'] === 'sessions.destroy' && $this->flareSolverrSessionMissing($response)) {
+            return;
+        }
+        if (! $response->successful() || $response->json('status') !== 'ok') {
+            throw new RuntimeException('FlareSolverr did not confirm '.$payload['cmd'].'.');
         }
     }
 
@@ -310,7 +337,7 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
     private function flareSolverrSessionMissing(Response $envelope): bool
     {
         return $envelope->json('status') === 'error'
-            && str_contains((string) $envelope->json('message'), 'session');
+            && preg_match('/^(?:Error: )?(?:The |This )?session (?:does not|doesn\x27t) exist\.?$/i', trim((string) $envelope->json('message'))) === 1;
     }
 
     protected function fetchHttpDocument(SourceDocumentRef $ref): FetchedDocument

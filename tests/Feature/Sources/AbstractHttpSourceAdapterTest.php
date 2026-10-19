@@ -6,6 +6,7 @@ use App\Domains\Sources\Contracts\DiscoveryBatch;
 use App\Domains\Sources\Contracts\FetchedDocument;
 use App\Domains\Sources\Contracts\SourceDocumentRef;
 use App\Domains\Sources\Exceptions\RateLimitExceededException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -82,6 +83,161 @@ function testChallengeSolvingAdapter(): AbstractHttpSourceAdapter
         }
     };
 }
+
+it('quarantines a slot after an unconfirmed session lifecycle command', function (string $command, string $failure) {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191', 'services.flaresolverr.slot_wait_seconds' => 0]);
+    Cache::flush();
+    $commands = [];
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) use (&$commands, $command, $failure) {
+        $commands[] = $request['cmd'];
+        if ($request['cmd'] === $command) {
+            return match ($failure) {
+                'connection' => throw new ConnectionException('timeout'),
+                'http' => Http::response(['status' => 'ok'], 500),
+                'envelope' => Http::response(['status' => 'error', 'message' => 'browser failed']),
+                'malformed' => Http::response('not json'),
+            };
+        }
+
+        return Http::response(['status' => 'ok', 'solution' => ['status' => 200, 'response' => 'ok']]);
+    });
+
+    expect(fn () => testChallengeSolvingAdapter()->callRequest('https://example.test/'))
+        ->toThrow(RateLimitExceededException::class);
+    expect($commands)->toBe($command === 'sessions.destroy' ? ['sessions.destroy'] : ['sessions.destroy', 'sessions.create']);
+    expect(Cache::has('flaresolverr:session:'.gethostname().':src-slot0'))->toBeFalse();
+
+    $this->travel(30)->minutes();
+    expect(fn () => testChallengeSolvingAdapter()->callRequest('https://example.test/again'))
+        ->toThrow(RateLimitExceededException::class);
+    expect($commands)->toBe($command === 'sessions.destroy' ? ['sessions.destroy'] : ['sessions.destroy', 'sessions.create']);
+})->with(['sessions.destroy', 'sessions.create'])->with(['connection', 'http', 'envelope', 'malformed']);
+
+it('keeps an uncertain request quarantined after the slot lock expires', function () {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191', 'services.flaresolverr.slot_wait_seconds' => 0]);
+    Cache::flush();
+    $commands = [];
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) use (&$commands) {
+        $commands[] = $request['cmd'];
+        if ($request['cmd'] === 'request.get') {
+            throw new ConnectionException('caller timed out');
+        }
+
+        return Http::response(['status' => 'ok']);
+    });
+
+    expect(fn () => testChallengeSolvingAdapter()->callRequest('https://example.test/'))
+        ->toThrow(RateLimitExceededException::class);
+    $before = $commands;
+    $this->travel(30)->minutes();
+    expect(fn () => testChallengeSolvingAdapter()->callRequest('https://example.test/again'))
+        ->toThrow(RateLimitExceededException::class);
+    expect($commands)->toBe($before);
+});
+
+it('does not reopen a slot left in flight by a killed worker', function () {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191', 'services.flaresolverr.instance_id' => 'dev2-sidecar', 'services.flaresolverr.slot_wait_seconds' => 0]);
+    Cache::flush();
+    Cache::forever('flaresolverr:in-flight:dev2-sidecar:0', true);
+    Http::preventStrayRequests();
+    Http::fake();
+
+    expect(fn () => testChallengeSolvingAdapter()->callRequest('https://example.test/'))
+        ->toThrow(RateLimitExceededException::class);
+    Http::assertNothingSent();
+});
+
+it('does not create a replacement for an unrelated session error', function () {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191', 'services.flaresolverr.slot_wait_seconds' => 0]);
+    Cache::flush();
+    $commands = [];
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) use (&$commands) {
+        $commands[] = $request['cmd'];
+
+        return $request['cmd'] === 'request.get'
+            ? Http::response(['status' => 'error', 'message' => 'session not created: Chrome is still starting'])
+            : Http::response(['status' => 'ok']);
+    });
+
+    expect(fn () => testChallengeSolvingAdapter()->callRequest('https://example.test/'))
+        ->toThrow(RateLimitExceededException::class);
+    expect($commands)->toBe(['sessions.destroy', 'sessions.create', 'request.get']);
+});
+
+it('stays quarantined after crash cleanup fails even beyond the normal cooldown', function () {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191', 'services.flaresolverr.slot_wait_seconds' => 0]);
+    Cache::flush();
+    $commands = [];
+    $destroyCalls = 0;
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) use (&$commands, &$destroyCalls) {
+        $commands[] = $request['cmd'];
+        if ($request['cmd'] === 'sessions.destroy' && ++$destroyCalls > 1) {
+            throw new ConnectionException('cleanup timed out');
+        }
+
+        return $request['cmd'] === 'request.get'
+            ? Http::response(['status' => 'error', 'message' => 'tab crashed'])
+            : Http::response(['status' => 'ok']);
+    });
+
+    expect(fn () => testChallengeSolvingAdapter()->callRequest('https://example.test/'))
+        ->toThrow(RateLimitExceededException::class);
+    $before = $commands;
+    $this->travel(30)->minutes();
+    expect(fn () => testChallengeSolvingAdapter()->callRequest('https://example.test/again'))
+        ->toThrow(RateLimitExceededException::class);
+    expect($commands)->toBe($before);
+});
+
+it('accepts confirmed session absence when rotating a fresh sidecar', function () {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191']);
+    Cache::flush();
+    $commands = [];
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) use (&$commands) {
+        $commands[] = $request['cmd'];
+
+        return match ($request['cmd']) {
+            'sessions.destroy' => Http::response(['status' => 'error', 'message' => "The session doesn't exist."], 500),
+            'sessions.create' => Http::response(['status' => 'ok']),
+            'request.get' => Http::response(['status' => 'ok', 'solution' => ['status' => 200, 'response' => 'ok']]),
+        };
+    });
+
+    expect(testChallengeSolvingAdapter()->callRequest('https://example.test/')->body())->toBe('ok');
+    expect($commands)->toBe(['sessions.destroy', 'sessions.create', 'request.get']);
+});
+
+it('quarantines invalid request responses instead of reusing an uncertain browser', function (string $failure) {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191', 'services.flaresolverr.slot_wait_seconds' => 0]);
+    Cache::flush();
+    $commands = [];
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) use (&$commands, $failure) {
+        $commands[] = $request['cmd'];
+        if ($request['cmd'] !== 'request.get') {
+            return Http::response(['status' => 'ok']);
+        }
+
+        return match ($failure) {
+            'http' => Http::response(['status' => 'ok', 'solution' => ['status' => 200, 'response' => 'ok']], 502),
+            'error' => Http::response(['status' => 'error', 'message' => 'Timeout after 45 seconds.']),
+            'malformed' => Http::response('not json'),
+            'solution' => Http::response(['status' => 'ok', 'solution' => []]),
+        };
+    });
+
+    expect(fn () => testChallengeSolvingAdapter()->callRequest('https://example.test/'))
+        ->toThrow(RateLimitExceededException::class);
+    $before = $commands;
+    expect(fn () => testChallengeSolvingAdapter()->callRequest('https://example.test/again'))
+        ->toThrow(RateLimitExceededException::class);
+    expect($commands)->toBe($before);
+})->with(['http', 'error', 'malformed', 'solution']);
 
 it('preserves a query string already embedded in the URL when no extra query is passed', function () {
     Http::preventStrayRequests();
