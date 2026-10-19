@@ -267,3 +267,26 @@ test('ranking of a root category includes entities from its child categories', f
         ->has('rankings', 1)
     );
 });
+
+test('GET /top pages the ranking 50 rows at a time for "Muat lebih banyak"', function () {
+    $category = Category::factory()->create(['status' => 'active']);
+    foreach (range(1, 51) as $i) {
+        SentimentSnapshot::factory()->create([
+            'entity_id' => Entity::factory()->create(['status' => EntityStatus::Active, 'rankable' => true, 'category_id' => $category->id])->id,
+            'period' => Period::OneYear->value,
+            'score' => 90 - ($i * 0.5),
+            'opinion_count' => 150,
+        ]);
+    }
+
+    $this->get('/top')->assertInertia(fn ($page) => $page
+        ->has('rankings', 50)
+        ->where('nextPage', 2)
+    );
+
+    $this->get('/top?page=2')->assertInertia(fn ($page) => $page
+        ->has('rankings', 1)
+        ->where('rankings.0.rank', 51)
+        ->where('nextPage', null)
+    );
+});

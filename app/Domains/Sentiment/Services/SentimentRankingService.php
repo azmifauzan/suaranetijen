@@ -36,7 +36,8 @@ class SentimentRankingService
         ?int $categoryId = null,
         Period $period = Period::OneYear,
         ?int $minOpinions = null,
-        int $limit = 50
+        int $limit = 50,
+        int $offset = 0
     ): Collection {
         $minOpinions ??= (int) config('scoring.ranking_min_opinions');
 
@@ -64,9 +65,10 @@ class SentimentRankingService
             ->select('sentiment_snapshots.*')
             ->with(['entity.category'])
             ->limit($limit)
+            ->offset($offset)
             ->get();
 
-        $rank = 1;
+        $rank = $offset + 1;
 
         return $snapshots->map(function (SentimentSnapshot $snap) use (&$rank): array {
             return [

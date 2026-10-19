@@ -12,10 +12,13 @@ use App\Domains\Sponsorships\Services\SponsorLeaderboardService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\MergeProp;
 use Inertia\Response;
 
 class TopRankingController extends Controller
 {
+    private const PER_PAGE = 50;
+
     public function __construct(
         protected SentimentRankingService $rankingService,
         protected SponsorLeaderboardService $sponsorLeaderboardService
@@ -29,8 +32,6 @@ class TopRankingController extends Controller
         $periodParam = $request->query('period', '365d');
         $period = Period::tryFrom((string) $periodParam) ?? Period::OneYear;
 
-        $rankings = $this->rankingService->getRanking(null, $period);
-
         $categories = Category::query()
             ->active()
             ->orderBy('name')
@@ -42,37 +43,7 @@ class TopRankingController extends Controller
             'period' => $period->value,
             'categories' => $categories,
             'sponsorTeaser' => $sponsorTeaser,
-            'rankings' => $rankings->map(function ($item) {
-                $pos = $item['positive_count'];
-                $neu = $item['neutral_count'];
-                $neg = $item['negative_count'];
-                $total = max(1, $pos + $neu + $neg);
-
-                return [
-                    'rank' => $item['rank'],
-                    'entity' => [
-                        'id' => $item['entity']->id,
-                        'name' => $item['entity']->name,
-                        'slug' => $item['entity']->slug,
-                        'type' => $item['entity']->type->value,
-                        'type_label' => $item['entity']->type->label(),
-                    ],
-                    'category' => [
-                        'name' => $item['entity']->category->name,
-                        'slug' => $item['entity']->category->slug,
-                    ],
-                    'score' => $item['score'],
-                    'opinion_count' => $item['opinion_count'],
-                    'distribution' => [
-                        'positive' => $pos,
-                        'neutral' => $neu,
-                        'negative' => $neg,
-                        'positive_pct' => round(($pos / $total) * 100, 1),
-                        'neutral_pct' => round(($neu / $total) * 100, 1),
-                        'negative_pct' => round(($neg / $total) * 100, 1),
-                    ],
-                ];
-            }),
+            ...$this->rankingPage($request, null, $period, withCategory: true)[0],
         ]);
     }
 
@@ -90,10 +61,10 @@ class TopRankingController extends Controller
         $periodParam = $request->query('period', '365d');
         $period = Period::tryFrom((string) $periodParam) ?? Period::OneYear;
 
-        $rankings = $this->rankingService->getRanking($category->id, $period);
+        [$rankingProps, $rankingIsEmpty] = $this->rankingPage($request, $category->id, $period, withCategory: false);
 
         // An empty ranking is a stub page ("Belum Ada Ranking"); keep it out of the index (docs/31).
-        if ($rankings->isEmpty()) {
+        if ($rankingIsEmpty) {
             RobotsPolicy::noindex();
         }
 
@@ -132,33 +103,59 @@ class TopRankingController extends Controller
             'otherCategories' => $otherCategories,
             'sponsorTeaser' => $sponsorTeaser,
             'relatedTopics' => $relatedTopics,
-            'rankings' => $rankings->map(function ($item) {
-                $pos = $item['positive_count'];
-                $neu = $item['neutral_count'];
-                $neg = $item['negative_count'];
-                $total = max(1, $pos + $neu + $neg);
-
-                return [
-                    'rank' => $item['rank'],
-                    'entity' => [
-                        'id' => $item['entity']->id,
-                        'name' => $item['entity']->name,
-                        'slug' => $item['entity']->slug,
-                        'type' => $item['entity']->type->value,
-                        'type_label' => $item['entity']->type->label(),
-                    ],
-                    'score' => $item['score'],
-                    'opinion_count' => $item['opinion_count'],
-                    'distribution' => [
-                        'positive' => $pos,
-                        'neutral' => $neu,
-                        'negative' => $neg,
-                        'positive_pct' => round(($pos / $total) * 100, 1),
-                        'neutral_pct' => round(($neu / $total) * 100, 1),
-                        'negative_pct' => round(($neg / $total) * 100, 1),
-                    ],
-                ];
-            }),
+            ...$rankingProps,
         ]);
+    }
+
+    /**
+     * One page of the ranking. "Muat lebih banyak" requests the next page as a partial reload, and the merge prop
+     * appends it to the rows already on screen.
+     *
+     * @return array{0: array{rankings: MergeProp, nextPage: int|null}, 1: bool} the page props, and whether the page is empty
+     */
+    private function rankingPage(Request $request, ?int $categoryId, Period $period, bool $withCategory): array
+    {
+        $page = max(1, $request->integer('page', 1));
+
+        // One extra row tells whether a next page exists without a separate count query.
+        $rows = $this->rankingService->getRanking($categoryId, $period, limit: self::PER_PAGE + 1, offset: ($page - 1) * self::PER_PAGE);
+        $hasMore = $rows->count() > self::PER_PAGE;
+
+        $rankings = $rows->take(self::PER_PAGE)->map(function (array $item) use ($withCategory): array {
+            $pos = $item['positive_count'];
+            $neu = $item['neutral_count'];
+            $neg = $item['negative_count'];
+            $total = max(1, $pos + $neu + $neg);
+
+            return [
+                'rank' => $item['rank'],
+                'entity' => [
+                    'id' => $item['entity']->id,
+                    'name' => $item['entity']->name,
+                    'slug' => $item['entity']->slug,
+                    'type' => $item['entity']->type->value,
+                    'type_label' => $item['entity']->type->label(),
+                ],
+                ...($withCategory ? ['category' => [
+                    'name' => $item['entity']->category->name,
+                    'slug' => $item['entity']->category->slug,
+                ]] : []),
+                'score' => $item['score'],
+                'opinion_count' => $item['opinion_count'],
+                'distribution' => [
+                    'positive' => $pos,
+                    'neutral' => $neu,
+                    'negative' => $neg,
+                    'positive_pct' => round(($pos / $total) * 100, 1),
+                    'neutral_pct' => round(($neu / $total) * 100, 1),
+                    'negative_pct' => round(($neg / $total) * 100, 1),
+                ],
+            ];
+        })->values();
+
+        return [
+            ['rankings' => Inertia::merge($rankings)->matchOn('entity.id'), 'nextPage' => $hasMore ? $page + 1 : null],
+            $rankings->isEmpty(),
+        ];
     }
 }

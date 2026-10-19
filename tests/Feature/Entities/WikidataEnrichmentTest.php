@@ -73,3 +73,23 @@ it('skips a same-label Wikidata item of the wrong kind for the category', functi
 
     expect($entity->fresh()->image_url)->toBe('https://thumb.wikimedia.org/skuter.jpg');
 });
+
+it('uses the logo rather than the headquarters photo for a brand', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        '*action=wbsearchentities*' => Http::response(['search' => [['id' => 'Q312', 'label' => 'Apple', 'description' => 'American technology company']]]),
+        '*wikidata.org*ids=Q312*' => Http::response(['entities' => ['Q312' => ['claims' => [
+            'P18' => [['mainsnak' => ['datavalue' => ['value' => 'Apple_park.jpg']]]],
+            'P154' => [['mainsnak' => ['datavalue' => ['value' => 'Apple_logo.svg']]]],
+        ]]]]),
+        '*commons.wikimedia.org*' => fn ($request) => Http::response(['query' => ['pages' => ['9' => ['imageinfo' => [[
+            'thumburl' => 'https://upload.wikimedia.org/'.(str_contains(urldecode($request->url()), 'Apple_logo') ? 'logo' : 'park').'.png',
+            'extmetadata' => [],
+        ]]]]]]),
+    ]);
+    $entity = Entity::factory()->create(['type' => EntityType::Brand, 'name' => 'Apple']);
+
+    $this->artisan('entities:enrich', ['--delay' => 0])->assertSuccessful();
+
+    expect($entity->fresh()->image_url)->toBe('https://upload.wikimedia.org/logo.png');
+});

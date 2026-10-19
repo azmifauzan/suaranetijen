@@ -61,7 +61,9 @@ class WikidataDetailFinder
                 'chipset' => $labels[$this->itemId($claims, 'P880') ?? ''] ?? null,
             ];
 
-        $image = $this->image($claims['P18'][0]['mainsnak']['datavalue']['value'] ?? $claims['P154'][0]['mainsnak']['datavalue']['value'] ?? null);
+        // A brand's P18 is usually its headquarters or a store (Apple -> Apple Park); its logo (P154) identifies it.
+        $imageProperties = in_array($entity->type, [EntityType::Brand, EntityType::Service], true) ? ['P154', 'P18'] : ['P18', 'P154'];
+        $image = $this->image($claims[$imageProperties[0]][0]['mainsnak']['datavalue']['value'] ?? $claims[$imageProperties[1]][0]['mainsnak']['datavalue']['value'] ?? null);
 
         return [
             'image_url' => $image['url'] ?? null,

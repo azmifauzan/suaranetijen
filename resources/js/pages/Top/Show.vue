@@ -5,7 +5,7 @@ import { show as showEntity } from '@/routes/entities';
 import { show as showCategory } from '@/routes/categories';
 import { index as rankingIndex, show as showRanking } from '@/routes/rankings';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import PublicSeo from '@/components/PublicSeo.vue';
 import SponsorTeaserBox from '@/components/SponsorTeaserBox.vue';
 
@@ -62,6 +62,7 @@ const props = defineProps<{
     category: CategoryData;
     period: string;
     rankings: RankedEntityData[];
+    nextPage: number | null;
     otherCategories: CategoryData[];
     sponsorTeaser: SponsorTeaser;
     relatedTopics?: Array<{ id: number; slug: string; title: string; keyword: string }>;
@@ -128,6 +129,33 @@ function switchPeriod(p: string) {
         { period: p },
         { preserveScroll: true },
     );
+}
+const loadingMore = ref(false);
+const loadMoreFailed = ref(false);
+
+function loadMore() {
+    if (!props.nextPage || loadingMore.value) {
+        return;
+    }
+
+    loadingMore.value = true;
+    loadMoreFailed.value = false;
+
+    // Partial reload: the server marks `rankings` as a merge prop, so the next page is appended.
+    router.reload({
+        data: { page: props.nextPage },
+        only: ['rankings', 'nextPage'],
+        preserveUrl: true,
+        onHttpException: () => {
+            loadMoreFailed.value = true;
+        },
+        onNetworkError: () => {
+            loadMoreFailed.value = true;
+        },
+        onFinish: () => {
+            loadingMore.value = false;
+        },
+    });
 }
 </script>
 
@@ -383,6 +411,19 @@ function switchPeriod(p: string) {
                             >
                         </div>
                     </div>
+                </div>
+                <div v-if="nextPage" class="pt-3 text-center">
+                    <button
+                        type="button"
+                        class="min-h-11 rounded-lg border border-neutral-200 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-700 transition hover:border-emerald-500/50 hover:text-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none disabled:cursor-wait disabled:opacity-60"
+                        :disabled="loadingMore"
+                        @click="loadMore"
+                    >
+                        {{ loadingMore ? 'Memuat ranking...' : 'Muat lebih banyak' }}
+                    </button>
+                    <p v-if="loadMoreFailed" class="mt-2 text-xs text-rose-700" role="alert">
+                        Gagal memuat ranking berikutnya. Coba tekan lagi.
+                    </p>
                 </div>
             </div>
 

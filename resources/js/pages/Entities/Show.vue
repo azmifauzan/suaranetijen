@@ -136,6 +136,11 @@ interface RelatedEntity {
     type_label: string;
 }
 
+interface SpecsData {
+    title: string;
+    items: Array<{ label: string; value: string }>;
+}
+
 interface TrendPoint {
     date: string;
     label: string;
@@ -171,6 +176,7 @@ const props = defineProps<{
     themes: ThemesData;
     relatedEntities: RelatedEntity[];
     trend?: TrendPoint[];
+    specs?: SpecsData | null;
     includedTopics?: Array<{
         id: number;
         slug: string;
@@ -459,6 +465,7 @@ async function removeRating(): Promise<void> {
                             entity.website_url ||
                             entity.image_url ||
                             entity.aliases.length > 0 ||
+                            specs ||
                             (leaderboard && leaderboard.is_active)
                         "
                         class="w-full sm:col-start-1 sm:row-start-2"
@@ -540,6 +547,38 @@ async function removeRating(): Promise<void> {
                                 Buka Situs Resmi
                                 <ArrowUpRight class="size-3.5" />
                             </a>
+                        </div>
+
+                        <!-- Reference specs: curated data, not part of Sentimen Netijen (docs/03, ADR-008) -->
+                        <div
+                            v-if="specs"
+                            class="mt-5 border-t border-neutral-100 pt-4"
+                        >
+                            <h2 class="text-xs font-semibold text-neutral-700">
+                                {{ specs.title }}
+                            </h2>
+                            <dl
+                                class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3"
+                            >
+                                <div
+                                    v-for="item in specs.items"
+                                    :key="item.label"
+                                    class="min-w-0"
+                                >
+                                    <dt class="text-[11px] text-neutral-500">
+                                        {{ item.label }}
+                                    </dt>
+                                    <dd
+                                        class="text-sm font-medium break-words text-neutral-900"
+                                    >
+                                        {{ item.value }}
+                                    </dd>
+                                </div>
+                            </dl>
+                            <p class="mt-2 text-[11px] text-neutral-500">
+                                Data referensi, bukan bagian dari Sentimen
+                                Netijen.
+                            </p>
                         </div>
 
                         <!-- Aliases list -->
