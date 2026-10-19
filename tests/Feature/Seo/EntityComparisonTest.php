@@ -4,6 +4,7 @@ use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Enums\EntityType;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Entities\Services\EntityComparison;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Http\Controllers\SitemapController;
@@ -42,6 +43,20 @@ function comparisonEntity(string $slug, string $name, int $opinions, float $scor
 
     return $entity;
 }
+
+test('every shipped curated pair is in canonical order, so it can match a page', function () {
+    $comparisons = app(EntityComparison::class);
+    $pairs = (require config_path('comparisons.php'))['pairs'];
+
+    expect($pairs)->toBe(array_values(array_unique($pairs)));
+
+    foreach ($pairs as $pair) {
+        $slugs = $comparisons->parse($pair);
+
+        expect($slugs)->not->toBeNull()
+            ->and($comparisons->canonicalPair($slugs[0], $slugs[1]))->toBe($pair);
+    }
+});
 
 test('a curated pair renders both sides side by side and is indexable', function () {
     comparisonEntity('oppo', 'Oppo', 200, 70.2);

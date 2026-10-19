@@ -87,3 +87,12 @@ Dilewati: perbaikan "schema ganda" (positif palsu), lastmod halaman statis (7 UR
 Verifikasi: 55 tes `tests/Feature/Seo` lulus, 3 tes Vitest lulus, Pint, PHPStan, vue-tsc bersih,
 `npm run build` lulus. Halaman produk lokal tidak bisa dirender karena DB lokal belum menjalankan
 7 migrasi (`entity_review_videos` dkk.), tidak terkait perubahan ini.
+
+## Status Fase C (19 Oktober 2026)
+
+| # | Status | Catatan |
+|---|---|---|
+| C1 | selesai | 27 pasangan baru (total 59) di `config/comparisons.php`. Syarat tiap pasangan: kedua sisi lolos ambang di Postgres produksi (snapshot 365d bila ada, sesuai `eligibleSnapshot()`), kategori dan tipe sama, dan ada saran Google Autocomplete untuk "X vs Y". `search_queries` produksi tidak berisi query "vs"/"atau". Dilewati: `indihome-vs-biznet` (Biznet tidak lolos ambang), `indihome-vs-myrepublic` (tipe beda: service vs brand), `dana-vs-gopay` (GoPay 21 opini 365 hari). Ke-27 halaman dicek 200 di produksi sebelum ditambahkan |
+| Topik | 12 dipublikasikan | Total 29 topik published. Dilewati: draft berbingkai rekomendasi/perbandingan (editorial), judul berklaim ("Inovasi Terbaru"), slug ber-"terbaik", topik penanganan keluhan, draft yang tumpang tindih dengan topik published, dan kandidat tanpa draft (termasuk `smartphone-ponsel-bagus`, sinyal 137, perlu draft LLM dulu) |
+
+Data yang perlu dirapikan: nama entitas `Infinix Gt 30 Pro`, `Iphone 17`, `Iphone 17 Pro` salah kapital dan ikut tampil di title halaman banding.
