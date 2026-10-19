@@ -29,6 +29,7 @@ return [
         'hyundai-stargazer-vs-mitsubishi-xpander',
         'hyundai-vs-kia',
         'hyundai-vs-toyota',
+        'indihome-vs-myrepublic',
         'infinix-gt-30-pro-vs-poco-x7-pro',
         'infinix-vs-oppo',
         'infinix-vs-poco',
