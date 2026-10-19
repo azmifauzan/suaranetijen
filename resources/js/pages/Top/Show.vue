@@ -427,6 +427,29 @@ function loadMore() {
                 </div>
             </div>
 
+            <!-- How to read the ranking: original copy so short category lists are not thin pages (docs/31) -->
+            <section class="mt-10 max-w-3xl">
+                <h2 class="text-lg font-bold text-neutral-900">
+                    Cara membaca peringkat {{ category.name }}
+                </h2>
+                <p class="mt-3 text-sm leading-relaxed text-neutral-700">
+                    Urutan di atas memakai Sentimen Netijen, skor 0-100 dari opini netizen yang relevan dengan tiap entitas.
+                    Opini positif dihitung penuh, netral setengah, negatif nol. Entitas dengan opini terlalu sedikit tidak
+                    masuk daftar, supaya skor tidak datang dari segelintir komentar.
+                </p>
+                <p class="mt-3 text-sm leading-relaxed text-neutral-700">
+                    Skor yang sama diurutkan menurut jumlah opini terbanyak, lalu nama. Tidak ada bonus popularitas dan
+                    sponsor tidak memengaruhi urutan. Rating Netijen, yaitu bintang dari pengguna, dihitung terpisah dan
+                    tidak dicampur dengan skor sentimen.
+                </p>
+                <p class="mt-3 text-sm leading-relaxed text-neutral-700">
+                    Opini dikumpulkan dari forum, kolom komentar, dan platform video yang terbuka untuk umum. Yang dinilai
+                    adalah entitasnya, bukan penulisnya, dan nama pengguna tidak disimpan. Buka halaman entitas untuk
+                    melihat sebaran sentimen dan tema yang paling sering dibahas, atau pakai halaman perbandingan untuk
+                    membandingkan dua entitas dalam kategori yang sama.
+                </p>
+            </section>
+
             <!-- Related Topics (docs/28) -->
             <div v-if="relatedTopics && relatedTopics.length > 0" class="mt-12 rounded-2xl border border-[#e5e9e2] bg-[#f9faf7] p-6">
                 <div class="text-xs font-semibold tracking-wider text-emerald-600 uppercase">

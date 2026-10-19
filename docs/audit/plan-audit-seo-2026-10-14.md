@@ -96,3 +96,9 @@ Verifikasi: 55 tes `tests/Feature/Seo` lulus, 3 tes Vitest lulus, Pint, PHPStan,
 | Topik | 12 dipublikasikan | Total 29 topik published. Dilewati: draft berbingkai rekomendasi/perbandingan (editorial), judul berklaim ("Inovasi Terbaru"), slug ber-"terbaik", topik penanganan keluhan, draft yang tumpang tindih dengan topik published, dan kandidat tanpa draft (termasuk `smartphone-ponsel-bagus`, sinyal 137, perlu draft LLM dulu) |
 
 Data yang perlu dirapikan: nama entitas `Infinix Gt 30 Pro`, `Iphone 17`, `Iphone 17 Pro` salah kapital dan ikut tampil di title halaman banding.
+
+## Pengukuran 19 Oktober 2026
+
+B4: Page indexing 19 Okt: 262 terindeks, Discovered 35, Crawled 6 (baseline 2 Okt: 18/38), noindex 2.806, 404 25.
+GSC 28 hari: 25 klik, 3.080 impresi, posisi 7,8. RankMySEO: skor 73 (review 13 Okt). Rincian dan tindak lanjut di
+`docs/31-seo-plan.md`, bagian "Pengukuran 19 Oktober 2026".

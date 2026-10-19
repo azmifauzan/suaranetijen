@@ -759,3 +759,89 @@ Product Hunt.
 
 - **GA4:** event `submit_rating` belum pernah masuk (daftar event 28 hari: `click`, `first_visit`, `form_start`, `page_view`, `scroll`, `session_start`, `sponsor_click`, `user_engagement`, `view_search_results`). GA4 baru menampilkan bintang key event setelah event pertama diterima, jadi penandaan menunggu rating asli dari pengguna. Key event saat ini: `sponsor_click`, `view_search_results`.
 - **RankMySEO:** skor on-page masih 34 (142 halaman, 587 isu), dari audit 5 Oktober, sebelum perbaikan SSR, noindex, dan a11y. Tidak ada tombol audit ulang yang ditemukan; skor baru perlu re-crawl manual. Tiga keyword terlacak belum masuk 20 besar, domain authority 2, 3 backlink. Search Console 28 hari: 30 impresi, 0 klik, posisi rata-rata 51,2.
+
+## Pengukuran 19 Oktober 2026
+
+Sumber: Search Console (domain, 28 hari 19 Sep-16 Okt), GA4 (28 hari 21 Sep-18 Okt), RankMySEO (review 13 Okt,
+500 halaman). HTML live dicek dengan `curl` pada 19 Okt.
+
+| Metrik | Baseline 2 Okt | 7 Okt | 19 Okt | Target 1 bulan |
+|---|---|---|---|---|
+| Klik GSC / 28 hari | 1 | 0 | **25** | 15 (tercapai) |
+| Impresi GSC / 28 hari | 25 | 30 | **3.080** | 300 (tercapai) |
+| CTR / posisi rata-rata | 4% / 33,7 | - / 51,2 | **0,8% / 7,8** | - |
+| Halaman terindeks | 78 | - | **262** | 120 (tercapai) |
+| Discovered / Crawled - not indexed | 38 / 18 | - | **35 / 6** | < 20 / < 10 (Crawled tercapai) |
+| Server error 5xx | 6 | - | **1** (validasi berjalan) | 0 |
+| Excluded by noindex | 155 | - | **2.806** | lihat catatan |
+| Not found (404) | - | - | **25** (validasi gagal) | 0 |
+| Sesi GA4 / 28 hari | 1.185 | - | **1.815** | - |
+| Sesi organic search GA4 | 10 (0,8%) | - | **61 (3,4%)** | 50 (tercapai) |
+| Key event GA4 | 0 | 2 | **51** (2,2% sesi; `sponsor_click`, `view_search_results`) | 4 terdefinisi |
+| On-page score RankMySEO | 34 | 34 | **73** (500 halaman, 424 isu) | >= 70 (tercapai) |
+| Keyword terlacak di top 20 | 0 | 0 | **0** (10 keyword, semua 20+) | 1 |
+| Authority / backlink | 2 / 3 | 2 / 3 | 2 / 3 | - |
+
+**Apa yang bergerak.** Trafik organik datang hampir seluruhnya dari halaman `/banding`, bukan `/e/*`:
+`infinix-vs-oppo` (4 klik, 530 impresi), `infinix-vs-vivo` (2, 277), `infinix-vs-samsung` (1, 161),
+`infinix-vs-tecno` (1, 124), `oppo-vs-tecno` (1, 101). Query teratas berbentuk "X atau Y bagus mana"
+(`infinix dan oppo bagus mana` 25 impresi, `oppo sama infinix bagusan mana` 13, `tecno apakah bagus` 26).
+Ini membenarkan Fase C1: 28 pasangan baru dari 14 Okt belum sempat terukur, jadi dampaknya baru terlihat
+di laporan berikutnya. Dua halaman entitas ikut menghasilkan klik: `/e/daihatsu` (2 klik, 8 impresi) dan
+`/e/tecno`, `/e/iphone-16`, `/e/poco-f3`.
+
+**GA4.** Referral 62% sesi, direct 23%, organic social 6%, organic search 3,4%. Tujuh hari terakhir
+didominasi `l.threads.com` (201 sesi, kampanye Threads), sehingga lonjakan sesi bukan sinyal SEO.
+Organic search punya engagement terbaik: rata-rata 1m34s, 8,97 event per sesi, dibanding 24-30 detik di
+channel lain. `checkout.pymnt.app` (11 sesi) adalah pengembalian dari pembayaran Papan Sponsor.
+
+**RankMySEO.** Skor 73 (+39) dari review 13 Okt: 2 tipe error, 4 tipe warning. Sisa isu dan statusnya
+terhadap HTML live 19 Okt:
+
+| Isu | Halaman | Status live |
+|---|---|---|
+| Blocked from indexing | 220 | Disengaja: `/e/*` di bawah ambang memang `noindex, follow` (diverifikasi `/e/aburizal-bakrie`), dan `/top/atlet` ikut noindex karena tak ada ranking. Tidak diubah. Bagian dari 200 URL contoh adalah halaman tokoh publik |
+| Title too long | 168 | Sebagian besar sudah basi: title live `/e/samsung` 60, `/banding/*` 59, `/topik` 45, `/leaderboard` 56 karakter. Cek ulang setelah RankMySEO me-review ulang |
+| Thin content | 26 | `/about` 155 kata, `/terms` 159, `/leaderboard` 105 dan `/banding` 58 pada review 13 Okt. Live kini `/banding` 981 kata dan `/leaderboard` 970. Sisanya `/top/{kategori}` (97-136 kata); `/top/atlet` live 149 kata. Belum diperbaiki |
+| Unfriendly URL | 8 | Jalur pendek (`/about`, `/terms`) adalah false positive; tidak diganti |
+| 4xx pages / Broken links | 1 / 1 | Belum ditelusuri |
+
+Catatan lain: Starter hanya menilai 250 halaman pertama dari 500 yang di-crawl (sitemap live berisi 376 URL).
+Tanggal review di halaman isu (13 Okt) berbeda dari "Last check 19 Okt" di beranda; angka isu mengikuti review 13 Okt.
+
+**Excluded by noindex naik 155 -> 2.806.** Per metodologi (langkah 6 di skill `seo-audit-spa-methodology`)
+ini bukan bukti noindex salah: Google menemukan ribuan halaman `/e/*` di bawah ambang lewat tautan dan
+sitemap tidak memuatnya. Jangan hapus noindex. Pantau "Discovered" dan "Indexed" (35 / 262), bukan angka noindex.
+Tindak lanjut: sapuan tautan (hrefs `/e/*` dari tiap URL sitemap non-entitas dikurangi URL entitas yang
+terindeks, lalu `curl` sisanya mencari `noindex`) untuk memastikan halaman terindeks tidak menautkan entitas tipis.
+
+### Tindak lanjut dari pengukuran ini
+
+1. GSC: buka daftar "Not found (404)" (25 URL, validasi gagal); tentukan apakah URL lama (entitas yang dipurge,
+   alias) perlu redirect 301 atau cukup dibiarkan.
+2. Tulis ulang copy `/top/{kategori}` tipis (< 150 kata) dengan teks dari metodologi dan cakupan kategori,
+   tanpa angka baru dan tanpa nama merek sebagai contoh. Halaman di bawah ambang tetap noindex, jadi
+   prioritaskan kategori yang punya ranking.
+3. Perluas pasangan `/banding` di sekitar merek ponsel yang sudah mendapat impresi (Infinix, Oppo, Vivo,
+   Tecno, Xiaomi, Samsung); format "X atau Y bagus mana" cocok dengan query teratas. Ukur pasangan C1
+   di laporan Search Console 4-6 minggu setelah 14 Okt.
+4. Buat halaman/FAQ untuk query "apakah X bagus" (`tecno apakah bagus`, 26 impresi) bila `/e/tecno` belum
+   menjawabnya di H1/FAQ.
+5. Ukur ulang setelah RankMySEO me-review ulang; jangan menilai Title too long dari review 13 Okt.
+
+### Status tindak lanjut (19 Oktober 2026)
+
+1. **404 di GSC: selesai, tanpa perubahan kode.** Ke-25 URL berbentuk `/e/<nama dengan spasi>` (mis. `/e/gac aion s`) dan
+   slug resminya (`/e/gac-aion-s`) juga 404 di produksi: entitas hasil purge. 404 sudah benar; Google akan
+   menjatuhkannya sendiri. Sumber tautan berspasi tidak ditemukan di kode (`/e/` selalu dibangun dari `slug`).
+2. **Copy `/top/{kategori}`: selesai di kode, belum dideploy.** Hanya 11 `/top/*` yang ada di sitemap; yang tipis
+   dan terindeks: `bank-e-wallet` 156 kata, `e-commerce` 138, `politisi` 142, `tokoh-publik` 145, `digital-services`
+   182, `motor` 200, `fmcg` 219. Bagian "Cara membaca peringkat" (3 paragraf, dari metodologi, tanpa angka
+   baru dan tanpa nama merek) ditambahkan di `Top/Show.vue`. Halaman `/top/*` lain di daftar RankMySEO (mis.
+   `/top/atlet`) memang `noindex`, jadi tidak diperlakukan.
+3. **Pasangan `/banding`: 4 baru (total 64)**: `oppo-vs-poco`, `poco-vs-samsung`, `poco-vs-tecno`, `poco-vs-vivo`,
+   semuanya punya saran Autocomplete "bagus mana" dan kedua sisi lolos ambang. Matriks 9 merek ponsel kini hanya
+   kekurangan `apple-vs-poco` dan `apple-vs-tecno`; keduanya dilewati karena Autocomplete tidak menyarankan "bagus mana".
+4. **"Apakah X bagus" untuk `/e/tecno`: sudah ada.** FAQ pertama tiap halaman entitas bertanya "Apakah {nama} bagus
+   menurut netizen?" dan meta description diawali "Apakah {nama} bagus?". Tidak ada perubahan.
+5. Pengukuran ulang RankMySEO menunggu review berikutnya.
