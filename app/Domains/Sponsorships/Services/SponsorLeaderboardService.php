@@ -24,20 +24,24 @@ class SponsorLeaderboardService
 
     /**
      * Ensure the active weekly period exists, closing expired periods if necessary.
+     *
+     * The week runs Monday 00:00 to Sunday 23:59:59 in `sponsorship.timezone` (WIB). Rows are stored in the
+     * application timezone (UTC), so the boundaries are converted before saving.
      */
     public function ensureCurrentWeeklyPeriod(): SponsorPeriod
     {
-        $now = CarbonImmutable::now();
-        $startOfWeek = $now->startOfWeek();
-        $endOfWeek = $now->endOfWeek();
+        $now = CarbonImmutable::now((string) config('sponsorship.timezone'));
+        $startOfWeek = $now->startOfWeek()->utc();
+        $endOfWeek = $now->endOfWeek()->utc();
         $key = $now->format('o-\wW');
         $name = 'Minggu '.$now->isoWeek().' ('.$now->translatedFormat('M Y').')';
 
-        // Close any past active weekly periods that ended before this week started
+        // Close every other active weekly period, not only those that ended before this week started: a
+        // period saved with the old UTC boundaries can still overlap the first hours of this week.
         SponsorPeriod::query()
             ->where('status', SponsorPeriodStatus::Active)
             ->whereNotNull('ends_at')
-            ->where('ends_at', '<', $startOfWeek)
+            ->where('key', '!=', $key)
             ->update(['status' => SponsorPeriodStatus::Closed]);
 
         // createOrFirst, not firstOrCreate: two concurrent requests crossing a week boundary
@@ -65,8 +69,10 @@ class SponsorLeaderboardService
      */
     public function getActivePeriod(): SponsorPeriod
     {
+        // An "active" period that already ended is stale: roll over to the current week instead of serving it.
         $period = SponsorPeriod::query()
             ->where('status', SponsorPeriodStatus::Active)
+            ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
             ->orderByDesc('starts_at')
             ->first();
 

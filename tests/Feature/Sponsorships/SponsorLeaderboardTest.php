@@ -503,3 +503,34 @@ test('api /api/sponsor/click/{slug} tracks direct click count on active sponsore
 
     expect($entry->fresh()->clicks_count)->toBe(2);
 });
+
+test('the weekly period rolls over at Monday 00:00 WIB, not UTC', function () {
+    $service = app(SponsorLeaderboardService::class);
+
+    // Sunday 16:59 UTC is still Sunday 23:59 WIB: week 42.
+    $this->travelTo(CarbonImmutable::parse('2026-10-18 16:59:00', 'UTC'));
+    expect($service->ensureCurrentWeeklyPeriod()->key)->toBe('2026-w42');
+
+    // Sunday 17:00 UTC is Monday 00:00 WIB: week 43, stored as UTC boundaries.
+    $this->travelTo(CarbonImmutable::parse('2026-10-18 17:00:00', 'UTC'));
+    $period = $service->ensureCurrentWeeklyPeriod();
+
+    expect($period->key)->toBe('2026-w43')
+        ->and($period->starts_at->utc()->toDateTimeString())->toBe('2026-10-18 17:00:00')
+        ->and($period->ends_at->utc()->toDateTimeString())->toBe('2026-10-25 16:59:59')
+        ->and(SponsorPeriod::where('key', '2026-w42')->value('status'))->toBe(SponsorPeriodStatus::Closed);
+});
+
+test('getActivePeriod rolls over a stale active period instead of serving it', function () {
+    SponsorPeriod::factory()->create([
+        'key' => '2026-w42',
+        'status' => SponsorPeriodStatus::Active,
+        'starts_at' => '2026-10-12 00:00:00',
+        'ends_at' => '2026-10-18 23:59:59',
+    ]);
+    $this->travelTo(CarbonImmutable::parse('2026-10-19 01:46:00', 'UTC'));
+
+    expect(app(SponsorLeaderboardService::class)->getActivePeriod()->key)->toBe('2026-w43')
+        ->and(SponsorPeriod::where('key', '2026-w42')->value('status'))->toBe(SponsorPeriodStatus::Closed)
+        ->and(SponsorPeriod::where('status', SponsorPeriodStatus::Active)->count())->toBe(1);
+});

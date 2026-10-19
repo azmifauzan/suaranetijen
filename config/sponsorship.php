@@ -18,6 +18,9 @@ return [
 
     'currency' => 'IDR',
 
+    // Weekly boards roll over at Monday 00:00 in this timezone. Storage stays UTC.
+    'timezone' => 'Asia/Jakarta',
+
     'sumopod' => [
         'base_url' => rtrim((string) env('SUMOPOD_BASE_URL', 'https://api-pay.sumopod.com'), '/'),
         'api_key' => (string) env('SUMOPOD_API_KEY', ''),
