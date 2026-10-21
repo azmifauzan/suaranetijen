@@ -44,3 +44,6 @@ For kaskus_politik use crawl_policy.single_page=true: the public community ignor
 
 ## Wait for Kaskus client rendering before parsing
 Kaskus community/search/thread pages need FlareSolverr's native waitInSeconds=3 after browser load; root and robots preflight stay at 0. Live community 10 returned only widget links without this wait and 20 main-list threads with it. Preserve the FlareSolverr slot/session/quarantine guards when adding render options; do not compensate for empty renders by accepting hot-thread widgets or broad post selectors.
+
+## Wait for Kaskus client rendering before parsing
+Use FlareSolverr's native waitInSeconds=8 on Kaskus community listings, 3 on search/thread pages, 0 on root/robots preflight. Live tests: 3 seconds sometimes yielded 20 main-list threads and sometimes only widgets; 8 seconds loaded the list. Preserve slot/session/quarantine guards. Empty renders must not fall back to hot-thread widgets or broad post selectors.

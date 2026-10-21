@@ -27,7 +27,11 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
         $section = explode('/', trim((string) parse_url($url, PHP_URL_PATH), '/'))[0];
 
         // The public lists and replies hydrate after the browser's load event.
-        return in_array($section, ['komunitas', 'thread', 'search'], true) ? 3 : 0;
+        if ($section === 'komunitas') {
+            return 8;
+        }
+
+        return in_array($section, ['thread', 'search'], true) ? 3 : 0;
     }
 
     public function preflight(): SourceHealth

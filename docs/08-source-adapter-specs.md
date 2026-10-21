@@ -62,10 +62,10 @@ Extract:
 - `crawl_policy.single_page: true`: abaikan cursor halaman lama, ambil halaman pertama setiap
   siklus, simpan kembali `page_1`, dan kembalikan `hasMore: false`. Dedup berdasarkan ID thread
   dan item tetap berlaku saat thread yang sama ditemukan lagi.
-- FlareSolverr menunggu render tambahan 3 detik pada halaman komunitas, pencarian, dan thread
-  melalui opsi native `waitInSeconds`. Root/robots preflight tidak mendapat penantian tambahan.
-  Uji langsung halaman forum utama: tanpa penantian hanya widget yang muncul, dengan 3 detik
-  ditemukan 20 thread pada daftar utama.
+- FlareSolverr memakai opsi native `waitInSeconds`: 8 detik untuk halaman komunitas, 3 detik
+  untuk pencarian/thread, dan 0 untuk root/robots preflight. Uji 3 detik kadang menemukan 20
+  thread tetapi kadang masih kosong; uji 8 detik memuat daftar utama. Render yang tetap kosong
+  tidak diganti dengan widget sebagai fallback.
 - Hanya tautan daftar thread yang tampil di HTML publik; widget `med=hot_thread` diabaikan sebelum
   dedup, termasuk jika widget menautkan ID yang juga ada pada daftar utama. Tidak menjamin seluruh thread komunitas,
   pagination komentar, atau arsip historis tercakup. Jangan mengganti ini dengan `/api/` yang
