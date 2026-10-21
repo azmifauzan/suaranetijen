@@ -86,6 +86,8 @@ maintenance, and the separate YouTube queue remain available on the isolated nod
 To restore crawl, first recover and verify the sidecar, then set the limit back to `1` and
 recreate the caller. Staging worker3 was isolated this way after a SerayaMotor request timed out
 and quarantined its renderer following the successful Kaskus preflight; worker2 retains crawl.
+The isolated sidecar's restart policy is set to `no`; restore its Compose service before
+re-enabling crawl so its normal restart policy is reapplied.
 
 An unconfirmed request or session command leaves its slot quarantined indefinitely. The marker prevents new work; it does not terminate the existing browser. HTTP timeouts and expired slot locks are not evidence that browser work has stopped.
 

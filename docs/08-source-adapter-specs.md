@@ -124,6 +124,19 @@ Worker ketiga kemudian kembali mengalami timeout saat mengakses SerayaMotor. Dis
 pada host tersebut dinonaktifkan dengan `HORIZON_LIGHT_CRAWL_MAX_PROCESSES=0` dan sidecar dihentikan;
 worker pertama dan kedua tetap menangani crawl. Tugas analisis worker ketiga tetap berjalan.
 
+Verifikasi akhir 21 Oktober 2026, 11:46 WIB: seluruh layanan aplikasi dan ketiga worker memakai
+image `kaskus-isolated-20261021` (digest
+`sha256:0e3f89f06a32fc96e8511af16e3c37a0a897628a753091f5c87aa497cf4d69e9`).
+Preflight melalui antrean dengan konfigurasi final selesai pada 11:44:43 WIB, mencatat status
+`healthy` baru serta HTTP 200 untuk halaman publik dan robots.txt. Ketiga siklus yang dipantau
+menghasilkan total 21 dokumen `fetched` dan 128 balasan `skipped` (119 `entity_not_resolved`,
+9 `not_an_evaluation`), tanpa item/observasi duplikat atau kegagalan ingestion baru. Tidak ada
+kandidat baru yang masih `pending`; observasi sumber tetap empat. Tidak ada marker karantina
+tersisa saat pemeriksaan; renderer worker1/2 aktif, renderer worker3 sengaja offline. Endpoint
+`/`, `/up`, dan `/health` merespons HTTP 200 setelah deploy. `composer test` lulus 821 tes,
+3.862 assertions, Pint, dan PHPStan. Hasil ini membuktikan jalur pengambilan dan penyaringan,
+bukan jaminan bahwa setiap balasan mengandung evaluasi entitas atau menambah skor publik.
+
 ## DiskusiWebHostingAdapter
 
 Discovery:
