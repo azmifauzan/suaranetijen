@@ -92,6 +92,11 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
         return false;
     }
 
+    protected function renderWaitSeconds(string $url): int
+    {
+        return 0;
+    }
+
     /**
      * @param  array<string, mixed>  $query
      */
@@ -331,6 +336,7 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
             'url' => $targetUrl,
             'session' => $sessionId,
             'maxTimeout' => $maxTimeout,
+            'waitInSeconds' => $this->renderWaitSeconds($targetUrl),
         ]);
     }
 

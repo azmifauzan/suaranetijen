@@ -41,3 +41,6 @@ Use main Berita dan Politik community /komunitas/10/berita-dan-politik, not the 
 
 ## Kaskus politics polls rendered public links only
 For kaskus_politik use crawl_policy.single_page=true: the public community ignores ?page=N, so stale cursors still fetch page 1 each cycle. Use community 10 and only its rendered main-list links; exclude med=hot_thread widgets before dedup, and extract reply bodies only. Coverage is not the full archive. Robots.txt checked 21 Oct 2026 disallows /api/; do not switch discovery to it. Seed stays disabled for per-environment live checks; public-figure scope follows ADR-010's existing override.
+
+## Wait for Kaskus client rendering before parsing
+Kaskus community/search/thread pages need FlareSolverr's native waitInSeconds=3 after browser load; root and robots preflight stay at 0. Live community 10 returned only widget links without this wait and 20 main-list threads with it. Preserve the FlareSolverr slot/session/quarantine guards when adding render options; do not compensate for empty renders by accepting hot-thread widgets or broad post selectors.

@@ -62,6 +62,10 @@ Extract:
 - `crawl_policy.single_page: true`: abaikan cursor halaman lama, ambil halaman pertama setiap
   siklus, simpan kembali `page_1`, dan kembalikan `hasMore: false`. Dedup berdasarkan ID thread
   dan item tetap berlaku saat thread yang sama ditemukan lagi.
+- FlareSolverr menunggu render tambahan 3 detik pada halaman komunitas, pencarian, dan thread
+  melalui opsi native `waitInSeconds`. Root/robots preflight tidak mendapat penantian tambahan.
+  Uji langsung halaman forum utama: tanpa penantian hanya widget yang muncul, dengan 3 detik
+  ditemukan 20 thread pada daftar utama.
 - Hanya tautan daftar thread yang tampil di HTML publik; widget `med=hot_thread` diabaikan sebelum
   dedup, termasuk jika widget menautkan ID yang juga ada pada daftar utama. Tidak menjamin seluruh thread komunitas,
   pagination komentar, atau arsip historis tercakup. Jangan mengganti ini dengan `/api/` yang
@@ -94,6 +98,9 @@ menemukan starter berita yang salah terbaca sebagai sentimen, misalnya kata umum
 diatribusikan ke produk Talenta dan penyebutan sponsor BNI dianggap evaluasi bank. Aktivasi
 ditahan sementara untuk mengganti komunitas, mengabaikan widget, dan membatasi ekstraksi ke
 balasan. Angka observasi awal tersebut tidak boleh dipakai sebagai bukti akurasi klasifikasi.
+Enam observasi berita yang telah diperiksa dibackup pada host, dihapus melalui
+`OffTopicOpinionRemover`, dan agregat lima entitas terdampak dihitung ulang. Empat observasi
+lama sebelum aktivasi tidak dihapus. Uji thread forum utama menghasilkan tujuh kandidat balasan.
 
 ## DiskusiWebHostingAdapter
 

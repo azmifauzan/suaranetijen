@@ -429,15 +429,25 @@ it('routes KASKUS discovery through FlareSolverr when configured, instead of req
         }
 
         if ($request->url() === 'http://flaresolverr:8191/v1' && $request->method() === 'POST') {
+            $targetUrl = $request['url'];
+            $isPreflight = in_array($targetUrl, ['https://www.kaskus.co.id/', 'https://www.kaskus.co.id/robots.txt'], true);
             expect($request['cmd'])->toBe('request.get')
-                ->and($request['url'])->toContain('/search')
+                ->and($request['waitInSeconds'])->toBe($isPreflight ? 0 : 3)
                 ->and($request['session'])->not->toBeEmpty();
+
+            $body = match (true) {
+                $targetUrl === 'https://www.kaskus.co.id/' => 'ok',
+                $targetUrl === 'https://www.kaskus.co.id/robots.txt' => "User-agent: *\nAllow: /\n",
+                str_contains($targetUrl, '/search') => waveTwoSourceFixture('kaskus', 'listing.html'),
+                str_contains($targetUrl, '/thread/') => waveTwoSourceFixture('kaskus', 'thread.html'),
+                default => throw new RuntimeException("Unexpected KASKUS target [{$targetUrl}]."),
+            };
 
             return Http::response([
                 'status' => 'ok',
                 'solution' => [
                     'status' => 200,
-                    'response' => waveTwoSourceFixture('kaskus', 'listing.html'),
+                    'response' => $body,
                 ],
             ]);
         }
@@ -445,9 +455,14 @@ it('routes KASKUS discovery through FlareSolverr when configured, instead of req
         throw new RuntimeException("Unexpected request [{$request->method()} {$request->url()}].");
     });
 
-    $batch = (new KaskusAdapter)->discover(new CrawlCursor('kaskus', metadata: ['query' => 'VPS']));
+    $adapter = new KaskusAdapter;
+    $health = $adapter->preflight();
+    $batch = $adapter->discover(new CrawlCursor('kaskus', metadata: ['query' => 'VPS']));
+    $opinions = iterator_to_array($adapter->extract($adapter->fetch($batch->documents[0])));
 
-    expect($batch->documents)->toHaveCount(2)
+    expect($health->isHealthy())->toBeTrue()
+        ->and($batch->documents)->toHaveCount(2)
+        ->and($opinions)->toHaveCount(1)
         ->and($batch->documents[0]->externalId)->toBe('12345');
 });
 
