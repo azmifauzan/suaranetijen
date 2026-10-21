@@ -47,6 +47,8 @@ return [
 
     'flaresolverr' => [
         'url' => env('FLARESOLVERR_URL'),
+        // Stable and unique per sidecar, including when its caller container is replaced.
+        'instance_id' => env('FLARESOLVERR_INSTANCE_ID'),
         // Kept below the ingestion jobs' 90s $timeout (see FetchSourceDocumentJob /
         // DiscoverSourceDocumentsJob) so a slow-but-solvable challenge doesn't get killed
         // by the job timeout before FlareSolverr even responds.

@@ -3,6 +3,7 @@
 use App\Domains\Ingestion\Jobs\PreflightSourceJob;
 use App\Domains\Sources\Adapters\AbstractHttpSourceAdapter;
 use App\Domains\Sources\Adapters\FakeSourceAdapter;
+use App\Domains\Sources\Adapters\KaskusAdapter;
 use App\Domains\Sources\Contracts\CrawlCursor;
 use App\Domains\Sources\Contracts\DiscoveryBatch;
 use App\Domains\Sources\Contracts\FetchedDocument;
@@ -14,6 +15,8 @@ use App\Domains\Sources\Models\Source;
 use App\Domains\Sources\Models\SourcePreflightLog;
 use App\Domains\Sources\Services\SourceRegistry;
 use Illuminate\Contracts\Queue\Job;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -89,6 +92,28 @@ it('puts a preflight back on the queue and leaves the health state alone when Fl
     $queueJob = Mockery::mock(Job::class);
     $queueJob->shouldReceive('release')->once()->with(30);
 
+    $job = new PreflightSourceJob($source);
+    $job->setJob($queueJob);
+    $job->handle(app(SourceRegistry::class));
+
+    expect($source->fresh()->health_state)->toBe(SourceHealthState::Healthy)
+        ->and(SourcePreflightLog::query()->where('source_id', $source->id)->count())->toBe(0);
+});
+
+it('defers KASKUS preflight without blocking the source when its robots request is quarantined', function () {
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191', 'services.flaresolverr.slot_wait_seconds' => 0]);
+    Cache::flush();
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) {
+        if ($request['cmd'] === 'request.get' && str_ends_with($request['url'], '/robots.txt')) {
+            throw new ConnectionException('robots caller timed out');
+        }
+
+        return Http::response(['status' => 'ok', 'solution' => ['status' => 200, 'response' => 'ok']]);
+    });
+    $source = preflightSource(KaskusAdapter::class);
+    $queueJob = Mockery::mock(Job::class);
+    $queueJob->shouldReceive('release')->once()->with(60);
     $job = new PreflightSourceJob($source);
     $job->setJob($queueJob);
     $job->handle(app(SourceRegistry::class));

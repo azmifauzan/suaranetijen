@@ -7,6 +7,7 @@ use App\Domains\Sources\Contracts\DiscoveryBatch;
 use App\Domains\Sources\Contracts\FetchedDocument;
 use App\Domains\Sources\Contracts\SourceDocumentRef;
 use App\Domains\Sources\Contracts\SourceHealth;
+use App\Domains\Sources\Exceptions\RateLimitExceededException;
 use Throwable;
 
 class KaskusAdapter extends AbstractHttpSourceAdapter
@@ -65,6 +66,8 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
                 $health->responseTimeMs,
                 ['http_status' => $health->details['http_status'] ?? null, 'robots_status' => $robots->status()]
             );
+        } catch (RateLimitExceededException $exception) {
+            throw $exception;
         } catch (Throwable $exception) {
             return SourceHealth::blocked(
                 'KASKUS robots preflight failed: '.$exception->getMessage(),
