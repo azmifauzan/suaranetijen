@@ -77,6 +77,16 @@ Check whether the slot lock is still held and correlate with recent caller/rende
 diagnosing a stale marker. A successful CLI exit with an unchanged `last_preflight_at` is not a
 fresh preflight success: rate-limit releases deliberately preserve the previous health state.
 
+For an unstable sidecar on a light worker, set `HORIZON_LIGHT_CRAWL_MAX_PROCESSES=0` on that
+node and pass it through Compose. Keep `minProcesses=1`: Horizon validates it for every
+environment, while `maxProcesses=0` prevents that supervisor from being provisioned.
+Drain the caller, stop and verify the sidecar has exited, then clear its markers before resuming
+the caller. Discovery/crawl then run on the remaining nodes; analysis, aggregate, themes,
+maintenance, and the separate YouTube queue remain available on the isolated node.
+To restore crawl, first recover and verify the sidecar, then set the limit back to `1` and
+recreate the caller. Staging worker3 was isolated this way after a SerayaMotor request timed out
+and quarantined its renderer following the successful Kaskus preflight; worker2 retains crawl.
+
 An unconfirmed request or session command leaves its slot quarantined indefinitely. The marker prevents new work; it does not terminate the existing browser. HTTP timeouts and expired slot locks are not evidence that browser work has stopped.
 
 To recover a quarantined instance:

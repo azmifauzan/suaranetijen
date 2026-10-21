@@ -120,6 +120,9 @@ browser kini mendapat batas 75 detik per request dengan HTTP timeout 90 detik; j
 untuk discovery/fetch biasa tetap 45 detik. Batas job tetap membatasi keseluruhan pemeriksaan;
 dua render yang sama-sama sangat lambat dapat melewatinya dan tetap memicu pengaman karantina.
 Ketiga sidecar memakai ID stabil dan unik sebagaimana dicatat pada runbook.
+Worker ketiga kemudian kembali mengalami timeout saat mengakses SerayaMotor. Discovery/crawl
+pada host tersebut dinonaktifkan dengan `HORIZON_LIGHT_CRAWL_MAX_PROCESSES=0` dan sidecar dihentikan;
+worker pertama dan kedua tetap menangani crawl. Tugas analisis worker ketiga tetap berjalan.
 
 ## DiskusiWebHostingAdapter
 

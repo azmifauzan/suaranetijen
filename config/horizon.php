@@ -341,11 +341,8 @@ return [
         // what its shared host can actually spare (see docker-compose.yml
         // on each worker) — the maxProcesses below are sized to not
         // massively oversubscribe that cpus cap. Horizon requires
-        // minProcesses >= 1 for every supervisor in every environment (0 is
-        // rejected at boot — confirmed live, it crash-loops Horizon on
-        // *every* host reading this file, not just the one selecting this
-        // environment), so a queue a host shouldn't really be doing can only
-        // be minimized to a single idle worker, not fully disabled.
+        // minProcesses >= 1 even for disabled supervisors. maxProcesses=0
+        // prevents provisioning that supervisor without invalidating the plan.
         //
         // worker1 (20 cores, most headroom of the two workers, cpus:3
         // container cap): does the heavy lifting — FlareSolverr-bound crawl
@@ -374,11 +371,8 @@ return [
         ],
 
         // worker2 and worker3 (cpus:1.5 container cap): analysis-focused —
-        // no heavy FlareSolverr or YouTube fan-out. supervisor-crawl and
-        // supervisor-crawl-youtube stay pinned at 1 process (Horizon's
-        // floor) purely so the environment definition is valid; they should
-        // sit idle almost all the time while supervisor-analysis processes up
-        // to 2 parallel analysis jobs per light worker node.
+        // Disable shared discovery/crawl on a node whose renderer is unstable
+        // with HORIZON_LIGHT_CRAWL_MAX_PROCESSES=0; other light nodes retain it.
         'worker-light' => [
             'supervisor-critical' => [
                 'minProcesses' => 1,
@@ -386,7 +380,7 @@ return [
             ],
             'supervisor-crawl' => [
                 'minProcesses' => 1,
-                'maxProcesses' => 1,
+                'maxProcesses' => (int) env('HORIZON_LIGHT_CRAWL_MAX_PROCESSES', 1),
             ],
             'supervisor-crawl-youtube' => [
                 'minProcesses' => 1,
