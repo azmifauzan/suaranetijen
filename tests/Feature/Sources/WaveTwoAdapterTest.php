@@ -408,7 +408,7 @@ it('rejects a LowEndTalk thread_url pointing outside the lowendtalk.com host wit
 });
 
 it('routes KASKUS discovery through FlareSolverr when configured, instead of requesting the site directly', function () {
-    config(['services.flaresolverr.url' => 'http://flaresolverr:8191']);
+    config(['services.flaresolverr.url' => 'http://flaresolverr:8191', 'services.flaresolverr.max_timeout_ms' => 45000]);
 
     Http::preventStrayRequests();
     Http::fake(function (Request $request) {
@@ -433,6 +433,7 @@ it('routes KASKUS discovery through FlareSolverr when configured, instead of req
             $isPreflight = in_array($targetUrl, ['https://www.kaskus.co.id/', 'https://www.kaskus.co.id/robots.txt'], true);
             $wait = $isPreflight ? 0 : (str_contains($targetUrl, '/komunitas/') ? 8 : 3);
             expect($request['cmd'])->toBe('request.get')
+                ->and($request['maxTimeout'])->toBe($isPreflight ? 75000 : 45000)
                 ->and($request['waitInSeconds'])->toBe($wait)
                 ->and($request['session'])->not->toBeEmpty();
 

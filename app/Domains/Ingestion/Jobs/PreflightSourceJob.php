@@ -25,10 +25,10 @@ class PreflightSourceJob implements ShouldQueue
     public int $maxExceptions = 1;
 
     /**
-     * Above the discovery supervisor's 60s: a slot wait (up to 20s) plus a FlareSolverr request
-     * (up to 45s) otherwise gets the job killed, leaving the source's health state stale.
+     * Browser preflight includes slot/session setup and may check both a public page and robots.
+     * Keep below the crawl supervisor's 170s and Redis retry_after (180s).
      */
-    public int $timeout = 90;
+    public int $timeout = 150;
 
     public function __construct(
         public Source $source

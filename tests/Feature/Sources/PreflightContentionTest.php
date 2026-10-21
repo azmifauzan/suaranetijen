@@ -138,11 +138,12 @@ it('gives a preflight several attempts so it can wait for a slot', function () {
 });
 
 it('allows a preflight the time to wait for a slot and still run a full FlareSolverr request', function () {
-    // The discovery supervisor kills jobs at 60s; waiting up to slot_wait_seconds (20s) for a slot
-    // plus a request of up to max_timeout_ms (45s) does not fit in that (two preflights timed out).
     $job = new PreflightSourceJob(preflightSource(FakeSourceAdapter::class));
 
-    $needed = (int) config('services.flaresolverr.slot_wait_seconds') + (int) ceil((int) config('services.flaresolverr.max_timeout_ms') / 1000);
+    $needed = (int) config('services.flaresolverr.slot_wait_seconds') + 90;
+    $supervisorTimeout = (int) config('horizon.defaults.supervisor-crawl.timeout');
 
-    expect($job->timeout)->toBeGreaterThan($needed);
+    expect($job->timeout)->toBeGreaterThan($needed)
+        ->toBeLessThan($supervisorTimeout);
+    expect($supervisorTimeout)->toBeLessThan((int) config('queue.connections.redis.retry_after'));
 });

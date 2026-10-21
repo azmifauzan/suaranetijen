@@ -60,6 +60,23 @@ Do not log full raw content by default.
 
 Set `FLARESOLVERR_INSTANCE_ID` to a stable, unique identity for each sidecar (for example, `dev2-suaranetijen`). All callers of that sidecar must use the same identity, including after caller container replacement. If unset, keys retain the legacy hostname scope.
 
+Staging identities configured on 21 October 2026: `suaranetijen-worker1`,
+`suaranetijen-worker2`, and `suaranetijen-worker3`. Pass the value through the Compose service's
+environment as well as its `.env`; an explicit Compose value overrides the env file.
+
+Browser preflight uses a 75-second solve limit per request and a 90-second HTTP timeout.
+The preflight job has a 150-second overall limit; the discovery/crawl supervisor has 170 seconds,
+below Redis `retry_after` (180 seconds). Ordinary discovery/fetch jobs retain their 90-second job
+limit and configured browser solve limit (45 seconds by default). Slot locks account for the
+chosen solve limit and a possible missing-session retry. The persistent in-flight marker remains
+the safeguard if a caller dies or a request does not confirm completion. A Kaskus preflight checks
+two URLs, so its overall job deadline can still expire before two slow renders both finish.
+
+An in-flight marker alone does not show quarantine: it is also present during a normal render.
+Check whether the slot lock is still held and correlate with recent caller/renderer logs before
+diagnosing a stale marker. A successful CLI exit with an unchanged `last_preflight_at` is not a
+fresh preflight success: rate-limit releases deliberately preserve the previous health state.
+
 An unconfirmed request or session command leaves its slot quarantined indefinitely. The marker prevents new work; it does not terminate the existing browser. HTTP timeouts and expired slot locks are not evidence that browser work has stopped.
 
 To recover a quarantined instance:

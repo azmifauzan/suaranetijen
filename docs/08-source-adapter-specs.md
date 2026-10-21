@@ -102,6 +102,25 @@ Enam observasi berita yang telah diperiksa dibackup pada host, dihapus melalui
 `OffTopicOpinionRemover`, dan agregat lima entitas terdampak dihitung ulang. Empat observasi
 lama sebelum aktivasi tidak dihapus. Uji thread forum utama menghasilkan tujuh kandidat balasan.
 
+Pengaktifan ulang setelah koreksi berlangsung 21 Oktober 2026, 10:56 WIB. Policy sumber **dan**
+metadata cursor menunjuk forum `10`; metadata cursor lama harus ikut diperbarui karena discovery
+mengutamakannya atas policy. Siklus otomatis 11:00 WIB dan siklus ulang 11:11 WIB selesai:
+20 dokumen berstatus `fetched`, 127 kandidat balasan mencapai status akhir `skipped`, terdiri dari
+118 `entity_not_resolved` dan 9 `not_an_evaluation`. Pengulangan tidak menambah item atau observasi
+duplikat dan tidak mencatat kegagalan ingestion baru. Jumlah observasi sumber tetap empat dari
+sebelum aktivasi: belum ada balasan baru yang lolos pencocokan entitas dan relevansi opini.
+Angka nol ini bukan kegagalan fetch dan tidak boleh diatasi dengan melonggarkan atribusi entitas.
+Siklus otomatis 11:30 WIB memperbarui cursor lagi dan menemukan thread tambahan.
+
+Pemantauan juga menemukan preflight renderer worker ketiga melewati batas browser 45 detik.
+Setelah pemulihan sesuai runbook `docs/16`, uji terisolasi dengan batas 75 detik berhasil
+memeriksa halaman publik dan robots.txt (keduanya HTTP 200), total sekitar 73 detik. Preflight
+browser kini mendapat batas 75 detik per request dengan HTTP timeout 90 detik; job dibatasi
+150 detik, supervisor discovery/crawl 170 detik, dan Redis `retry_after` 180 detik. Batas browser
+untuk discovery/fetch biasa tetap 45 detik. Batas job tetap membatasi keseluruhan pemeriksaan;
+dua render yang sama-sama sangat lambat dapat melewatinya dan tetap memicu pengaman karantina.
+Ketiga sidecar memakai ID stabil dan unik sebagaimana dicatat pada runbook.
+
 ## DiskusiWebHostingAdapter
 
 Discovery:

@@ -42,7 +42,7 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
         }
 
         try {
-            $robots = $this->request(rtrim($this->preflightUrl(), '/').'/robots.txt');
+            $robots = $this->preflightRequest(rtrim($this->preflightUrl(), '/').'/robots.txt');
 
             if ($robots->status() === 401 || $robots->status() === 403) {
                 return SourceHealth::policyDisabled(

@@ -222,7 +222,7 @@ return [
             'maxJobs' => 0,
             'memory' => 128,
             'tries' => 1,
-            'timeout' => 60,
+            'timeout' => 170,
             'nice' => 0,
         ],
         'supervisor-analysis' => [

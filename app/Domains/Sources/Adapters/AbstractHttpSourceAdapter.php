@@ -46,7 +46,7 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
         $startedAt = microtime(true);
 
         try {
-            $response = $this->request($this->preflightUrl(), $this->preflightQuery());
+            $response = $this->preflightRequest($this->preflightUrl(), $this->preflightQuery());
             $responseTimeMs = (int) round((microtime(true) - $startedAt) * 1000);
 
             return match (true) {
@@ -100,12 +100,20 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
     /**
      * @param  array<string, mixed>  $query
      */
-    protected function request(string $url, array $query = []): Response
+    protected function preflightRequest(string $url, array $query = []): Response
+    {
+        return $this->request($url, $query, maxTimeoutMs: 75000);
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    protected function request(string $url, array $query = [], ?int $maxTimeoutMs = null): Response
     {
         $flareSolverrUrl = (string) config('services.flaresolverr.url', '');
 
         if ($this->usesChallengeSolver() && $flareSolverrUrl !== '') {
-            return $this->requestViaFlareSolverr($url, $query, $flareSolverrUrl);
+            return $this->requestViaFlareSolverr($url, $query, $flareSolverrUrl, $maxTimeoutMs);
         }
 
         $pendingRequest = Http::timeout(15)->withHeaders([
@@ -141,10 +149,10 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
      *
      * @param  array<string, mixed>  $query
      */
-    private function requestViaFlareSolverr(string $url, array $query, string $flareSolverrUrl): Response
+    private function requestViaFlareSolverr(string $url, array $query, string $flareSolverrUrl, ?int $maxTimeoutMs): Response
     {
         $targetUrl = $query === [] ? $url : $url.(str_contains($url, '?') ? '&' : '?').http_build_query($query);
-        $maxTimeout = (int) config('services.flaresolverr.max_timeout_ms', 60000);
+        $maxTimeout = $maxTimeoutMs ?? (int) config('services.flaresolverr.max_timeout_ms', 45000);
 
         $this->assertFlareSolverrNotCoolingDown();
 
@@ -167,7 +175,7 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
             }
 
             return $envelope;
-        });
+        }, $maxTimeout);
 
         $solution = (array) $envelope->json('solution', []);
 
@@ -224,11 +232,11 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
      * @param  \Closure(int): T  $callback
      * @return T
      */
-    private function withFlareSolverrSlot(\Closure $callback): mixed
+    private function withFlareSolverrSlot(\Closure $callback, int $maxTimeoutMs): mixed
     {
         $slots = max(1, (int) config('services.flaresolverr.max_concurrent', 1));
         $waitSeconds = max(0, (int) config('services.flaresolverr.slot_wait_seconds', 20));
-        $holdSeconds = (int) ceil((int) config('services.flaresolverr.max_timeout_ms', 45000) / 1000) + 120;
+        $holdSeconds = (int) ceil($maxTimeoutMs / 1000) * 2 + 120;
         $deadline = microtime(true) + $waitSeconds;
 
         do {

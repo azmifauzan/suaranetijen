@@ -47,3 +47,6 @@ Kaskus community/search/thread pages need FlareSolverr's native waitInSeconds=3 
 
 ## Wait for Kaskus client rendering before parsing
 Use FlareSolverr's native waitInSeconds=8 on Kaskus community listings, 3 on search/thread pages, 0 on root/robots preflight. Live tests: 3 seconds sometimes yielded 20 main-list threads and sometimes only widgets; 8 seconds loaded the list. Preserve slot/session/quarantine guards. Empty renders must not fall back to hot-thread widgets or broad post selectors.
+
+## Current Kaskus politics contract supersedes earlier notes
+This is the current rule and supersedes earlier Kaskus politics/render-wait entries in this file: community 10 (/komunitas/10/berita-dan-politik), single_page=true, main thread-list links only (exclude med=hot_thread before dedup), reply-body extraction only (html-content with w-full and py-2). FlareSolverr waitInSeconds: community=8, search/thread=3, root/robots=0. Empty render => no documents, never widget fallback; /api/ remains robots-disallowed. Use stable unique FLARESOLVERR_INSTANCE_ID per sidecar. Quarantine recovery must drain/stop callers, stop and verify sidecar exited, clear only that instance's cache markers, then start sidecar and callers (docs/16).
