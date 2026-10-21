@@ -268,7 +268,11 @@ Detail: `docs/11-sentiment-scoring-ranking.md`.
   `unmatched_mentions` or discard. Losing signal beats attributing sentiment to the wrong entity.
 - **Jobs are idempotent.** A retry must never create a second observation for the same
   `(entity_id, source_item_id)`.
-- **Politics is out of scope** for MVP and near roadmap.
+- **Individual public figures, including politicians, are in scope** via `person` and Tokoh Publik
+  (ADR-010 override, 5 September 2026). `kaskus_politik` may ingest opinions about registered
+  entities from rendered public community links after live checks (`docs/07`, `docs/08`). Broader
+  election-cycle coverage, party/issue entities, author political profiling, and political sponsorship
+  are not authorized by this source activation.
 
 ## Data model
 
@@ -942,7 +946,7 @@ Current implementation boundary:
 | Staging environment | live at `https://suaranetijen.id` (migrated from `suaranetijen.web.id` 20 Sep 2026, old domain 301-redirects); see staging deployment notes above for the bugs found and fixed getting there |
 | Entity candidate pipeline (`docs/23` "Growth") | implemented (5 Sep 2026), not yet deployed to staging — closes the previously-untouched gap where zero-result search queries were logged but nothing turned that into new-entity candidates |
 | Shared LLM settings (`llm_settings`, `/admin/llm-settings`) | implemented — OpenAI-compatible chat completions over plain HTTP, no new SDK dependency; meant to be the one place any future LLM feature (e.g. the still-unimplemented `docs/10` ambiguous-entity-matching fallback) resolves its client through |
-| Tokoh Publik category / `person` entity type (ADR-010 override) | `EntityType::Person` + Tokoh Publik category tree implemented, 25 seed entities added, generic pipeline unchanged; `kaskus_politik` Source seeded `enabled: false` pending live check; not yet deployed to staging |
+| Tokoh Publik category / `person` entity type (ADR-010 override) | `EntityType::Person` + Tokoh Publik category tree implemented, generic pipeline unchanged; `kaskus_politik` reactivated on staging 21 Oct 2026 after live preflight/discovery/extraction checks, polling rendered public links with `single_page: true`; fresh-environment seed stays disabled (`docs/08`) |
 | Papan Sponsor / paid leaderboard (`docs/26`) | implemented and deployed to staging, verified live end-to-end in-browser through to the Sumopod payment-confirmation modal (stopped short of an actual paid transaction). Weekly + all-time board, community (accumulating) model, guest checkout, URL-first entity match with auto-create-on-payment override — see the dated session notes below for the full build/review/fix history |
 | Sumopod QRIS payment, relayed via `satsetui`'s central webhook ingress | implemented on both repos; `satsetui` registered as a 4th relay destination (`SNT-SPN-` prefix); live secrets wired on both ends and config-verified; not yet exercised end-to-end with a real payment |
 

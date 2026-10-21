@@ -67,6 +67,12 @@ built, and no compliance review was performed as part of this override. Same sta
 (precision-over-recall matching, no aspect scoring, data minimization - rate the public figure, not
 private individuals) apply to `person` entities as to any other type.
 
+**Clarified 21 October 2026:** reactivation of `kaskus_politik` is within this existing override.
+It uses the shared adapter and entity-centric pipeline for registered entities, including individual
+public figures. It does not add party/issue entities, electoral predictions, author profiling, or
+political sponsorship. The source polls rendered public listing links only; its robots-disallowed
+`/api/` endpoint is not an ingestion path. See `docs/07` and `docs/08` for coverage and activation gates.
+
 ## ADR-011 - Theme Index is a second derived layer, not aspect scoring
 **Decision:** Top Suara Netijen (`docs/25`) adds a theme-frequency index alongside Sentimen
 Netijen, sourced from the same relevant-opinion stream. It shows theme + observation count only —

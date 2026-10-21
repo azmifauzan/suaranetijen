@@ -10,6 +10,7 @@ use App\Domains\Sources\Contracts\SourceHealth;
 use App\Domains\Sources\Enums\SourceHealthState;
 use App\Domains\Sources\Models\Source;
 use App\Domains\Sources\Services\SourceRegistry;
+use Database\Seeders\SourceSeeder;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
@@ -273,6 +274,34 @@ it('keeps an empty first page of an explicit KASKUS listing on page 1 rather tha
 
     expect($batch->nextCursor->metadata['page'])->toBe(1);
 });
+
+it('polls the public politics listing from page 1 on every cycle despite a stale cursor', function (bool $hasThreads, int $documentCount) {
+    $this->seed(SourceSeeder::class);
+    $source = Source::where('key', 'kaskus_politik')->firstOrFail();
+    $listingUrl = 'https://www.kaskus.co.id/komunitas/1167/berita-dan-politik-indonesia';
+    Http::preventStrayRequests();
+    Http::fake([$listingUrl => Http::response($hasThreads ? waveTwoSourceFixture('kaskus', 'listing.html') : '<html></html>')]);
+
+    $adapter = new KaskusAdapter;
+    $first = $adapter->discover(new CrawlCursor($source->key, cursorValue: 'page_18', metadata: [
+        ...$source->crawl_policy,
+        'page' => 18,
+    ]));
+    $second = $adapter->discover($first->nextCursor);
+
+    expect($first->documents)->toHaveCount($documentCount)
+        ->and($first->hasMore)->toBeFalse()
+        ->and($first->nextCursor->cursorValue)->toBe('page_1')
+        ->and($first->nextCursor->metadata['page'])->toBe(1)
+        ->and($second->documents)->toHaveCount($documentCount)
+        ->and($second->hasMore)->toBeFalse()
+        ->and($second->nextCursor->metadata['page'])->toBe(1);
+    Http::assertSentCount(2);
+    Http::assertSent(fn (Request $request): bool => $request->url() === $listingUrl);
+})->with([
+    'rendered threads' => [true, 2],
+    'empty render' => [false, 0],
+]);
 
 it('runs the LowEndTalk adapter only across Reviews, Providers, and Outages', function () {
     Http::preventStrayRequests();

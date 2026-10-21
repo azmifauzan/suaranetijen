@@ -99,11 +99,12 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
 
     /**
      * Single fixed listing/subforum (e.g. a scoped Source config) — paginates
-     * the same URL, wrapping back to page 1 when a page has no threads.
+     * the same URL, or polls page 1 for listings without URL pagination.
      */
     private function discoverExplicitListing(CrawlCursor $cursor, string $listingUrl): DiscoveryBatch
     {
-        $page = max(1, (int) ($cursor->metadata['page'] ?? 1));
+        $singlePage = (bool) ($cursor->metadata['single_page'] ?? false);
+        $page = $singlePage ? 1 : max(1, (int) ($cursor->metadata['page'] ?? 1));
         $response = $this->request($this->pageUrl($listingUrl, $page));
         $response->throw();
         $documents = $this->parseHtmlDocumentLinks(
@@ -116,7 +117,7 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
         // A page with no threads is past the end of the subforum (or an empty render): wrap back
         // to page 1, where the newest threads are, instead of paging further out forever.
         // kaskus_fashion sat on page 412 for days finding nothing.
-        $nextPage = $documents === [] ? 1 : $page + 1;
+        $nextPage = $singlePage || $documents === [] ? 1 : $page + 1;
 
         return new DiscoveryBatch(
             documents: $documents,
@@ -128,7 +129,7 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
                 lastCrawledAt: now()->toImmutable(),
                 metadata: [...$cursor->metadata, 'page' => $nextPage, 'listing_url' => $listingUrl]
             ),
-            hasMore: $documents !== []
+            hasMore: ! $singlePage && $documents !== []
         );
     }
 

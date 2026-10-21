@@ -99,3 +99,8 @@ Political/candidate sentiment was intentionally not part of MVP or near roadmap.
 entity type under the Tokoh Publik category, at explicit operator request, without a separate
 compliance review. If broader election-cycle coverage is considered later, still treat that as a
 separately reviewed product/compliance module rather than silently expanding scope further.
+
+21 October 2026: reactivation of the existing `kaskus_politik` source falls within this override.
+Its scope is polling rendered public community links for opinions about registered entities,
+including individual public figures (`docs/07`, `docs/08`); broader election-cycle coverage remains
+a separate decision. Source activation does not change the political-sponsorship exclusion.

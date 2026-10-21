@@ -55,6 +55,37 @@ Extract:
 - strip quotes/signatures/navigation;
 - one forum post = candidate opinion unit.
 
+### KASKUS Berita dan Politik (`kaskus_politik`)
+
+- Adapter: `KaskusAdapter`, tanpa pipeline atau formula skor khusus politik.
+- Listing: `https://www.kaskus.co.id/komunitas/1167/berita-dan-politik-indonesia`.
+- `crawl_policy.single_page: true`: abaikan cursor halaman lama, ambil halaman pertama setiap
+  siklus, simpan kembali `page_1`, dan kembalikan `hasMore: false`. Dedup berdasarkan ID thread
+  dan item tetap berlaku saat thread yang sama ditemukan lagi.
+- Hanya tautan thread yang tampil di HTML publik; tidak menjamin seluruh thread komunitas,
+  pagination komentar, atau arsip historis tercakup. Jangan mengganti ini dengan `/api/` yang
+  dilarang robots.txt. Perubahan akses tetap diperiksa lewat preflight.
+- Ekstraksi hanya node isi post (`html-content`), tanpa fallback seluruh halaman. Halaman yang
+  belum selesai dirender menghasilkan nol kandidat, bukan opini dari navigasi/byline.
+- Batas crawl 10 request/menit per sumber, raw payload TTL 72 jam, tanpa data identitas penulis.
+- Seed `enabled: false` menjaga pemeriksaan langsung per lingkungan sebelum aktivasi.
+
+Verifikasi 21 Oktober 2026: preflight halaman publik dan robots.txt berhasil (HTTP 200),
+discovery menemukan lima tautan thread, dan satu thread publik menghasilkan empat kandidat
+opini. Verifikasi ini belum membuktikan kandidat relevan terhadap entitas atau lolos klasifikasi.
+
+Aktivasi staging 21 Oktober 2026, 10:30 WIB: `enabled: true`, `health_state: healthy`, preflight
+tercatat ulang, `single_page: true`, dan cursor lama `page_18` direset ke `page_1`. Discovery
+awal diantrekan lewat `sources:backfill kaskus_politik`. Konfigurasi dan cursor sebelum aktivasi
+dibackup pada host staging di `/home/dev/compose/suaranetijen/kaskus-politik-before-20261021.json`.
+Ketiga worker menerima perbaikan polling; hotfix FlareSolverr khusus worker ketiga dipertahankan.
+
+Hasil sesudah aktivasi (21 Oktober 2026, sekitar 10:33 WIB): dokumen sumber bertambah 40 → 56,
+item bertambah 11 → 16; lima item baru terdiri dari dua `processed` dan tiga `skipped`, tanpa
+kegagalan ingestion baru pada saat pemeriksaan. Cursor tetap `page_1` dengan waktu crawl baru.
+Sebagian fetch masih berjalan; angka ini adalah hasil pemeriksaan awal, bukan klaim seluruh
+antrean selesai atau jaminan tambahan skor publik.
+
 ## DiskusiWebHostingAdapter
 
 Discovery:

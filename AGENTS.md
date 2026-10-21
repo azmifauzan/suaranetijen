@@ -272,7 +272,11 @@ Detail: `docs/11-sentiment-scoring-ranking.md`.
   `unmatched_mentions` or discard. Losing signal beats attributing sentiment to the wrong entity.
 - **Jobs are idempotent.** A retry must never create a second observation for the same
   `(entity_id, source_item_id)`.
-- **Politics is out of scope** for MVP and near roadmap.
+- **Individual public figures, including politicians, are in scope** via `person` and Tokoh Publik
+  (ADR-010 override, 5 September 2026). `kaskus_politik` may ingest opinions about registered
+  entities from rendered public community links after live checks (`docs/07`, `docs/08`). Broader
+  election-cycle coverage, party/issue entities, author political profiling, and political sponsorship
+  are not authorized by this source activation.
 
 ## Data model
 
