@@ -58,14 +58,16 @@ Extract:
 ### KASKUS Berita dan Politik (`kaskus_politik`)
 
 - Adapter: `KaskusAdapter`, tanpa pipeline atau formula skor khusus politik.
-- Listing: `https://www.kaskus.co.id/komunitas/1167/berita-dan-politik-indonesia`.
+- Listing: `https://www.kaskus.co.id/komunitas/10/berita-dan-politik`, forum utama Berita dan Politik.
 - `crawl_policy.single_page: true`: abaikan cursor halaman lama, ambil halaman pertama setiap
   siklus, simpan kembali `page_1`, dan kembalikan `hasMore: false`. Dedup berdasarkan ID thread
   dan item tetap berlaku saat thread yang sama ditemukan lagi.
-- Hanya tautan thread yang tampil di HTML publik; tidak menjamin seluruh thread komunitas,
+- Hanya tautan daftar thread yang tampil di HTML publik; widget `med=hot_thread` diabaikan sebelum
+  dedup, termasuk jika widget menautkan ID yang juga ada pada daftar utama. Tidak menjamin seluruh thread komunitas,
   pagination komentar, atau arsip historis tercakup. Jangan mengganti ini dengan `/api/` yang
   dilarang robots.txt. Perubahan akses tetap diperiksa lewat preflight.
-- Ekstraksi hanya node isi post (`html-content`), tanpa fallback seluruh halaman. Halaman yang
+- Ekstraksi politik hanya node isi balasan (`html-content` dengan token kelas `w-full` dan `py-2`),
+  tanpa starter berita, nama penulis, atau fallback seluruh halaman. Halaman yang
   belum selesai dirender menghasilkan nol kandidat, bukan opini dari navigasi/byline.
 - Batas crawl 10 request/menit per sumber, raw payload TTL 72 jam, tanpa data identitas penulis.
 - Seed `enabled: false` menjaga pemeriksaan langsung per lingkungan sebelum aktivasi.
@@ -85,6 +87,13 @@ item bertambah 11 → 16; lima item baru terdiri dari dua `processed` dan tiga `
 kegagalan ingestion baru pada saat pemeriksaan. Cursor tetap `page_1` dengan waktu crawl baru.
 Sebagian fetch masih berjalan; angka ini adalah hasil pemeriksaan awal, bukan klaim seluruh
 antrean selesai atau jaminan tambahan skor publik.
+
+Koreksi saat pemantauan lanjutan: konfigurasi lama ternyata menunjuk komunitas `1167` (sekitar
+170 thread), bukan forum utama `10` (sekitar 696 ribu thread saat diperiksa). Sampel awal juga
+menemukan starter berita yang salah terbaca sebagai sentimen, misalnya kata umum "talenta"
+diatribusikan ke produk Talenta dan penyebutan sponsor BNI dianggap evaluasi bank. Aktivasi
+ditahan sementara untuk mengganti komunitas, mengabaikan widget, dan membatasi ekstraksi ke
+balasan. Angka observasi awal tersebut tidak boleh dipakai sebagai bukti akurasi klasifikasi.
 
 ## DiskusiWebHostingAdapter
 

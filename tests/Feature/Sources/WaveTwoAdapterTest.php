@@ -4,6 +4,7 @@ use App\Domains\Sources\Adapters\KaskusAdapter;
 use App\Domains\Sources\Adapters\LowEndTalkAdapter;
 use App\Domains\Sources\Adapters\YouTubeAdapter;
 use App\Domains\Sources\Contracts\CrawlCursor;
+use App\Domains\Sources\Contracts\FetchedDocument;
 use App\Domains\Sources\Contracts\SourceAdapter;
 use App\Domains\Sources\Contracts\SourceDocumentRef;
 use App\Domains\Sources\Contracts\SourceHealth;
@@ -278,7 +279,7 @@ it('keeps an empty first page of an explicit KASKUS listing on page 1 rather tha
 it('polls the public politics listing from page 1 on every cycle despite a stale cursor', function (bool $hasThreads, int $documentCount) {
     $this->seed(SourceSeeder::class);
     $source = Source::where('key', 'kaskus_politik')->firstOrFail();
-    $listingUrl = 'https://www.kaskus.co.id/komunitas/1167/berita-dan-politik-indonesia';
+    $listingUrl = 'https://www.kaskus.co.id/komunitas/10/berita-dan-politik';
     Http::preventStrayRequests();
     Http::fake([$listingUrl => Http::response($hasThreads ? waveTwoSourceFixture('kaskus', 'listing.html') : '<html></html>')]);
 
@@ -302,6 +303,38 @@ it('polls the public politics listing from page 1 on every cycle despite a stale
     'rendered threads' => [true, 2],
     'empty render' => [false, 0],
 ]);
+
+it('ignores hot-thread widgets before deduplicating community listing links', function () {
+    $url = 'https://www.kaskus.co.id/komunitas/10/berita-dan-politik';
+    Http::preventStrayRequests();
+    Http::fake([$url => Http::response(waveTwoSourceFixture('kaskus', 'politics-listing.html'))]);
+
+    $batch = (new KaskusAdapter)->discover(new CrawlCursor('kaskus_politik', metadata: [
+        'listing_url' => $url,
+        'single_page' => true,
+    ]));
+
+    expect(array_map(fn (SourceDocumentRef $document): string => $document->externalId, $batch->documents))
+        ->toBe(['12345', '12346']);
+    expect($batch->documents[0]->canonicalUrl)->toBe('https://www.kaskus.co.id/thread/12345/diskusi?ref=threadlist-10&med=thread_list');
+    Http::assertSentCount(1);
+});
+
+it('extracts politics replies without treating the news starter or display names as opinions', function () {
+    $document = new FetchedDocument(
+        ref: new SourceDocumentRef('kaskus_politik', '12345', 'https://www.kaskus.co.id/thread/12345/diskusi'),
+        rawPayload: waveTwoSourceFixture('kaskus', 'politics-thread.html'),
+        contentType: 'text/html',
+        fetchedAt: now()->toImmutable()
+    );
+
+    $opinions = iterator_to_array((new KaskusAdapter)->extract($document));
+
+    expect(array_map(fn ($opinion): string => $opinion->text, $opinions))->toBe([
+        'Menurut saya Prabowo kerjanya bagus.',
+        'Saya kecewa dengan keputusan Gibran.',
+    ]);
+});
 
 it('runs the LowEndTalk adapter only across Reviews, Providers, and Outages', function () {
     Http::preventStrayRequests();

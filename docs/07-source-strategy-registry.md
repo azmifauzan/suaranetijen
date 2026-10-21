@@ -20,14 +20,16 @@ Use case: komentar video tentang brand/product/service. Gunakan official Data AP
 ### KASKUS - Core broad Indonesia
 Use case: thread publik lintas gadget, telco, layanan digital, otomotif, consumer brands. Adapter hanya untuk halaman publik; runtime preflight harus memeriksa robots dan response behavior. Jangan bergantung pada login/API privat.
 
-`kaskus_politik` memakai adapter yang sama untuk halaman publik komunitas **Berita dan Politik
-Indonesia** (`/komunitas/1167/berita-dan-politik-indonesia`). Cakupannya opini tentang entitas
+`kaskus_politik` memakai adapter yang sama untuk halaman publik komunitas
+**Berita dan Politik** (`/komunitas/10/berita-dan-politik`). Komunitas `1167` pada konfigurasi
+lama bukan forum utama tersebut. Cakupannya opini dari balasan tentang entitas
 yang terdaftar, termasuk tokoh publik individual sesuai override ADR-010; bukan indeks isu,
 partai, elektabilitas, atau preferensi politik penulis.
 
 Penyesuaian 21 Oktober 2026: polling tautan thread yang dirender pada halaman komunitas pertama
-(`crawl_policy.single_page: true`), bukan backfill seluruh arsip. Halaman ini dapat hanya
-menampilkan hot thread, sehingga cakupannya terbatas. Parameter `?page=N` bukan pagination
+(`crawl_policy.single_page: true`), bukan backfill seluruh arsip. Widget hot thread diabaikan;
+render yang hanya memuat widget menghasilkan nol dokumen. Starter berupa berita dan nama
+penulis tidak menjadi kandidat opini; hanya badan balasan yang diproses. Parameter `?page=N` bukan pagination
 yang dapat diandalkan. Endpoint `/api/` dilarang robots.txt saat diperiksa pada tanggal tersebut
 dan tidak dipakai adapter. Seed tetap nonaktif; aktivasi dilakukan per lingkungan setelah
 preflight, discovery, dan ekstraksi thread publik berhasil. Status staging dicatat di `docs/08`.

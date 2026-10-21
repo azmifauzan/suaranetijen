@@ -35,3 +35,9 @@ An extract() selector list that ends in //main or //body turns any page without 
 
 ## Kaskus politics polls rendered public links only
 For kaskus_politik use crawl_policy.single_page=true: the public community ignores ?page=N, so a stale page cursor must still fetch page 1 each cycle. Coverage is the rendered listing/hot-thread links, not the full archive. Live robots.txt checked 21 Oct 2026 disallows /api/; do not switch discovery to that endpoint. Seed stays disabled for per-environment live checks; public-figure scope follows ADR-010's existing override.
+
+## Kaskus politics community and reply boundaries
+Use main Berita dan Politik community /komunitas/10/berita-dan-politik, not the old low-traffic /komunitas/1167/berita-dan-politik-indonesia. In explicit listings ignore med=hot_thread before dedup. For kaskus_politik extract rendered reply bodies only (html-content plus w-full and py-2 tokens), not news starters or display names: live samples falsely attributed factual news mentions to Talenta, Dukcapil, Wulan Guritno, Pertamina and BNI. Keep single_page=true and never use robots-disallowed /api/.
+
+## Kaskus politics polls rendered public links only
+For kaskus_politik use crawl_policy.single_page=true: the public community ignores ?page=N, so stale cursors still fetch page 1 each cycle. Use community 10 and only its rendered main-list links; exclude med=hot_thread widgets before dedup, and extract reply bodies only. Coverage is not the full archive. Robots.txt checked 21 Oct 2026 disallows /api/; do not switch discovery to it. Seed stays disabled for per-environment live checks; public-figure scope follows ADR-010's existing override.

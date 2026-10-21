@@ -92,7 +92,7 @@ class SourceSeeder extends Seeder
                 'enabled' => false,
                 'crawl_policy' => [
                     'rate_limit_per_minute' => 10,
-                    'listing_url' => 'https://www.kaskus.co.id/komunitas/1167/berita-dan-politik-indonesia',
+                    'listing_url' => 'https://www.kaskus.co.id/komunitas/10/berita-dan-politik',
                     'single_page' => true,
                 ],
                 'retention_policy' => ['raw_ttl_hours' => 72],

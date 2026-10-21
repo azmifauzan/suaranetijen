@@ -114,7 +114,7 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
             $response->body(),
             $cursor->sourceKey,
             $listingUrl,
-            '~/thread/~i'
+            '~^(?!.*[?&]med=hot_thread(?:&|$)).*/thread/~i'
         );
 
         // A page with no threads is past the end of the subforum (or an empty render): wrap back
@@ -240,10 +240,13 @@ class KaskusAdapter extends AbstractHttpSourceAdapter
         // fixes. Finding zero opinions on an unhydrated fetch and letting
         // the next crawl cycle retry is correct; scraping breadcrumb noise
         // (with a byline that can include a username) is not.
+        // Politics starters often reproduce news; take opinion inputs from reply bodies only.
         return $this->extractHtmlOpinions(
             $doc,
             [
-                '//*[contains(@class, "html-content")]',
+                $doc->ref->sourceKey === 'kaskus_politik'
+                    ? '//*[contains(@class, "html-content") and contains(concat(" ", normalize-space(@class), " "), " py-2 ") and contains(concat(" ", normalize-space(@class), " "), " w-full ")]'
+                    : '//*[contains(@class, "html-content")]',
             ],
             ['wts', 'jual', 'dijual', 'promo', 'iklan', 'penawaran', 'offer', 'memberi reputasi'],
             ['adapter' => 'kaskus']
