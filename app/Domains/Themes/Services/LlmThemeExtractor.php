@@ -2,8 +2,10 @@
 
 namespace App\Domains\Themes\Services;
 
+use App\Domains\Entities\Exceptions\LlmResponseUnusable;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Entities\Models\EntityAlias;
 use App\Domains\Entities\Services\LlmClient;
 use App\Domains\Entities\Services\TextNormalizer;
 use App\Domains\Sentiment\Enums\SentimentClass;
@@ -32,6 +34,13 @@ class LlmThemeExtractor
     private const KNOWN_LABELS_PER_SCOPE = 25;
 
     private const MAX_BATCH_ITEM_CHARS = 1200;
+
+    private const MIN_ALIAS_CHARS_IN_LABEL = 4;
+
+    /**
+     * Fillers a model writes when an opinion holds no concrete judgement ("penyebutan tanpa penilaian").
+     */
+    private const META_LABEL_PATTERN = '/\b(tanpa (penilaian|opini)|tidak ada (penilaian|opini)|penyebutan)\b/iu';
 
     /**
      * A batch asks for many opinions' themes in one completion, which routinely outlasts the 30s default.
@@ -65,10 +74,15 @@ class LlmThemeExtractor
             return [];
         }
 
+        if (! is_array($response['themes'] ?? null)) {
+            throw new LlmResponseUnusable('The theme answer has no themes list.');
+        }
+
+        $entityTerms = $this->entityTerms($entityId, $entityName);
         $found = [];
 
-        foreach (array_slice((array) ($response['themes'] ?? []), 0, self::MAX_THEMES) as $item) {
-            $parsed = is_array($item) ? $this->parseItem($item, $normalizedText) : null;
+        foreach (array_slice($response['themes'], 0, self::MAX_THEMES) as $item) {
+            $parsed = is_array($item) ? $this->parseItem($item, $normalizedText, $entityTerms) : null;
             if ($parsed === null) {
                 continue;
             }
@@ -97,13 +111,15 @@ class LlmThemeExtractor
      * near-duplicate ("baterai boros" / "baterai cepat habis" / "baterai drop").
      *
      * Keys of opinions the model judged not to be about the entity at all are appended to
-     * $offTopic; the caller must drop those opinions.
+     * $offTopic; the caller must drop those opinions. Keys the model left out of its answer are
+     * appended to $unanswered; the caller must not treat those as "no themes".
      *
      * @param  array<int|string, array{key: int|string, text: string}>  $items  keyed however the caller likes; that key is echoed back
      * @param  list<int|string>  $offTopic
+     * @param  list<int|string>  $unanswered
      * @return array<int|string, list<array{theme: Theme, sentiment: SentimentClass, confidence: float, context: string|null}>>
      */
-    public function extractBatch(int $entityId, string $entityName, array $items, array &$offTopic = []): array
+    public function extractBatch(int $entityId, string $entityName, array $items, array &$offTopic = [], array &$unanswered = []): array
     {
         $items = array_values($items);
         if ($items === []) {
@@ -117,9 +133,15 @@ class LlmThemeExtractor
 
         $response = $this->client->chat($this->batchMessages($entityId, $entityName, $items), $this->batchSchema(), self::BATCH_TIMEOUT_SECONDS);
 
-        $found = [];
+        if (! is_array($response['results'] ?? null)) {
+            throw new LlmResponseUnusable('The batch answer has no results list.');
+        }
 
-        foreach ((array) ($response['results'] ?? []) as $result) {
+        $entityTerms = $this->entityTerms($entityId, $entityName);
+        $found = [];
+        $answered = [];
+
+        foreach ($response['results'] as $result) {
             if (! is_array($result)) {
                 continue;
             }
@@ -129,6 +151,7 @@ class LlmThemeExtractor
                 continue;
             }
 
+            $answered[$index] = true;
             $key = $items[$index]['key'];
             $normalizedText = $normalizedTexts[$index];
 
@@ -139,7 +162,7 @@ class LlmThemeExtractor
             }
 
             foreach (array_slice((array) ($result['themes'] ?? []), 0, self::MAX_THEMES) as $themeItem) {
-                $parsed = is_array($themeItem) ? $this->parseItem($themeItem, $normalizedText) : null;
+                $parsed = is_array($themeItem) ? $this->parseItem($themeItem, $normalizedText, $entityTerms) : null;
                 if ($parsed === null) {
                     continue;
                 }
@@ -156,6 +179,12 @@ class LlmThemeExtractor
                     'confidence' => 0.8,
                     'context' => $parsed['context'],
                 ];
+            }
+        }
+
+        foreach ($items as $index => $item) {
+            if (! isset($answered[$index])) {
+                $unanswered[] = $item['key'];
             }
         }
 
@@ -217,9 +246,10 @@ class LlmThemeExtractor
 
     /**
      * @param  array<mixed>  $item
+     * @param  list<string>  $entityTerms  normalized names the label must not contain
      * @return array{label: string, sentiment: SentimentClass, context: string|null}|null
      */
-    private function parseItem(array $item, string $normalizedText): ?array
+    private function parseItem(array $item, string $normalizedText, array $entityTerms): ?array
     {
         $label = trim((string) ($item['label'] ?? ''));
         $sentiment = SentimentClass::tryFrom((string) ($item['sentiment'] ?? ''));
@@ -231,8 +261,9 @@ class LlmThemeExtractor
 
         $wordCount = count(preg_split('/\s+/u', $label) ?: []);
 
-        if ($label === '' || mb_strlen($label) > 60 || $wordCount > self::MAX_LABEL_WORDS
-            || $this->containsIdentifier($label) || $sentiment === null || $contradicts
+        if (! PublicCopyGuard::isAllowed($label, 60) || $wordCount > self::MAX_LABEL_WORDS
+            || $this->containsIdentifier($label) || $this->isEmptyOrNamesEntity($label, $entityTerms)
+            || $sentiment === null || $contradicts
             || $evidence === '' || ! str_contains($normalizedText, $evidence)) {
             return null;
         }
@@ -243,6 +274,45 @@ class LlmThemeExtractor
             : mb_substr($context, 0, self::MAX_CONTEXT_CHARS);
 
         return ['label' => $label, 'sentiment' => $sentiment, 'context' => $context];
+    }
+
+    /**
+     * The prompt forbids a model name in a label and a filler label for an opinion with no judgement;
+     * models ignore both, so the code enforces them. Dropping the theme beats guessing a rewritten label.
+     *
+     * @param  list<string>  $entityTerms
+     */
+    private function isEmptyOrNamesEntity(string $label, array $entityTerms): bool
+    {
+        if (preg_match(self::META_LABEL_PATTERN, $label) === 1) {
+            return true;
+        }
+
+        $normalizedLabel = TextNormalizer::normalize($label);
+
+        foreach ($entityTerms as $term) {
+            if (preg_match('/(?<![\p{L}\p{N}])'.preg_quote($term, '/').'(?![\p{L}\p{N}])/u', $normalizedLabel) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function entityTerms(int $entityId, string $entityName): array
+    {
+        $terms = [TextNormalizer::normalize($entityName)];
+
+        foreach (EntityAlias::query()->where('entity_id', $entityId)->pluck('normalized_alias') as $alias) {
+            if (mb_strlen((string) $alias) >= self::MIN_ALIAS_CHARS_IN_LABEL) {
+                $terms[] = (string) $alias;
+            }
+        }
+
+        return array_values(array_filter(array_unique($terms), fn (string $term) => $term !== ''));
     }
 
     private function containsIdentifier(string $value): bool

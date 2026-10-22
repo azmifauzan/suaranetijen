@@ -79,9 +79,10 @@ class ExtractThemesBatchJob implements ShouldQueue
         }
 
         $offTopic = [];
+        $unanswered = [];
 
         try {
-            $results = $extractor->extractBatch($this->entityId, $entityName, $keyedItems, $offTopic);
+            $results = $extractor->extractBatch($this->entityId, $entityName, $keyedItems, $offTopic, $unanswered);
         } catch (RequestException $e) {
             if ($e->response->status() !== 429) {
                 throw $e;
@@ -116,10 +117,13 @@ class ExtractThemesBatchJob implements ShouldQueue
         app(OffTopicOpinionRemover::class)->remove($this->entityId, $offTopicIds);
 
         // Opinions with zero themes leave no theme_observations row, so mark them here
-        // or themes:extract-pending would resend them every run.
+        // or themes:extract-pending would resend them every run. Opinions the model never
+        // answered stay pending so a later run retries them instead of losing them.
+        $answeredIds = array_map(fn ($index) => $this->items[(int) $index]['sourceItemId'], array_diff(array_keys($this->items), array_map('intval', $unanswered)));
+
         SentimentObservation::query()
             ->where('entity_id', $this->entityId)
-            ->whereIn('source_item_id', array_column($this->items, 'sourceItemId'))
+            ->whereIn('source_item_id', $answeredIds)
             ->update(['themes_extracted_at' => now()]);
     }
 }

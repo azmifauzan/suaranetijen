@@ -2,6 +2,7 @@
 
 namespace App\Domains\Entities\Services;
 
+use App\Domains\Entities\Exceptions\LlmResponseUnusable;
 use App\Domains\Entities\Models\LlmSetting;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
@@ -91,12 +92,15 @@ class LlmClient
 
         try {
             return $this->send($settings, (string) $settings['model'], $messages, $jsonSchema, $timeoutSeconds);
-        } catch (ConnectionException|RequestException $e) {
+        } catch (ConnectionException|RequestException|LlmResponseUnusable $e) {
             if ($e instanceof RequestException && $e->response->status() < 500 && $e->response->status() !== 429) {
                 throw $e;
             }
 
-            Cache::put($downKey, true, self::PRIMARY_DOWN_SECONDS);
+            // An unusable answer is specific to this prompt, so it falls back once without parking the primary.
+            if (! $e instanceof LlmResponseUnusable) {
+                Cache::put($downKey, true, self::PRIMARY_DOWN_SECONDS);
+            }
             Log::warning('llm.primary_failed_using_fallback', ['model' => $settings['model'], 'fallback' => $fallback, 'error' => $e->getMessage()]);
 
             return $this->send($settings, $fallback, $messages, $jsonSchema, $timeoutSeconds);
@@ -137,8 +141,18 @@ class LlmClient
         }
 
         $content = (string) $response->json('choices.0.message.content', '{}');
+        $decoded = json_decode($content, true);
+        $finishReason = $response->json('choices.0.finish_reason');
 
-        return (array) json_decode($content, true);
+        if ($finishReason === 'length' || ! is_array($decoded)) {
+            Log::warning('llm.response_unusable', ['model' => $model, 'finish_reason' => $finishReason]);
+
+            throw new LlmResponseUnusable($finishReason === 'length'
+                ? "{$model} was cut off at max_tokens before finishing the JSON answer."
+                : "{$model} did not return a JSON object.");
+        }
+
+        return $decoded;
     }
 
     /**

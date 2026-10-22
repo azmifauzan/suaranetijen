@@ -22,7 +22,7 @@ it('dispatches an UpsertThemeObservationJob per theme, matched back to its own i
 
     $this->mock(LlmThemeExtractor::class)
         ->shouldReceive('extractBatch')->once()
-        ->with($entity->id, 'Samsung', [0 => ['key' => 0, 'text' => 'opini a'], 1 => ['key' => 1, 'text' => 'opini b']], Mockery::any())
+        ->with($entity->id, 'Samsung', [0 => ['key' => 0, 'text' => 'opini a'], 1 => ['key' => 1, 'text' => 'opini b']], Mockery::any(), Mockery::any())
         ->andReturn([
             1 => [['theme' => $llmTheme, 'sentiment' => SentimentClass::Negative, 'confidence' => 0.8, 'context' => 'Baterai boros.']],
         ]);
@@ -150,4 +150,30 @@ it('rechecks stored opinions from their contexts and deletes the off-topic ones'
 
     expect(SentimentObservation::query()->whereKey($items[0][1]->id)->exists())->toBeTrue()
         ->and(SentimentObservation::query()->whereKey($items[1][1]->id)->exists())->toBeFalse();
+});
+
+it('leaves opinions the model never answered pending so a later run retries them', function () {
+    [$entity, $source] = themeModeFixture();
+    Queue::fake();
+
+    $answeredItem = SourceItem::factory()->create(['source_id' => $source->id]);
+    $skippedItem = SourceItem::factory()->create(['source_id' => $source->id]);
+    $answered = SentimentObservation::factory()->create(['entity_id' => $entity->id, 'source_id' => $source->id, 'source_item_id' => $answeredItem->id, 'themes_extracted_at' => null]);
+    $skipped = SentimentObservation::factory()->create(['entity_id' => $entity->id, 'source_id' => $source->id, 'source_item_id' => $skippedItem->id, 'themes_extracted_at' => null]);
+
+    $this->mock(LlmThemeExtractor::class)
+        ->shouldReceive('extractBatch')->once()
+        ->andReturnUsing(function ($entityId, $name, $items, &$offTopic, &$unanswered) {
+            $unanswered = [1];
+
+            return [];
+        });
+
+    (new ExtractThemesBatchJob($entity->id, [
+        ['sourceItemId' => $answeredItem->id, 'sourceId' => $source->id, 'sourceDocumentHash' => null, 'publishedAt' => null, 'text' => 'opini a'],
+        ['sourceItemId' => $skippedItem->id, 'sourceId' => $source->id, 'sourceDocumentHash' => null, 'publishedAt' => null, 'text' => 'opini b'],
+    ]))->handle(app(LlmThemeExtractor::class));
+
+    expect($answered->fresh()->themes_extracted_at)->not->toBeNull()
+        ->and($skipped->fresh()->themes_extracted_at)->toBeNull();
 });

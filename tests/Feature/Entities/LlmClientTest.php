@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Entities\Exceptions\LlmResponseUnusable;
 use App\Domains\Entities\Models\LlmSetting;
 use App\Domains\Entities\Services\LlmClient;
 use GuzzleHttp\Promise\PromiseInterface;
@@ -337,4 +338,44 @@ it('propagates the API error when both codex and the saved provider fail', funct
 
     expect(fn () => app(LlmClient::class)->chat([['role' => 'user', 'content' => 'test']], ['name' => 'x', 'schema' => ['type' => 'object']]))->toThrow(RequestException::class);
     Http::assertSentCount(3);
+});
+
+function llmTruncated(): PromiseInterface
+{
+    return Http::response(['choices' => [['finish_reason' => 'length', 'message' => ['content' => '{"results":[{"opinion_ind']]]]);
+}
+
+it('treats an answer cut off at max_tokens as a failure instead of an empty result', function () {
+    LlmSetting::create(['base_url' => 'https://llm.internal/v1', 'model' => 'main-model', 'api_key' => 'key']);
+    Http::preventStrayRequests();
+    Http::fake(['llm.internal/*' => llmTruncated()]);
+
+    expect(fn () => (new LlmClient)->chat([['role' => 'user', 'content' => 'hi']]))->toThrow(LlmResponseUnusable::class);
+});
+
+it('treats a completion that is not a JSON object as a failure', function () {
+    LlmSetting::create(['base_url' => 'https://llm.internal/v1', 'model' => 'main-model', 'api_key' => 'key']);
+    Http::preventStrayRequests();
+    Http::fake(['llm.internal/*' => llmOk('Maaf, saya tidak bisa menjawab.')]);
+
+    expect(fn () => (new LlmClient)->chat([['role' => 'user', 'content' => 'hi']]))->toThrow(LlmResponseUnusable::class);
+});
+
+it('retries once with the fallback model on an unusable answer without parking the main model', function () {
+    llmSettingWithFallback();
+    Http::preventStrayRequests();
+    Http::fake(fn (Request $request) => $request['model'] === 'main-model' ? llmTruncated() : llmOk());
+
+    expect((new LlmClient)->chat([['role' => 'user', 'content' => 'hi']]))->toBe(['ok' => true])
+        ->and(Cache::has('llm:primary-down:'.md5('main-model')))->toBeFalse();
+    Http::assertSent(fn (Request $request) => $request['model'] === 'backup-model');
+});
+
+it('throws when the fallback model also returns an unusable answer', function () {
+    llmSettingWithFallback();
+    Http::preventStrayRequests();
+    Http::fake(['llm.internal/*' => llmTruncated()]);
+
+    expect(fn () => (new LlmClient)->chat([['role' => 'user', 'content' => 'hi']]))->toThrow(LlmResponseUnusable::class);
+    Http::assertSentCount(2);
 });

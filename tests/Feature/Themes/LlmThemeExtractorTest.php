@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Entities\Exceptions\LlmResponseUnusable;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Models\LlmSetting;
@@ -242,4 +243,62 @@ it('gives a batch call a longer timeout than the configured single-call default'
 
     Http::assertSent(fn ($request) => ($request->toPsrRequest()->getBody()->getContents() !== '') && true);
     expect((new ReflectionClass(LlmThemeExtractor::class))->getReflectionConstant('BATCH_TIMEOUT_SECONDS')->getValue())->toBeGreaterThan(30);
+});
+
+it('drops labels that name the entity, a superlative, or a filler for an opinion without judgement', function () {
+    $entity = Entity::factory()->create(['name' => 'Vivo']);
+    fakeThemeLlm([
+        ['label' => 'kualitas vivo diragukan', 'sentiment' => 'negative', 'evidence' => 'kameranya bagus banget', 'context' => 'x'],
+        ['label' => 'kamera terbaik', 'sentiment' => 'positive', 'evidence' => 'kameranya bagus banget', 'context' => 'x'],
+        ['label' => 'penyebutan tanpa penilaian', 'sentiment' => 'neutral', 'evidence' => 'kameranya bagus banget', 'context' => 'x'],
+        ['label' => 'kamera bagus', 'sentiment' => 'positive', 'evidence' => 'kameranya bagus banget', 'context' => 'Kamera dinilai bagus.'],
+    ]);
+
+    $result = app(LlmThemeExtractor::class)->extract($entity->id, 'Vivo', OPINION);
+
+    expect($result)->toHaveCount(1)
+        ->and($result[0]['theme']->display_label)->toBe('Kamera bagus');
+});
+
+it('also keeps a label out when it contains one of the entity aliases', function () {
+    $entity = Entity::factory()->create(['name' => 'Galaxy S24 Ultra']);
+    $entity->aliases()->create(['alias' => 'Samsung S24']);
+    fakeThemeLlm([
+        ['label' => 'harga samsung s24 mahal', 'sentiment' => 'negative', 'evidence' => 'baterainya cepat habis', 'context' => 'x'],
+        ['label' => 'baterai cepat habis', 'sentiment' => 'negative', 'evidence' => 'baterainya cepat habis', 'context' => 'x'],
+    ]);
+
+    $result = app(LlmThemeExtractor::class)->extract($entity->id, 'Galaxy S24 Ultra', OPINION);
+
+    expect($result)->toHaveCount(1)
+        ->and($result[0]['theme']->display_label)->toBe('Baterai cepat habis');
+});
+
+it('fails a batch answer that has no results list instead of returning nothing', function () {
+    LlmSetting::create(['base_url' => 'https://llm.test/v1', 'model' => 'm', 'api_key' => 'k', 'max_tokens' => 800, 'temperature' => 0.1, 'timeout_seconds' => 20]);
+    Http::preventStrayRequests();
+    Http::fake(['llm.test/*' => Http::response(['choices' => [['message' => ['content' => '{}']]]])]);
+
+    expect(fn () => app(LlmThemeExtractor::class)->extractBatch(1, 'Samsung', [['key' => 0, 'text' => 'Kameranya bagus banget.']]))
+        ->toThrow(LlmResponseUnusable::class);
+});
+
+it('reports the opinions a batch answer never mentions as unanswered', function () {
+    LlmSetting::create(['base_url' => 'https://llm.test/v1', 'model' => 'm', 'api_key' => 'k', 'max_tokens' => 800, 'temperature' => 0.1, 'timeout_seconds' => 20]);
+    Http::preventStrayRequests();
+    Http::fake(['llm.test/*' => Http::response([
+        'choices' => [['message' => ['content' => json_encode(['results' => [
+            ['opinion_index' => 1, 'about_entity' => true, 'themes' => []],
+            ['opinion_index' => 3, 'about_entity' => false, 'themes' => []],
+        ]])]]],
+    ])]);
+
+    $unanswered = [];
+    app(LlmThemeExtractor::class)->extractBatch(1, 'Samsung', [
+        'a' => ['key' => 'a', 'text' => 'Kameranya bagus banget.'],
+        'b' => ['key' => 'b', 'text' => 'Baterainya cepat habis.'],
+        'c' => ['key' => 'c', 'text' => 'Sampo flip top.'],
+    ], unanswered: $unanswered);
+
+    expect($unanswered)->toBe(['b']);
 });

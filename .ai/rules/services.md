@@ -22,3 +22,6 @@ LLM_PROVIDER is per-node config, not the shared llm_settings row. codex_subscrip
 
 ## Codex paid fallback requires explicit per-node opt-in
 The user's 16 Oct 2026 fallback request supersedes the earlier no-fallback decision above. LLM_CODEX_API_FALLBACK=true enables the saved OpenAI-compatible provider only on Codex quota/auth/connection/inference failure. runner_busy and runner_rate_limited stay HTTP 429 releases without API usage. Bound Codex to 45s process/50s HTTP and API attempts to 30s each under the 140s job timeout. Count/log provider fallback without prompts or secrets.
+
+## Truncated or non-JSON LLM answers throw, never return []
+Reasoning models (glm, MiniMax, gpt-5-nano) can burn all max_tokens thinking and return cut-off JSON with HTTP 200. LlmClient::send() throws LlmResponseUnusable on finish_reason=length or non-object content, and chat() retries once on the fallback model without parking the primary. Returning [] instead made ExtractThemesBatchJob mark the opinions themes_extracted_at, so they were never retried and nothing was logged. Batch extraction also reports opinions missing from results as $unanswered; the job leaves those pending. Label rules (no entity name/alias, no PublicCopyGuard words, no "tanpa penilaian" filler) are enforced in LlmThemeExtractor::parseItem, because models ignore the prompt.
