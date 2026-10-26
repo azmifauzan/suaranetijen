@@ -8,8 +8,11 @@ use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
 use App\Domains\Sponsorships\Models\SponsoredEntry;
 use App\Domains\Sponsorships\Models\SponsorPeriod;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 beforeEach(fn () => Cache::flush());
 
@@ -120,4 +123,27 @@ it('keeps a page cached when only a score changes', function () {
     $entity->update(['updated_at' => now()->addMinute()]);
 
     $this->get('/e/stabil')->assertHeader('X-Page-Cache', 'HIT');
+});
+
+it('does not cache a page whose server render failed, so crawlers never get the empty fallback for five minutes', function () {
+    config([
+        'inertia.ssr.enabled' => true,
+        'inertia.ssr.ensure_bundle_exists' => false,
+        'inertia.ssr.url' => 'http://ssr.test:13714',
+    ]);
+    // SsrState is request-scoped; a test reuses one app across requests, so reset it the way a real request starts.
+    $get = function (string $uri) {
+        $this->app->forgetScopedInstances();
+
+        return $this->get($uri);
+    };
+
+    Http::fake(fn () => throw new ConnectionException('cURL error 28: Operation timed out'));
+    $get('/methodology')->assertOk()->assertHeader('X-Page-Cache', 'MISS');
+    $get('/methodology')->assertOk()->assertHeader('X-Page-Cache', 'MISS');
+
+    Http::swap(new Factory);
+    Http::fake(['*' => Http::response(['head' => ['<title>Metodologi</title>'], 'body' => '<h1>Metodologi</h1>'])]);
+    $get('/methodology')->assertHeader('X-Page-Cache', 'MISS');
+    $get('/methodology')->assertHeader('X-Page-Cache', 'HIT');
 });

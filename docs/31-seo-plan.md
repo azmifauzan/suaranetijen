@@ -845,3 +845,140 @@ terindeks, lalu `curl` sisanya mencari `noindex`) untuk memastikan halaman terin
 4. **"Apakah X bagus" untuk `/e/tecno`: sudah ada.** FAQ pertama tiap halaman entitas bertanya "Apakah {nama} bagus
    menurut netizen?" dan meta description diawali "Apakah {nama} bagus?". Tidak ada perubahan.
 5. Pengukuran ulang RankMySEO menunggu review berikutnya.
+
+## Pengukuran 26 Oktober 2026
+
+Sumber dan jendela, dibaca 26 Okt:
+
+| Sumber | Jendela / tanggal data |
+|---|---|
+| Search Console (domain) | kinerja 28 hari 26 Sep-23 Okt (jeda ~3 hari); laporan Page indexing dibaca 26 Okt, tetapi datanya "Last update 19 Okt" |
+| GA4 | 28 hari 28 Sep-25 Okt, channel Organic Search dibaca sendiri |
+| RankMySEO (Starter) | review 13 Okt, 500 halaman dikrawl, hanya 250 pertama yang dinilai; "Last check" beranda 23 Okt |
+| Neil Patel (Ubersuggest, gratis) | crawl terakhir 19 Okt 10:41, 150 halaman |
+
+**Koreksi label:** angka indeks (terindeks, Discovered, Crawled, 404, 5xx, noindex) di tabel ini adalah data GSC per 19 Okt, bukan 26 Okt; laporan Page indexing belum diperbarui sejak 19 Okt saat dibaca. Angka kinerja (klik, impresi) memang sampai 23 Okt.
+
+Jendela GSC dan GA4 berbeda dua hari dan sama-sama bergeser satu minggu dari laporan 19 Okt (GSC 19 Sep-16 Okt, GA4
+21 Sep-18 Okt); 21 hari tumpang tindih. Perubahan di bawah adalah perbandingan antar-jendela, bukan angka periode terpisah.
+
+| Metrik | Baseline 2 Okt | 19 Okt | 26 Okt | Target 1 bulan / 3 bulan |
+|---|---|---|---|---|
+| Klik GSC / 28 hari | 1 | 25 | **47** | 15 (tercapai) / 150 |
+| Impresi GSC / 28 hari | 25 | 3.080 | **6.320** | 300 (tercapai) / 3.000 (**tercapai**) |
+| CTR / posisi rata-rata | 4% / 33,7 | 0,8% / 7,8 | **0,7% / 7,7** | - |
+| Halaman terindeks | 78 | 262 | **294** | 120 (tercapai) / 250 (**tercapai**) |
+| Discovered - not indexed | 38 | 35 | **50** | < 20 / < 10 (belum) |
+| Crawled - not indexed | 18 | 6 | **12** | < 10 / < 5 (belum; naik dari 6) |
+| Server error 5xx | 6 | 1 | **1** (validasi berjalan) | 0 |
+| Not found (404) | - | 25 | **26** (validasi gagal) | 0 |
+| Excluded by noindex | 155 | 2.806 | **2.831** | lihat catatan 19 Okt |
+| Sesi GA4 (semua channel) | 1.185 | 1.815 | **1.180** | - |
+| Sesi Organic Search GA4 | 10 (0,8%) | 61 (3,4%) | **90 (7,6%)** | 50 (tercapai) / 400 |
+| Key event GA4 | 0 | 51 | **60** (semua dari Referral, Direct, Unassigned; Organic Search 0) | 4 terdefinisi |
+| On-page score RankMySEO | 34 | 73 | **73** (review 13 Okt yang sama, tidak ada crawl baru) | >= 70 (tercapai) / >= 85 |
+| Keyword terlacak top 20 (RankMySEO) | 0 | 0 (10 kw) | **2 dari 8** | 1 (**tercapai**) / 3 |
+| Referring domain / backlink / authority (RankMySEO) | 1 / 3 / 2 | 2 / 3 | **1 / 3 / 2** | 5 / 15 referring domain (belum) |
+| Skor on-page Ubersuggest | - | - | **94** (150 halaman, 13 isu) | - |
+
+Skor Ubersuggest dan RankMySEO tidak sebanding (alat, jumlah halaman, dan aturan skor berbeda); keduanya hanya dibandingkan
+dengan diri sendiri antar-snapshot. Ubersuggest baru dicatat kali ini, jadi belum punya garis dasar. Backlink Ubersuggest
+(39, domain authority 3) memakai indeks sendiri dan tidak boleh dicampur dengan 3 backlink RankMySEO.
+
+**Apa yang bergerak (setelah dibandingkan dengan 19 Okt).**
+
+- Klik 25 -> 47 dan impresi 3.080 -> 6.320 naik sekitar dua kali lipat dengan posisi rata-rata datar (7,8 -> 7,7). Ini pertumbuhan
+  jangkauan, bukan perbaikan peringkat. Dua target 3 bulan sudah lewat: impresi (3.000) dan halaman terindeks (250).
+  Target klik 3 bulan (150) belum: 47.
+- Halaman `/banding` masih penggerak utama. Top pages GSC: `infinix-vs-oppo` 4 klik / 821 impresi, `infinix-vs-samsung` 3 / 479,
+  `infinix-vs-vivo` 3 / 390, `infinix-vs-tecno` 3 / 317, `oppo-vs-tecno` 2 / 287. Pasangan baru dari
+  fase C ikut muncul: `infinix-vs-poco` 2 klik / 32 impresi, `realme-vs-samsung` 1 / 258, `samsung-vs-tecno` 1 / 194. Ini bukti awal
+  (12 hari sejak 14 Okt); ukur penuh di laporan 4-6 minggu setelah 14 Okt.
+- Halaman entitas yang menghasilkan klik: `/e/jaecoo-j5-ev` (3 klik / 64 impresi; query "review jaecoo j5 ev" 2 klik / 17 impresi,
+  juga satu dari dua keyword terlacak RankMySEO di posisi 16) dan `/e/daihatsu` (2 / 14). Query teratas masih "X dan Y bagus mana".
+- Organic Search GA4 naik 61 -> 90 sesi dan pangsanya 3,4% -> 7,6%. Pangsa naik sebagian karena total sesi turun
+  (1.815 -> 1.180) setelah lonjakan kampanye Threads 13 Okt keluar dari jendela; jangan baca 7,6% sebagai tiga kali lipat organik.
+  Engagement Organic Search tetap yang terbaik: rata-rata 1m17s, 7,66 event per sesi, engagement rate 71,1%, dibanding 31 detik
+  dan 5,86 event untuk semua channel.
+- Organic Search menghasilkan **0 key event** dari 90 sesi. Total 60 key event berasal dari Referral (34), Direct (13) dan
+  Unassigned (13). Pengunjung organik membaca (1m17s) tetapi tidak mencari atau mengklik sponsor.
+
+**Yang memburuk atau belum bergerak.**
+
+- Discovered - not indexed naik 35 -> 50 dan Crawled - not indexed 6 -> 12, di atas target 3 bulan (< 10 / < 5). Sitemap live kini
+  414 URL (376 pada 19 Okt), jadi sebagian kenaikan adalah URL baru yang memang belum sempat dirayapi. Belum dipastikan; lihat
+  tindak lanjut 1.
+- 404 25 -> 26 dan validasi masih gagal; 5xx tetap 1. Keduanya entitas hasil purge (lihat status 19 Okt, butir 1); tidak ada tindakan.
+- Authority, referring domain, dan backlink tidak bergerak (1 / 3 / 2). Target referring domain 5 (1 bulan) belum tercapai dan
+  tidak ada pengiriman outreach baru yang tercatat di dokumen ini.
+
+**RankMySEO.** Skor 73 (+39 dari 34) berasal dari review 13 Okt yang sama dengan snapshot 19 Okt; "Last check 23 Okt" di beranda
+bukan review baru. Kartu isu kini 1 tipe error dan 2 tipe warning, 229 isu pada 500 halaman (sebelumnya 424 isu), tetapi
+penurunan itu karena tiga baris ditandai "Marked fixed" secara manual (filter "Marked fixed (3)"; baris mana saja tidak
+dicatat saat dibaca; dari daftar 19 Okt yang hilang adalah Title too long, Thin content, dan Broken links), bukan hasil crawl ulang. Sisa baris dan status terhadap HTML live 26 Okt:
+
+| Isu | Halaman | Status live |
+|---|---|---|
+| Blocked from indexing | 220 | Disengaja (`/e/*` di bawah ambang dan `/top/*` tanpa ranking memang `noindex, follow`). Tidak diubah |
+| 4xx pages | 1 | Belum ditelusuri URL-nya |
+| Unfriendly URL | 8 | `/about`, `/terms` false positive; tidak diganti |
+| Thin content (kemungkinan ditandai fixed manual) | - | Copy `/top/{kategori}` sudah live: `/top/bank-e-wallet` 283 kata (sebelumnya 156), `/top/e-commerce` 263 (138), `/banding` 1.033. Perubahan dari 19 Okt terdeploy; belum dikonfirmasi oleh crawl baru |
+
+**Neil Patel (Ubersuggest).** Skor 94, 150 halaman dirayapi (0 rusak, 0 diblokir), 13 isu: 7 halaman low word count dan 6 halaman
+URL buruk. URL kedua kelompok isu belum ditarik (tombol View Details tidak membuka daftar saat dibaca), jadi keduanya belum
+bisa diklasifikasikan sebagai terbuka atau basi; cek terhadap HTML live sebelum mengubah apa pun. Tombol "Recrawl website"
+ada tetapi tidak ditekan (paket gratis, 10 kredit tersisa). Organic traffic 1, organic keywords 1.
+
+### Tindak lanjut dari pengukuran ini
+
+1. GSC: buka "Discovered - currently not indexed" (50) dan "Crawled - currently not indexed" (12), ekspor URL, dan pisahkan
+   URL sitemap baru (`/banding`, `/topik`) dari URL entitas. Bila banyak `/banding/*` baru, itu penundaan normal; bila
+   `/e/*` tipis, cari sumber tautannya dengan sapuan langkah 6 skill `seo-audit-spa-methodology`.
+2. Organic Search 0 key event: tambahkan jalur dari `/banding/*` ke `/e/{slug}` kedua entitas dan ke `/search`, lalu ukur
+   `view_search_results` pada channel Organic Search di laporan berikutnya.
+3. Tarik URL 7 halaman low word count dan 6 URL buruk dari Ubersuggest; curl tiap URL sebelum memperbaiki. Putuskan apakah
+   menekan "Recrawl website" (mungkin memakai kredit) setelah itu.
+4. Tunggu review RankMySEO berikutnya sebelum menilai Title too long dan Thin content; jangan menyimpulkan dari angka
+   isu yang sudah diubah manual.
+5. Referring domain: kirim batch outreach Fase 4 yang masih tertunda; target 5 referring domain belum tercapai.
+6. Ukur pasangan `/banding` fase C penuh di laporan GSC sekitar 25 Nov (4-6 minggu setelah 14 Okt).
+
+### Status tindak lanjut (26 Oktober 2026)
+
+1. **Discovered / Crawled - not indexed: diperiksa, hipotesis awal salah.** Ke-50 URL Discovered (data GSC 19 Okt) tidak
+   memuat satu pun `/banding/*`: 48 halaman `/e/*` produk/merek, `/category/peralatan-rumah-tangga`, dan
+   `/topik/motor-irit-bbm`. Semuanya ada di sitemap, 200, `index, follow`, 550-820 kata, dan "Last crawled N/A" (Google
+   belum pernah merayapinya). Sapuan tautan internal atas 414 URL sitemap: median tautan masuk URL Discovered sekitar 5,
+   sitemap-wide `/e/*` sekitar 6, jadi halaman ini tidak yatim. Penyebabnya prioritas crawl untuk domain authority 2, bukan
+   kualitas halaman; tidak ada perubahan kode untuk ini. Dari 12 Crawled - not indexed: 2 `/banding/*` pasangan baru (~300
+   kata), `/banding`, 5 `/e/*`, `/topik/mobil-harga-bersaing`, `/login` dan `/e/umidigi-bison` (noindex, benar), dan
+   `/e/daihatsu sirion` (301, benar).
+2. **Temuan baru dan perbaikan: halaman gagal SSR disimpan di page cache.** Sapuan `<h1>` atas 414 URL sitemap menemukan 38
+   halaman yang dilayani sebagai shell client-side (0 `<h1>`, title generik) dengan `X-Page-Cache: HIT`: 22 `/topik/*`,
+   13 `/category/*`, 2 `/banding/*`, `/top/motor`. Diambil ulang tanpa cache (dengan cookie), semuanya merender `<h1>`
+   normal. Jadi SSR kadang gagal (timeout di bawah beban; sapuan paralel 8 permintaan dari sesi ini mungkin ikut memicu
+   sebagian) dan `CachePublicPages` menyimpan fallback kosong itu selama 5 menit, lalu melayaninya ke crawler.
+   `/topik/mobil-harga-bersaing` yang masuk Crawled - not indexed terlihat 6 kata. Perbaikan: `TimeoutHttpGateway`
+   menandai request sebagai tidak boleh di-cache (`CachePublicPages::SKIP_ATTRIBUTE`) setiap kali render SSR dicoba lalu
+   gagal. Tes regresi di `CachePublicPagesTest`. `phpunit.xml` kini mematikan SSR (`INERTIA_SSR_ENABLED=false`), karena
+   tes cache sebelumnya ikut mencoba SSR ke `127.0.0.1:13714` setiap kali bundle SSR ada, dan lulus justru karena
+   menyimpan fallback itu. Belum dideploy.
+3. **Meta description `/banding/*` menjawab pertanyaan.** Aturan lama ("skor tidak ditampilkan di meta agar orang tetap
+   mengklik") dibalik berdasarkan data: CTR 0,5% di posisi ~8. Meta kini
+   `{A} atau {B} bagus mana? {verdict}, dari {n} opini.` lalu tema bila muat dalam 160 karakter. Title tidak diubah:
+   live 59 karakter (suffix sudah dibuang otomatis di atas 60). Belum dideploy.
+4. **Blok "Perbandingan lain" di `/banding/*`.** Sampai 6 pasangan terindeks: yang berbagi salah satu entitas dulu, lalu
+   satu kategori. Sebelumnya halaman pasangan tidak menautkan pasangan lain sama sekali. Belum dideploy.
+5. **Event GA4 untuk pembaca organik.** `comparison_entity_click` (klik ke `/e/{slug}` dari halaman pasangan) dan
+   `related_comparison_click`. Setelah deploy dan event pertama masuk, tandai keduanya sebagai key event di GA4 (GA4 baru
+   menampilkan tombol bintang setelah event pertama diterima).
+6. **Intent "review X": kode sudah ada.** Title entitas sudah diawali "Review {Nama}". Dua keyword ditambahkan ke RankMySEO
+   dari query GSC "review" yang punya impresi tanpa klik: `review redmi note 15 5g` (9 impresi), `samsung a57 review` (7).
+   `review yaris cross` (`/e/toyota-yaris-cross`) ditolak: kuota paket 10 keyword penuh. Catatan data: nama entitas
+   tampil "Redmi Note 15 5g" (huruf g kecil), perlu dirapikan di admin.
+7. **Outreach (referring domain):** dilewati atas keputusan pemilik pada sesi ini.
+8. **Diverifikasi di SSR lokal (Postgres lokal):** `/banding/infinix-vs-oppo` merender 1 `<h1>`, meta baru, dan 6 tautan
+   "Perbandingan lain". Meta terpanjang di semua pasangan kurasi 131 karakter (`honda-mobil-vs-toyota`). Dengan proses SSR
+   dimatikan, `/methodology` dua kali berturut-turut `X-Page-Cache: MISS` (fallback tidak disimpan). Setelah deploy, ulangi
+   sapuan `<h1>` atas URL sitemap secara berurutan di staging.
+

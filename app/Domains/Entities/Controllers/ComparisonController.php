@@ -66,6 +66,7 @@ class ComparisonController extends Controller
             'indexable' => ! RobotsPolicy::isNoindex(),
             'comparison' => $comparison,
             'comparisonSeo' => $this->comparisons->seo($comparison, $canonical),
+            'relatedComparisons' => $this->comparisons->related($canonical, $comparison['sides'][0]['category_slug']),
         ])->withViewData('robots', RobotsPolicy::get());
     }
 }

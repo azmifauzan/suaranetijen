@@ -23,7 +23,7 @@ class CachePublicPages
 {
     public const TTL_SECONDS = 300;
 
-    /** Set by a controller whose page must run on every view (sponsor view counts). */
+    /** Set by a controller whose page must run on every view (sponsor view counts), or by the SSR gateway when a render failed. */
     public const SKIP_ATTRIBUTE = 'page_cache.skip';
 
     private const ROUTES = [

@@ -3,8 +3,10 @@ import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import PublicSeo from '@/components/PublicSeo.vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import { trackEvent } from '@/lib/analytics';
 import { home, methodology } from '@/routes';
 import { show as showCategory } from '@/routes/categories';
+import { show as showComparison } from '@/routes/comparisons';
 import { show as showEntity } from '@/routes/entities';
 
 interface Theme {
@@ -37,6 +39,7 @@ const props = defineProps<{
         breadcrumb_json_ld: Record<string, unknown>;
         faq_json_ld: Record<string, unknown>;
     };
+    relatedComparisons: Array<{ pair: string; label: string }>;
 }>();
 
 // Inertia reuses this component between two comparisons, so derive from props instead of reading them once.
@@ -44,6 +47,8 @@ const a = computed(() => props.comparison.sides[0]);
 const b = computed(() => props.comparison.sides[1]);
 const robots = computed(() => (props.indexable ? 'index, follow' : 'noindex, follow'));
 const formatCount = (value: number): string => value.toLocaleString('id-ID');
+const trackEntityClick = (slug: string): void => trackEvent('comparison_entity_click', { pair: props.pair, entity: slug });
+const trackRelatedClick = (pair: string): void => trackEvent('related_comparison_click', { from: props.pair, to: pair });
 </script>
 
 <template>
@@ -91,7 +96,7 @@ const formatCount = (value: number): string => value.toLocaleString('id-ID');
                     :aria-label="side.name"
                 >
                     <h2 class="text-lg font-bold text-neutral-900">
-                        <Link :href="showEntity.url(side.slug)" class="hover:underline">{{ side.name }}</Link>
+                        <Link :href="showEntity.url(side.slug)" class="hover:underline" @click="trackEntityClick(side.slug)">{{ side.name }}</Link>
                     </h2>
                     <p class="text-xs text-neutral-500">{{ side.type_label }} · {{ side.category }}</p>
 
@@ -138,7 +143,8 @@ const formatCount = (value: number): string => value.toLocaleString('id-ID');
                     <p v-else class="mt-2 text-xs text-neutral-500">Belum ada keluhan berulang yang terdeteksi.</p>
 
                     <Link :href="showEntity.url(side.slug)"
-                        class="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-emerald-700 hover:underline">
+                        class="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-emerald-700 hover:underline"
+                        @click="trackEntityClick(side.slug)">
                         Lihat semua opini tentang {{ side.name }} →
                     </Link>
                 </section>
@@ -149,6 +155,19 @@ const formatCount = (value: number): string => value.toLocaleString('id-ID');
                 Selisih skor menggambarkan sebaran opini, bukan kualitas produk.
                 <Link :href="methodology()" class="font-semibold text-emerald-700 hover:underline">Cara menghitung</Link>
             </p>
+
+            <section v-if="relatedComparisons.length > 0" class="mt-8" aria-labelledby="related-comparisons">
+                <h2 id="related-comparisons" class="text-lg font-bold text-neutral-900">Perbandingan lain</h2>
+                <ul class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    <li v-for="item in relatedComparisons" :key="item.pair">
+                        <Link :href="showComparison.url(item.pair)"
+                            class="flex min-h-11 items-center rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-800 hover:border-emerald-300 hover:text-emerald-700"
+                            @click="trackRelatedClick(item.pair)">
+                            {{ item.label }}: bagus mana?
+                        </Link>
+                    </li>
+                </ul>
+            </section>
 
             <section class="mt-8 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
                 <h2 class="text-lg font-bold text-neutral-900">Pertanyaan seputar {{ a.name }} vs {{ b.name }}</h2>

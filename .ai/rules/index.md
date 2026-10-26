@@ -9,6 +9,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Domains/**/Controllers/** | .ai/rules/controllers.md |
 | app/Domains/Ingestion/Jobs/DiscoverSourceDocumentsJob.php | .ai/rules/jobs.md |
 | resources/js/** | .ai/rules/js.md |
+| app/Http/Middleware/CachePublicPages.php | .ai/rules/middleware.md |
 | app/Domains/Search/Services/SearchService.php | .ai/rules/search-services.md |
 | app/Domains/Sentiment/** | .ai/rules/sentiment.md |
 | app/Domains/Entities/Services/HomepageCategoryBlockService.php, app/Domains/Entities/Services/EntityCandidate*.php, app/Domains/Entities/Services/EntityReviewVideoFinder.php, app/Domains/Entities/Services/LlmClient.php | .ai/rules/services.md |

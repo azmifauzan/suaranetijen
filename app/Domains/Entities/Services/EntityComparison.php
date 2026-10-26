@@ -158,6 +158,26 @@ class EntityComparison
     }
 
     /**
+     * Other indexable pairs for a comparison page: pairs sharing one of its entities first, then pairs from the
+     * same category, so new pairs get an internal link and a reader has somewhere to go next.
+     *
+     * @return array<int, array{pair: string, label: string}>
+     */
+    public function related(string $pair, string $categorySlug, int $limit = 6): array
+    {
+        $slugs = $this->parse($pair) ?? [];
+        $others = collect($this->indexablePages())->reject(fn (array $page): bool => $page['pair'] === $pair);
+        $sharesSide = fn (array $page): bool => array_intersect($slugs, array_column($page['sides'], 'slug')) !== [];
+
+        return $others->filter($sharesSide)
+            ->merge($others->reject($sharesSide)->where('category_slug', $categorySlug))
+            ->take($limit)
+            ->map(fn (array $page): array => ['pair' => $page['pair'], 'label' => "{$page['sides'][0]['name']} vs {$page['sides'][1]['name']}"])
+            ->values()
+            ->all();
+    }
+
+    /**
      * The indexable pairs grouped by category, for the /banding list page.
      *
      * @return array<int, array{category: string, category_slug: string, pairs: array<int, array{pair: string, label: string, sides: array<int, array{name: string, slug: string, score: float, opinion_count: int}>}>}>
@@ -252,7 +272,7 @@ class EntityComparison
             $title = "{$a['name']} vs {$b['name']}: Sentimen Netizen";
         }
 
-        $description = $this->metaDescription($a, $b);
+        $description = $this->metaDescription($a, $b, $comparison['verdict']);
 
         $faq = [
             [
@@ -295,16 +315,16 @@ class EntityComparison
     }
 
     /**
-     * Question-shaped lead plus one praised/complained theme per side. The two scores stay in the page body
-     * and FAQ, not here, so a searcher still has a reason to click.
+     * Question-shaped lead answered by the verdict, then one praised/complained theme per side while it fits.
+     * The answer leads because hiding both scores got 0.5% CTR at position ~8 (docs/31, 26 Oct 2026).
      *
      * @param  array<string, mixed>  $a
      * @param  array<string, mixed>  $b
      */
-    protected function metaDescription(array $a, array $b): string
+    protected function metaDescription(array $a, array $b, string $verdict): string
     {
         $total = number_format($a['opinion_count'] + $b['opinion_count'], 0, ',', '.');
-        $description = "{$a['name']} atau {$b['name']} bagus mana? Dibandingkan dari {$total} opini netizen.";
+        $description = "{$a['name']} atau {$b['name']} bagus mana? ".rtrim($verdict, '.').", dari {$total} opini.";
 
         foreach ([$a, $b] as $side) {
             $positive = $side['positive_themes'][0]['display_label'] ?? null;

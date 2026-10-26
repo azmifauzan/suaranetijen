@@ -2,6 +2,7 @@
 
 namespace App\Http\Ssr;
 
+use App\Http\Middleware\CachePublicPages;
 use Exception;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\StrayRequestException;
@@ -45,11 +46,11 @@ class TimeoutHttpGateway extends HttpGateway
             if ($response->failed()) {
                 $this->handleSsrFailure($page, $response->json());
 
-                return null;
+                return $this->fallback($request);
             }
 
             if (! $data = $response->json()) {
-                return null;
+                return $this->fallback($request);
             }
 
             return new Response(
@@ -66,8 +67,19 @@ class TimeoutHttpGateway extends HttpGateway
                 'type' => 'connection',
             ]);
 
-            return null;
+            return $this->fallback($request);
         }
+    }
+
+    /**
+     * Client-side fallback for a render that was attempted and failed. The page cache must not store it:
+     * a crawler would get an empty shell for the whole TTL (docs/31, 26 Oct 2026).
+     */
+    protected function fallback(?Request $request): null
+    {
+        ($request ?? request())->attributes->set(CachePublicPages::SKIP_ATTRIBUTE, true);
+
+        return null;
     }
 
     public function isHealthy(): bool

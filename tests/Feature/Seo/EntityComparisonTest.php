@@ -189,13 +189,33 @@ test('the public footer links to the comparison list and the list page is served
     expect(file_get_contents(resource_path('js/layouts/PublicLayout.vue')))->toContain('comparisonsIndex()');
 });
 
-test('the comparison meta description is question-shaped and does not reveal both scores', function () {
+test('the comparison meta description answers the question with both scores', function () {
     comparisonEntity('oppo', 'Oppo', 200, 70.2);
     comparisonEntity('vivo', 'Vivo', 150, 89.1);
 
     $this->get('/banding/oppo-vs-vivo')->assertInertia(fn (Assert $page) => $page
-        ->where('comparisonSeo.meta_description', fn (string $description): bool => str_starts_with($description, 'Oppo atau Vivo bagus mana?')
-            && str_contains($description, '350 opini')
-            && ! str_contains($description, '/100')
+        ->where('comparisonSeo.meta_description', fn (string $description): bool => str_starts_with($description, 'Oppo atau Vivo bagus mana? Sentimen netizen untuk Vivo (89/100) lebih tinggi daripada Oppo (70/100), dari 350 opini.')
             && mb_strlen($description) <= 160));
+});
+
+test('a comparison links to other indexable pairs sharing a side first, then same-category pairs', function () {
+    config(['comparisons.pairs' => ['oppo-vs-vivo', 'oppo-vs-xiaomi', 'realme-vs-tecno', 'kecil-vs-vivo', 'mobil-x-vs-mobil-y']]);
+    comparisonEntity('oppo', 'Oppo', 200, 70.2);
+    comparisonEntity('vivo', 'Vivo', 150, 89.1);
+    comparisonEntity('xiaomi', 'Xiaomi', 120, 75.0);
+    comparisonEntity('realme', 'Realme', 120, 60.0);
+    comparisonEntity('tecno', 'Tecno', 120, 65.0);
+    comparisonEntity('kecil', 'Kecil', 10, 0);
+    comparisonEntity('mobil-x', 'Mobil X', 120, 70.0, 'mobil');
+    comparisonEntity('mobil-y', 'Mobil Y', 120, 72.0, 'mobil');
+
+    $this->get('/banding/oppo-vs-vivo')->assertInertia(fn (Assert $page) => $page
+        ->where('relatedComparisons', [
+            ['pair' => 'oppo-vs-xiaomi', 'label' => 'Oppo vs Xiaomi'],
+            ['pair' => 'realme-vs-tecno', 'label' => 'Realme vs Tecno'],
+        ]));
+
+    expect(file_get_contents(resource_path('js/pages/Comparison/Show.vue')))
+        ->toContain("trackEvent('related_comparison_click'")
+        ->toContain("trackEvent('comparison_entity_click'");
 });
