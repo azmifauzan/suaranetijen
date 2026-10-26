@@ -982,3 +982,15 @@ ada tetapi tidak ditekan (paket gratis, 10 kredit tersisa). Organic traffic 1, o
    dimatikan, `/methodology` dua kali berturut-turut `X-Page-Cache: MISS` (fallback tidak disimpan). Setelah deploy, ulangi
    sapuan `<h1>` atas URL sitemap secara berurutan di staging.
 
+### Deploy 26 Oktober 2026
+
+Commit `06b46c4` didorong ke `main`, image `azmifauzan/suaranetijen:latest` (digest `sha256:92544046...`, PHP 8.5.12)
+dibangun dari pohon commit dan didorong ke Docker Hub, lalu di-pull dan dibuat ulang di host utama staging
+(`suaranetijen-app`, `-scheduler`, `-ssr`; `nginx-proxy` di-reload, cache halaman di-flush, tidak ada migrasi).
+Worker 1-3 tidak diperbarui: perubahan ini hanya menyentuh jalur web (gateway SSR, halaman `/banding`) dan tidak dipakai job antrean.
+Verifikasi live: `/` dan `/up` 200; `/banding/infinix-vs-oppo` merender 1 `<h1>`, meta baru, dan 6 tautan "Perbandingan lain".
+Sapuan berurutan atas 38 URL yang sebelumnya kosong: 37 langsung merender `<h1>`; `/category/automotive` kosong sekali lalu
+normal pada permintaan berikutnya (satu render SSR gagal yang tidak disimpan di cache, sesuai perbaikan). Perubahan
+`resources/js/pages/Welcome.vue` yang belum di-commit tidak ikut. Tindak lanjut: tandai `comparison_entity_click` dan
+`related_comparison_click` sebagai key event setelah event pertama masuk di GA4.
+
