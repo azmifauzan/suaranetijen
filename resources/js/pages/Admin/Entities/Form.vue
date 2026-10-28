@@ -35,6 +35,8 @@ interface CarSpec {
     transmission: string | null;
     drivetrain: string | null;
     fuel_tank_liter: number | null;
+    battery_kwh: number | null;
+    range_km: number | null;
     seating_capacity: number | null;
     dimensions_mm: string | null;
     release_year: number | null;
@@ -119,6 +121,8 @@ const emptyCarSpec: CarSpec = {
     transmission: null,
     drivetrain: null,
     fuel_tank_liter: null,
+    battery_kwh: null,
+    range_km: null,
     seating_capacity: null,
     dimensions_mm: null,
     release_year: null,
@@ -402,6 +406,14 @@ function removeAlias(aliasId: number) {
                             <div>
                                 <label class="block text-[10px] font-medium text-neutral-500">Tangki BBM (liter)</label>
                                 <input v-model.number="form.car_spec.fuel_tank_liter" type="number" class="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800" />
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-medium text-neutral-500">Baterai (kWh)</label>
+                                <input v-model.number="form.car_spec.battery_kwh" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800" />
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-medium text-neutral-500">Jarak Tempuh (km)</label>
+                                <input v-model.number="form.car_spec.range_km" type="number" class="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800" />
                             </div>
                             <div>
                                 <label class="block text-[10px] font-medium text-neutral-500">Kapasitas Duduk</label>

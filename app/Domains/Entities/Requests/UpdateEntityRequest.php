@@ -72,6 +72,8 @@ class UpdateEntityRequest extends FormRequest
             'car_spec.transmission' => ['nullable', 'string', 'max:100'],
             'car_spec.drivetrain' => ['nullable', 'string', 'max:100'],
             'car_spec.fuel_tank_liter' => ['nullable', 'integer', 'min:0'],
+            'car_spec.battery_kwh' => ['nullable', 'numeric', 'min:0', 'max:999.9'],
+            'car_spec.range_km' => ['nullable', 'integer', 'min:0', 'max:65535'],
             'car_spec.seating_capacity' => ['nullable', 'integer', 'min:0', 'max:100'],
             'car_spec.dimensions_mm' => ['nullable', 'string', 'max:100'],
             'car_spec.release_year' => ['nullable', 'integer', 'min:1990', 'max:2100'],

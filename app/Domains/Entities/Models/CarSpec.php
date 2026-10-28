@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $transmission
  * @property string|null $drivetrain
  * @property int|null $fuel_tank_liter
+ * @property float|null $battery_kwh
+ * @property int|null $range_km
  * @property int|null $seating_capacity
  * @property string|null $dimensions_mm
  * @property int|null $release_year
@@ -37,6 +39,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'transmission',
     'drivetrain',
     'fuel_tank_liter',
+    'battery_kwh',
+    'range_km',
     'seating_capacity',
     'dimensions_mm',
     'release_year',
@@ -64,6 +68,8 @@ class CarSpec extends Model
             'power_hp' => 'float',
             'torque_nm' => 'float',
             'fuel_tank_liter' => 'integer',
+            'battery_kwh' => 'float',
+            'range_km' => 'integer',
             'seating_capacity' => 'integer',
             'release_year' => 'integer',
         ];

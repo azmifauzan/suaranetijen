@@ -149,3 +149,29 @@ test('public entity page has no specs when the entity has none', function () {
             ->where('specs', null)
         );
 });
+
+test('car spec stores battery and range and the public page shows them with units', function () {
+    $admin = User::factory()->admin()->create();
+    $category = Category::factory()->create(['slug' => 'mobil']);
+    $entity = Entity::factory()->create(['category_id' => $category->id, 'type' => EntityType::Product]);
+
+    $this->actingAs($admin)
+        ->put("/admin/entities/{$entity->id}", entityDetailSpecUpdatePayload($entity, [
+            'car_spec' => ['fuel_type' => 'Listrik (EV)', 'battery_kwh' => 60.9, 'range_km' => 461],
+        ]))
+        ->assertRedirect();
+
+    $this->get("/e/{$entity->slug}")->assertInertia(fn ($page) => $page
+        ->where('specs.items', fn ($items) => collect($items)->contains(['label' => 'Baterai', 'value' => '60.9 kWh'])
+            && collect($items)->contains(['label' => 'Jarak Tempuh', 'value' => '461 km'])));
+});
+
+test('car spec rejects a negative battery capacity', function () {
+    $admin = User::factory()->admin()->create();
+    $category = Category::factory()->create(['slug' => 'mobil']);
+    $entity = Entity::factory()->create(['category_id' => $category->id, 'type' => EntityType::Product]);
+
+    $this->actingAs($admin)
+        ->put("/admin/entities/{$entity->id}", entityDetailSpecUpdatePayload($entity, ['car_spec' => ['battery_kwh' => -1]]))
+        ->assertSessionHasErrors('car_spec.battery_kwh');
+});

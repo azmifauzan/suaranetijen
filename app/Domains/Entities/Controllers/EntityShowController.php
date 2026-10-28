@@ -392,6 +392,8 @@ class EntityShowController extends Controller
                 'transmission' => 'Transmisi',
                 'drivetrain' => 'Penggerak',
                 'fuel_tank_liter' => 'Tangki BBM',
+                'battery_kwh' => 'Baterai',
+                'range_km' => 'Jarak Tempuh',
                 'seating_capacity' => 'Kapasitas Duduk',
                 'dimensions_mm' => 'Dimensi',
                 'release_year' => 'Tahun Rilis',
@@ -431,6 +433,8 @@ class EntityShowController extends Controller
             'battery_mah' => ' mAh',
             'fast_charging_watt' => ' W',
             'fuel_tank_liter' => ' liter',
+            'battery_kwh' => ' kWh',
+            'range_km' => ' km',
             'weight_kg' => ' kg',
         ];
 
