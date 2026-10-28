@@ -219,3 +219,14 @@ test('a comparison links to other indexable pairs sharing a side first, then sam
         ->toContain("trackEvent('related_comparison_click'")
         ->toContain("trackEvent('comparison_entity_click'");
 });
+
+test('an entity page lists every curated comparison up to ten, not just six', function () {
+    $others = ['aaa', 'bbb', 'ccc', 'ddd', 'eee', 'fff', 'ggg', 'hhh'];
+    config(['comparisons.pairs' => array_map(fn (string $slug): string => "oppo-vs-{$slug}", $others)]);
+    comparisonEntity('oppo', 'Oppo', 200, 84.6);
+    foreach ($others as $slug) {
+        comparisonEntity($slug, strtoupper($slug), 150, 80.0);
+    }
+
+    $this->get('/e/oppo')->assertInertia(fn (Assert $page) => $page->has('comparisons', 8));
+});

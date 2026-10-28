@@ -994,3 +994,95 @@ normal pada permintaan berikutnya (satu render SSR gagal yang tidak disimpan di 
 `resources/js/pages/Welcome.vue` yang belum di-commit tidak ikut. Tindak lanjut: tandai `comparison_entity_click` dan
 `related_comparison_click` sebagai key event setelah event pertama masuk di GA4.
 
+
+## Pembaruan RankMySEO 28 Oktober 2026
+
+Dibaca dari dashboard RankMySEO (Starter) pada 28 Okt. Review baru, bukan review 13 Okt: "Last check 28 Okt", review 04:09 UTC.
+Hanya data RankMySEO yang diperbarui; angka GSC/GA4/Ubersuggest tetap dari snapshot 26 Okt.
+
+| Metrik RankMySEO | 26 Okt (review 13 Okt) | **28 Okt** |
+|---|---|---|
+| Skor on-page | 73 | **91** (600 halaman dikrawl, 250 pertama dinilai) |
+| Tipe isu (error / warning / tip) | 1 / 2 / - | **2 / 3 / 1** (52 isu) |
+| Keyword terlacak | 8 dari 10 | 10 |
+| Keyword di top 20 | 2 | **2** (`review jaecoo j5 ev` 16, `infinix vs tecno bagus mana` 17); top 10 = 0; posisi rata-rata 16,5 |
+| Referring domain / backlink / authority | 1 / 3 / 2 | **1 / 3 / 2** (tidak bergerak) |
+| Search Console di RankMySEO (28 hari) | - | 52 klik, 7,4K impresi |
+| Kompetitor `mediakonsumen.com` | - | 0 keyword mengungguli kita |
+
+Skor naik 73 -> 91 setelah perbaikan SSR/meta 26 Okt (deploy `06b46c4`) dan review ulang otomatis. Catatan pembacaan:
+"Blocked from indexing" 220 -> 36 halaman karena yang dinilai hanya 250 halaman pertama (batas Starter), bukan karena
+`noindex` dikurangi; jangan dibaca sebagai perbaikan.
+
+| Isu | Tipe | Halaman | Catatan |
+|---|---|---|---|
+| Blocked from indexing | Error | 36 | Disengaja (`noindex, follow` di bawah ambang) |
+| Duplicate meta descriptions | Error | 2 | Baru; daftar URL belum termuat saat dibaca |
+| Redirects | Tip | 3 | - |
+| Empty meta description | Warning | 1 | Baru; URL belum dicek |
+| Title too short | Warning | 1 | Baru; URL belum dicek |
+| Unfriendly URL | Warning | 9 | `/about`, `/terms` false positive |
+
+Keyword terlacak lain, semua 20+: `bagusan vivo atau infinix`, `samsung vs xiaomi`, `review redmi note 15 5g`,
+`samsung a57 review`, `tecno apakah bagus`, `review infinix`. Tindak lanjut: buka URL Duplicate meta (2), Empty meta (1),
+dan Title too short (1) setelah RankMySEO selesai mengumpulkan daftarnya.
+
+### RankMySEO: Content > Site structure > Best structure (28 Oktober 2026)
+
+Saran struktur dibaca RankMySEO ~1 jam sebelum dibaca di sini; kuota "Suggest again" habis sampai 2 Nov 2026. Saran otomatis,
+bukan keputusan: perlu dinilai terhadap ADR-007/011 dan aturan di atas sebelum dikerjakan.
+
+- **Pembacaan RankMySEO atas situs:** direktori indeks sentimen/ulasan netizen; "yang dijual" ditafsirkan sebagai posisi
+  sponsor Papan Sponsor, CTA utama "Rebut #1" (hanya terlihat di beranda; halaman entitas tidak punya tautan masuk ke sponsor).
+- **Struktur disarankan:** 40 halaman diubah/ditambah. Beranda (`/`, Improve) -> 26 hub topik `/category/*` -> halaman pendukung
+  `/e/{slug}` (`byd`, `dana`, `bank-mandiri`, `greenfields`) + halaman trust `/about` (Improve) dan `/contact` (halaman baru
+  "Kontak dan Koreksi"). Tag "Move": `/category/smartphone`, `/category/mobil`, `/category/motor`, `/category/peralatan-rumah-tangga`.
+- **First steps dari RankMySEO:** (1) halaman cara membeli sponsor + dasar harga; (2) tautan sponsor dari halaman kategori/entitas;
+  (3) perbaiki `/category/technology` yang tercatat tanpa isi + tautkan hub ke kategori turunan; (4) tautan entitas -> kategori
+  induk dan entitas pembanding; (5) perjelas metodologi (sumber, ambang opini, beda skor sentimen/topik/rating).
+- **Tautan internal disarankan (11):** `/e/infinix`, `/e/iphone-17`, `/e/poco-f8-pro`, `/e/apple` -> `/category/smartphone`;
+  `/e/dana`, `/e/bank-mandiri` -> `/category/bank-e-wallet`; `/e/byd` -> `/category/automotive`; `/e/mazda-3`, `/e/honda-brio`,
+  `/e/jaecoo-j5-ev` -> `/category/mobil`; `/e/greenfields` -> `/category/fmcg`; `/e/gojek` -> `/category/ride-hailing`.
+
+**Catatan penilaian (belum dikerjakan):**
+
+- Saran 1-2 (promosi sponsor dari halaman entitas/kategori) tidak diambil otomatis: Papan Sponsor harus tetap terpisah dari
+  skor organik (`docs/26`); tautan ke `/sponsor` dari halaman skor perlu keputusan produk, bukan sekadar SEO.
+- `/category/technology` "tanpa isi" kemungkinan render SSR gagal sekali (pola 26 Okt, tidak disimpan di cache); verifikasi
+  dengan sapuan `<h1>` berurutan sebelum menganggapnya bug.
+- Tautan entitas -> kategori induk: cek dulu apakah breadcrumb di `Entities/Show.vue` sudah menautkan kategori; RankMySEO
+  hanya menghitung tautan di body, bukan JSON-LD breadcrumb. Tautan entitas lain yang disarankan hanya yang lolos ambang indeks.
+- Hub `/category/tokoh-publik`, `politisi`, dst. ikut disarankan "Improve"; tetap tunduk pada pengecualian Tokoh Publik di `docs/28`.
+- `/contact` belum ada; halaman "Kontak dan Koreksi" konsisten dengan kebutuhan koreksi data (`docs/15`), kandidat kerja kecil.
+
+### RankMySEO: submenu Content lain (28 Oktober 2026)
+
+- **Page health:** 250 halaman dibaca (dari sitemap, dibaca 4 jam sebelumnya, baca ulang berikutnya 27 Nov); 250 dari 250 punya isu;
+  1 dari 250 halaman ranking untuk keyword terlacak; skor kesehatan per halaman belum dihitung ("0 of 250 pages scored", perlu
+  dibuka satu per satu). Contoh jumlah kata: `/` 624, `/about` 424, `/category/*` 105-171 (hub kategori tipis; `/category/atlet`
+  108, `/category/brand-umum` 105, `/category/maskapai-penerbangan` 105), 1-3 isu per halaman.
+- **Topic coverage:** authority 9/100; 4 topik, 0 kuat / 0 berkembang / 4 lemah; 6 keyword terlacak dari 7 yang ranking;
+  0 dari 4 topik dirangking oleh halaman penjual. Topik: `infinix` (3 keyword, 1.110 pencarian, authority 12), `samsung vs xiaomi`
+  (260, 4), `albert zhang` (140, 4), `wenas agusetiawan` (110, 4). Saran RankMySEO: tiga halaman memecah topik `infinix`
+  (`/banding/infinix-vs-tecno` #17, `/banding/infinix-vs-vivo` #51, `/e/infinix-note-30-5g` #70) dan tidak ada yang di page one;
+  buat satu halaman utama yang ditautkan dari yang lain.
+- **Verifikasi:** RankMySEO mencatat URL `/e/infinix%20note%2030%205g`; live sudah 301 ke `/e/infinix-note-30-5g`, yang `noindex, follow`
+  dengan canonical sendiri (di bawah ambang), jadi tidak ada tindakan. Dua nama orang (`albert zhang`, `wenas agusetiawan`)
+  adalah entitas `person`; tidak dijadikan target SEO (pengecualian Tokoh Publik, `docs/28`).
+- **Content ideas:** hanya 1 pencarian tersimpan (`bagusan vivo atau infinix`, 4 ide, 6 hari lalu); tidak ada ide baru.
+- **Site structure > Pages that sell:** kosong (RankMySEO tidak menemukan halaman penjual selain beranda).
+- Daftar URL isu on-page (duplicate meta 2, empty meta 1, title too short 1) masih "Collecting the pages" setelah dua kali coba;
+  ulangi nanti.
+
+### RankMySEO: Content > Update recommendations (28 Oktober 2026)
+
+Dari 107 halaman yang ranking, hanya **1** butuh perubahan; 0 "Keep as they are" (top 3 bertahan), 0 "Watching" (diubah dalam 6 minggu).
+Klik yang bisa direbut ~0 per bulan; halaman kita mendapat 23 klik dari Google dalam 28 hari sampai 27 Okt (data RankMySEO,
+beda jendela dengan GSC 47 klik di snapshot 26 Okt). Keyword dicek 6 hari lalu.
+
+| Halaman | Keyword | Posisi | Klik / tayang | Saran | Usaha / bukti / kecocokan |
+|---|---|---|---|---|---|
+| `/e/jaecoo-j5-ev` ("Review Jaecoo J5 EV Menurut Netizen: Sentimen 84/100") | `review jaecoo j5 ev` | 16 (page two) | 3 / 66 | Tambah bagian yang dicari pengunjung tapi belum ada, lalu tautkan dari halaman terkait | sedang / tipis / inti (belum pasti) |
+
+Catatan: saran "tambah bagian" harus tetap dalam batas produk (tanpa aspek skor, spesifikasi hanya dari blok `specs` referensi,
+tanpa harga/benchmark); tautan masuk dari halaman terkait sejalan dengan tindak lanjut Best structure di atas.

@@ -81,7 +81,7 @@ class EntityComparison
      *
      * @return array<int, array{pair: string, label: string}>
      */
-    public function forEntity(Entity $entity, int $limit = 6): array
+    public function forEntity(Entity $entity, int $limit = 10): array
     {
         $links = [];
 
