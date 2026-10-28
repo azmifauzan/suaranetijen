@@ -55,11 +55,15 @@ class EntitySubmissionController extends Controller
         $name = trim($request->string('name')->value());
         $normalized = TextNormalizer::normalize($name);
 
-        $existing = EntityAlias::query()->where('normalized_alias', $normalized)->with('entity:id,slug,name')->first();
+        $existing = EntityAlias::query()->where('normalized_alias', $normalized)->first();
 
-        if ($existing?->entity !== null) {
+        if ($existing !== null) {
+            $publicEntity = Entity::query()->active()->find($existing->entity_id, ['id', 'slug', 'name']);
+
             throw ValidationException::withMessages([
-                'name' => '"'.$existing->entity->name.'" sudah ada di SuaraNetijen: '.route('entities.show', $existing->entity->slug),
+                'name' => $publicEntity !== null
+                    ? '"'.$publicEntity->name.'" sudah ada di SuaraNetijen: '.route('entities.show', $publicEntity->slug)
+                    : 'Nama ini sudah terdaftar atau sedang ditinjau.',
             ]);
         }
 
@@ -76,7 +80,6 @@ class EntitySubmissionController extends Controller
                 'suggested_entity_type' => $request->string('entity_type')->value(),
                 'suggested_category_id' => $request->integer('category_id'),
                 'suggested_parent_entity_id' => $parentId,
-                'reasoning' => $request->input('description'),
             ],
         );
 

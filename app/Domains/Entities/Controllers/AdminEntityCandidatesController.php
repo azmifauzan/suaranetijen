@@ -22,7 +22,7 @@ class AdminEntityCandidatesController extends Controller
     {
         $candidates = EntityCandidate::query()
             ->where('status', 'pending')
-            ->with(['suggestedCategory:id,name', 'suggestedParentEntity:id,name', 'submissions:id,entity_candidate_id,website_url'])
+            ->with(['suggestedCategory:id,name', 'suggestedParentEntity:id,name', 'submissions:id,entity_candidate_id,website_url,description'])
             ->withCount(['submissions', 'submissions as owner_submissions_count' => fn ($query) => $query->where('is_owner', true)])
             ->orderByDesc('frequency_score')
             ->paginate(25);

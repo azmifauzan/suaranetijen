@@ -124,3 +124,22 @@ test('admin rejection note reaches the submitter', function () {
             ->where('submissions.0.status', 'rejected')
             ->where('submissions.0.review_note', 'Bukan brand yang dikenal publik'));
 });
+
+test('a name held by a non-public entity does not leak that entity', function () {
+    $entity = Entity::factory()->create(['name' => 'Belum Tayang', 'slug' => 'belum-tayang', 'status' => 'disabled']);
+    EntityAlias::factory()->create(['entity_id' => $entity->id, 'alias' => 'Belum Tayang', 'normalized_alias' => 'belum tayang']);
+
+    $response = $this->actingAs(User::factory()->create())
+        ->post('/settings/usulan', submissionPayload(['name' => 'Belum Tayang']))
+        ->assertSessionHasErrors('name');
+
+    expect(session('errors')->first('name'))->not->toContain('belum-tayang');
+});
+
+test('user description stays off the candidate reasoning', function () {
+    $this->actingAs(User::factory()->create())
+        ->post('/settings/usulan', submissionPayload(['description' => 'Kopi terbaik se-Indonesia']));
+
+    expect(EntityCandidate::first()->reasoning)->toBeNull()
+        ->and(EntitySubmission::first()->description)->toBe('Kopi terbaik se-Indonesia');
+});

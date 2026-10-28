@@ -16,7 +16,7 @@ interface Candidate {
     reasoning: string | null;
     submissions_count: number;
     owner_submissions_count: number;
-    submissions: { website_url: string | null }[];
+    submissions: { website_url: string | null; description: string | null }[];
 }
 
 const props = defineProps<{
@@ -115,6 +115,9 @@ function reject(candidateId: number) {
                             · <a :href="String(url)" target="_blank" rel="noopener nofollow ugc" class="underline">{{ url }}</a>
                         </template>
                     </div>
+                    <p v-for="(text, index) in candidate.submissions.map((s) => s.description).filter(Boolean)" :key="index" class="mt-2 text-xs text-neutral-600 dark:text-neutral-400">
+                        Deskripsi pengusul: {{ text }}
+                    </p>
                     <p v-if="candidate.reasoning" class="mt-2 text-xs text-neutral-600 dark:text-neutral-400">{{ candidate.reasoning }}</p>
                 </div>
             </div>
