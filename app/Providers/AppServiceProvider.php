@@ -43,6 +43,8 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('themes-llm', fn () => Limit::perMinute(max(1, (int) config('themes.llm_per_minute', 60))));
 
+        RateLimiter::for('entity-submissions', fn (Request $request) => Limit::perDay(5)->by('entity-submission:'.$request->user()?->getAuthIdentifier()));
+
         RateLimiter::for('ratings', function (Request $request) {
             $userId = $request->user()?->getAuthIdentifier();
 

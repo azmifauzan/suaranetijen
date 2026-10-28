@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router, useForm, Head } from '@inertiajs/vue3';
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 
 interface Candidate {
     id: number;
@@ -14,6 +14,9 @@ interface Candidate {
     suggested_category_id: number | null;
     suggested_aliases: string[] | null;
     reasoning: string | null;
+    submissions_count: number;
+    owner_submissions_count: number;
+    submissions: { website_url: string | null }[];
 }
 
 const props = defineProps<{
@@ -65,8 +68,14 @@ function approve(candidate: Candidate) {
         .post(`/admin/entity-candidates/${candidate.id}/approve`, { preserveScroll: true });
 }
 
+const rejectNotes = ref<Record<number, string>>({});
+
 function reject(candidateId: number) {
-    router.post(`/admin/entity-candidates/${candidateId}/reject`, {}, { preserveScroll: true });
+    router.post(
+        `/admin/entity-candidates/${candidateId}/reject`,
+        { note: rejectNotes.value[candidateId] || null },
+        { preserveScroll: true },
+    );
 }
 </script>
 
@@ -100,6 +109,12 @@ function reject(candidateId: number) {
                         <span>sources: {{ candidate.source_types.join(', ') }}</span>
                     </div>
                     <div class="mt-1 text-[11px] text-neutral-400">raw: {{ candidate.raw_terms.slice(0, 5).join(' · ') }}</div>
+                    <div v-if="candidate.submissions_count > 0" class="mt-1 text-[11px] text-neutral-500">
+                        diusulkan {{ candidate.submissions_count }} pengguna<span v-if="candidate.owner_submissions_count > 0"> · {{ candidate.owner_submissions_count }} mengaku pemilik</span>
+                        <template v-for="url in new Set(candidate.submissions.map((s) => s.website_url).filter(Boolean))" :key="String(url)">
+                            · <a :href="String(url)" target="_blank" rel="noopener nofollow ugc" class="underline">{{ url }}</a>
+                        </template>
+                    </div>
                     <p v-if="candidate.reasoning" class="mt-2 text-xs text-neutral-600 dark:text-neutral-400">{{ candidate.reasoning }}</p>
                 </div>
             </div>
@@ -163,6 +178,13 @@ function reject(candidateId: number) {
                 >
                     Approve
                 </button>
+                <input
+                    v-model="rejectNotes[candidate.id]"
+                    type="text"
+                    maxlength="255"
+                    placeholder="Alasan penolakan (opsional)"
+                    class="w-56 rounded-lg border border-neutral-300 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800"
+                />
                 <button
                     type="button"
                     class="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300"

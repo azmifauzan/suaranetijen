@@ -22,7 +22,8 @@ class AdminEntityCandidatesController extends Controller
     {
         $candidates = EntityCandidate::query()
             ->where('status', 'pending')
-            ->with(['suggestedCategory:id,name', 'suggestedParentEntity:id,name'])
+            ->with(['suggestedCategory:id,name', 'suggestedParentEntity:id,name', 'submissions:id,entity_candidate_id,website_url'])
+            ->withCount(['submissions', 'submissions as owner_submissions_count' => fn ($query) => $query->where('is_owner', true)])
             ->orderByDesc('frequency_score')
             ->paginate(25);
 
@@ -62,6 +63,7 @@ class AdminEntityCandidatesController extends Controller
             'status' => 'rejected',
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
+            'review_note' => $request->validate(['note' => ['nullable', 'string', 'max:255']])['note'] ?? null,
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Candidate dismissed.']);

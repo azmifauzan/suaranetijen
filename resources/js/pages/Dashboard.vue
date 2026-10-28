@@ -3,6 +3,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ArrowRight, Search, ShieldCheck, Star } from '@lucide/vue';
 import { computed } from 'vue';
 import { about, dashboard, methodology } from '@/routes';
+import { index as submissionPage } from '@/routes/entity-submissions';
 import { index as searchPage } from '@/routes/search';
 
 defineOptions({
@@ -101,6 +102,25 @@ const userName = computed(
                     keputusan.
                 </p>
             </div>
+        </section>
+
+        <section
+            class="flex flex-col justify-between gap-5 rounded-2xl border border-[#dbe7d2] bg-white p-6 sm:flex-row sm:items-center sm:p-7"
+        >
+            <div>
+                <h2 class="font-bold text-[#18392d]">
+                    Brand atau produkmu belum ada?
+                </h2>
+                <p class="mt-2 text-sm leading-6 text-[#5d6e61]">
+                    Usulkan agar admin meninjau dan menambahkannya ke indeks.
+                </p>
+            </div>
+            <Link
+                :href="submissionPage()"
+                class="inline-flex items-center gap-2 self-start rounded-full bg-[#087f5b] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#066446] sm:self-auto"
+            >
+                Usulkan brand/produk <ArrowRight class="size-4" />
+            </Link>
         </section>
 
         <section

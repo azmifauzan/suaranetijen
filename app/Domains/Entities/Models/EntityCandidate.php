@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -27,6 +28,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $entity_id
  * @property int|null $reviewed_by
  * @property Carbon|null $reviewed_at
+ * @property string|null $review_note
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -46,6 +48,7 @@ use Illuminate\Support\Carbon;
     'entity_id',
     'reviewed_by',
     'reviewed_at',
+    'review_note',
 ])]
 class EntityCandidate extends Model
 {
@@ -89,6 +92,14 @@ class EntityCandidate extends Model
     public function entity(): BelongsTo
     {
         return $this->belongsTo(Entity::class);
+    }
+
+    /**
+     * @return HasMany<EntitySubmission, $this>
+     */
+    public function submissions(): HasMany
+    {
+        return $this->hasMany(EntitySubmission::class);
     }
 
     /**

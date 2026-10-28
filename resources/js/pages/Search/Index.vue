@@ -3,6 +3,7 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 import { index as searchPage } from '@/routes/search';
 import { index as sponsorPage } from '@/routes/sponsor';
 import { show as showEntity } from '@/routes/entities';
+import { index as submissionPage } from '@/routes/entity-submissions';
 import { ArrowRight, Compass, Trophy } from '@lucide/vue';
 import { Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
@@ -564,6 +565,15 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                         Silakan masukkan kata kunci pencarian untuk menemukan
                         brand, produk, atau layanan.
                     </span>
+                </p>
+                <p v-if="query" class="mt-3 text-sm">
+                    Brand atau produkmu belum ada?
+                    <Link
+                        :href="submissionPage()"
+                        class="font-medium text-emerald-700 underline"
+                    >
+                        Usulkan untuk ditambahkan
+                    </Link>
                 </p>
                 <div
                     class="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs"

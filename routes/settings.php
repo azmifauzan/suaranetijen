@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Entities\Controllers\EntitySubmissionController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -22,6 +23,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('settings/password', [SecurityController::class, 'update'])
         ->middleware('throttle:6,1')
         ->name('user-password.update');
+
+    Route::get('settings/usulan', [EntitySubmissionController::class, 'index'])->name('entity-submissions.index');
+    Route::post('settings/usulan', [EntitySubmissionController::class, 'store'])
+        ->middleware('throttle:entity-submissions')
+        ->name('entity-submissions.store');
 
     Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
 });
