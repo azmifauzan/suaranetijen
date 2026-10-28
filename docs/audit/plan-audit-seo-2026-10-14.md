@@ -97,6 +97,13 @@ Verifikasi: 55 tes `tests/Feature/Seo` lulus, 3 tes Vitest lulus, Pint, PHPStan,
 
 Data yang perlu dirapikan: nama entitas `Infinix Gt 30 Pro`, `Iphone 17`, `Iphone 17 Pro` salah kapital dan ikut tampil di title halaman banding.
 
+## Status B2 dan A6 (19 Oktober 2026)
+
+| # | Status | Catatan |
+|---|---|---|
+| B2 | selesai, kecuali X dan TikTok | Facebook Page `facebook.com/suaranetijen.id` (`suaranetijen` sudah dipakai pihak lain), LinkedIn Page `linkedin.com/company/suaranetijen`, Instagram dan Threads `@suaranetijen.official`. Semua memakai logo, bio "Indeks sentimen publik Indonesia untuk brand, produk, dan layanan.", dan tautan suaranetijen.id. Tautan website Instagram hanya bisa diisi dari aplikasi; sementara alamatnya ditulis di bio |
+| A6 | di kode, belum dideploy | `Welcome.vue` Organization `sameAs`: keempat akun + repo GitHub. Diverifikasi di HTML SSR lokal |
+
 ## Pengukuran 19 Oktober 2026
 
 B4: Page indexing 19 Okt: 262 terindeks, Discovered 35, Crawled 6 (baseline 2 Okt: 18/38), noindex 2.806, 404 25.

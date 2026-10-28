@@ -102,6 +102,13 @@ const jsonLd = computed(() =>
                 name: siteName.value,
                 url: siteUrl.value,
                 logo: `${siteUrl.value}/logo.svg`,
+                sameAs: [
+                    'https://www.facebook.com/suaranetijen.id',
+                    'https://www.instagram.com/suaranetijen.official/',
+                    'https://www.threads.com/@suaranetijen.official',
+                    'https://www.linkedin.com/company/suaranetijen',
+                    'https://github.com/azmifauzan/suaranetijen',
+                ],
             },
         ],
     }),
