@@ -89,12 +89,11 @@ function onSubmitted(): void {
 
     <div class="flex w-full flex-col gap-6 p-4 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
-            <div class="max-w-2xl">
+            <div class="min-w-0 flex-1">
                 <h1 class="text-2xl font-bold tracking-tight">Usulan Brand/Produk</h1>
                 <p class="text-muted-foreground mt-1 text-sm">
-                    Usulkan brand, produk, atau layanan yang belum ada di SuaraNetijen. Admin
-                    meninjau setiap usulan sebelum tampil. Mengusulkan tidak mempengaruhi
-                    skor atau peringkat.
+                    Usulkan brand, produk, atau layanan yang belum ada. Admin meninjau setiap
+                    usulan sebelum tampil dan usulan tidak mempengaruhi skor atau peringkat.
                 </p>
             </div>
             <Button v-if="submissions.length > 0" @click="isFormOpen = true">
