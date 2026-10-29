@@ -10,6 +10,7 @@ import {
     FolderTree,
     HelpCircle,
     LayoutGrid,
+    PlusCircle,
     Radio,
     Sparkles,
     Tags,
@@ -30,6 +31,7 @@ import {
 } from '@/components/ui/sidebar';
 import admin from '@/routes/admin';
 import { dashboard, methodology } from '@/routes';
+import { index as entitySubmissions } from '@/routes/entity-submissions';
 import type { Auth, NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -37,6 +39,11 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Usulkan Brand/Produk',
+        href: entitySubmissions(),
+        icon: PlusCircle,
     },
 ];
 

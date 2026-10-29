@@ -18,21 +18,21 @@ function submissionPayload(array $overrides = []): array
 }
 
 test('guest is redirected to login', function () {
-    $this->post('/settings/usulan', submissionPayload())->assertRedirect('/login');
+    $this->post('/usulan', submissionPayload())->assertRedirect('/login');
 });
 
 test('banned user is forbidden', function () {
     $user = User::factory()->create(['is_banned' => true]);
 
-    $this->actingAs($user)->post('/settings/usulan', submissionPayload())->assertForbidden();
+    $this->actingAs($user)->post('/usulan', submissionPayload())->assertForbidden();
     expect(EntitySubmission::count())->toBe(0);
 });
 
 test('submission joins the review queue as a pending user_submission candidate', function () {
     $user = User::factory()->create();
 
-    $this->actingAs($user)->post('/settings/usulan', submissionPayload(['is_owner' => '1', 'website_url' => 'https://kopisenja.id']))
-        ->assertRedirect('/settings/usulan');
+    $this->actingAs($user)->post('/usulan', submissionPayload(['is_owner' => '1', 'website_url' => 'https://kopisenja.id']))
+        ->assertRedirect('/usulan');
 
     $candidate = EntityCandidate::where('normalized_term', 'kopi senja')->firstOrFail();
     expect($candidate->status)->toBe('pending')
@@ -46,9 +46,9 @@ test('two users on the same name share one candidate and the same user counts on
     [$a, $b] = User::factory()->count(2)->create();
     $payload = submissionPayload();
 
-    $this->actingAs($a)->post('/settings/usulan', $payload);
-    $this->actingAs($a)->post('/settings/usulan', $payload);
-    $this->actingAs($b)->post('/settings/usulan', array_merge($payload, ['name' => 'KOPI  senja']));
+    $this->actingAs($a)->post('/usulan', $payload);
+    $this->actingAs($a)->post('/usulan', $payload);
+    $this->actingAs($b)->post('/usulan', array_merge($payload, ['name' => 'KOPI  senja']));
 
     expect(EntityCandidate::count())->toBe(1)
         ->and(EntityCandidate::first()->frequency_score)->toBe(2)
@@ -60,7 +60,7 @@ test('a name that already exists is rejected with a link to the entity', functio
     EntityAlias::factory()->create(['entity_id' => $entity->id, 'alias' => 'Kopi Senja', 'normalized_alias' => 'kopi senja']);
 
     $this->actingAs(User::factory()->create())
-        ->post('/settings/usulan', submissionPayload())
+        ->post('/usulan', submissionPayload())
         ->assertSessionHasErrors('name');
 
     expect(EntityCandidate::count())->toBe(0);
@@ -71,9 +71,9 @@ test('public figure categories and person type are refused', function () {
     $politisi = Category::factory()->create(['slug' => 'politisi', 'parent_id' => $tokoh->id]);
     $user = User::factory()->create();
 
-    $this->actingAs($user)->post('/settings/usulan', submissionPayload(['category_id' => $politisi->id]))
+    $this->actingAs($user)->post('/usulan', submissionPayload(['category_id' => $politisi->id]))
         ->assertSessionHasErrors('category_id');
-    $this->actingAs($user)->post('/settings/usulan', submissionPayload(['entity_type' => 'person']))
+    $this->actingAs($user)->post('/usulan', submissionPayload(['entity_type' => 'person']))
         ->assertSessionHasErrors('entity_type');
 });
 
@@ -81,7 +81,7 @@ test('brand type ignores a parent entity', function () {
     $parent = Entity::factory()->create(['type' => 'brand']);
 
     $this->actingAs(User::factory()->create())
-        ->post('/settings/usulan', submissionPayload(['parent_entity_id' => $parent->id]));
+        ->post('/usulan', submissionPayload(['parent_entity_id' => $parent->id]));
 
     expect(EntityCandidate::first()->suggested_parent_entity_id)->toBeNull();
 });
@@ -90,10 +90,10 @@ test('sixth submission in a day is throttled', function () {
     $user = User::factory()->create();
 
     foreach (range(1, 5) as $i) {
-        $this->actingAs($user)->post('/settings/usulan', submissionPayload(['name' => "Merek Uji {$i}"]))->assertRedirect();
+        $this->actingAs($user)->post('/usulan', submissionPayload(['name' => "Merek Uji {$i}"]))->assertRedirect();
     }
 
-    $this->actingAs($user)->post('/settings/usulan', submissionPayload(['name' => 'Merek Uji 6']))->assertStatus(429);
+    $this->actingAs($user)->post('/usulan', submissionPayload(['name' => 'Merek Uji 6']))->assertStatus(429);
 });
 
 test('index lists only the own submissions with candidate status', function () {
@@ -102,9 +102,9 @@ test('index lists only the own submissions with candidate status', function () {
     EntitySubmission::factory()->create(['user_id' => $user->id, 'entity_candidate_id' => $candidate->id, 'name' => 'Punya Saya']);
     EntitySubmission::factory()->create(['name' => 'Punya Orang']);
 
-    $this->actingAs($user)->get('/settings/usulan')->assertOk()
+    $this->actingAs($user)->get('/usulan')->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/EntitySubmissions')
+            ->component('EntitySubmissions/Index')
             ->has('submissions', 1)
             ->where('submissions.0.name', 'Punya Saya')
             ->where('submissions.0.status', 'rejected'));
@@ -119,7 +119,7 @@ test('admin rejection note reaches the submitter', function () {
         ->post("/admin/entity-candidates/{$candidate->id}/reject", ['note' => 'Bukan brand yang dikenal publik'])
         ->assertRedirect();
 
-    $this->actingAs($user)->get('/settings/usulan')
+    $this->actingAs($user)->get('/usulan')
         ->assertInertia(fn (Assert $page) => $page
             ->where('submissions.0.status', 'rejected')
             ->where('submissions.0.review_note', 'Bukan brand yang dikenal publik'));
@@ -130,7 +130,7 @@ test('a name held by a non-public entity does not leak that entity', function ()
     EntityAlias::factory()->create(['entity_id' => $entity->id, 'alias' => 'Belum Tayang', 'normalized_alias' => 'belum tayang']);
 
     $response = $this->actingAs(User::factory()->create())
-        ->post('/settings/usulan', submissionPayload(['name' => 'Belum Tayang']))
+        ->post('/usulan', submissionPayload(['name' => 'Belum Tayang']))
         ->assertSessionHasErrors('name');
 
     expect(session('errors')->first('name'))->not->toContain('belum-tayang');
@@ -138,7 +138,7 @@ test('a name held by a non-public entity does not leak that entity', function ()
 
 test('user description stays off the candidate reasoning', function () {
     $this->actingAs(User::factory()->create())
-        ->post('/settings/usulan', submissionPayload(['description' => 'Kopi terbaik se-Indonesia']));
+        ->post('/usulan', submissionPayload(['description' => 'Kopi terbaik se-Indonesia']));
 
     expect(EntityCandidate::first()->reasoning)->toBeNull()
         ->and(EntitySubmission::first()->description)->toBe('Kopi terbaik se-Indonesia');

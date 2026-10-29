@@ -17,7 +17,7 @@ an edit right, or a public "owner" label. Sentimen Netijen stays crawler-derived
 ## Scope
 
 In:
-- Form in the user panel: `/settings/usulan` (new tab next to Profile / Security / Appearance) or
+- Form in the user panel: `/usulan` (own item in the main sidebar, not under settings) or
   a "Usulkan Brand/Produk" card on `/dashboard` linking to it.
 - Fields: `name` (required), `entity_type` (`brand` | `product` | `service`, required),
   `category_id` (required, leaf categories only, Tokoh Publik excluded), `parent_entity_id`
@@ -72,7 +72,7 @@ submission, show the user "Ditolak" immediately (same no-resurfacing rule as fee
 
 ## Flows
 
-1. User opens form → fills → `POST /settings/usulan` (`StoreEntitySubmissionRequest`).
+1. User opens form → fills → `POST /usulan` (`StoreEntitySubmissionRequest`).
 2. Request: `auth` + `verified` + `throttle:entity-submissions` (5/day per user), not banned
    (`User::isBanned()`, same as `StoreRatingRequest`), category not under Tokoh Publik, URL host
    not private (reuse sponsor's URL rules, no fetch).

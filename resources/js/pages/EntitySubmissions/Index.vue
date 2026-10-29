@@ -46,7 +46,7 @@ const selectClass =
 
     <h1 class="sr-only">Usulan Brand/Produk</h1>
 
-    <div class="flex flex-col space-y-6">
+    <div class="mx-auto flex w-full max-w-2xl flex-col space-y-6 p-4 sm:p-6">
         <Heading
             variant="small"
             title="Usulkan brand atau produk"

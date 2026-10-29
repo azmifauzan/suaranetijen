@@ -40,7 +40,7 @@ class EntitySubmissionController extends Controller
                 'created_at' => $submission->created_at?->toIso8601String(),
             ]);
 
-        return Inertia::render('settings/EntitySubmissions', [
+        return Inertia::render('EntitySubmissions/Index', [
             'submissions' => $submissions,
             'categories' => Category::query()->active()->excludePublicFigure()->whereDoesntHave('children')->orderBy('name')->get(['id', 'name']),
             'brands' => Entity::query()->active()->where('type', EntityType::Brand->value)->orderBy('name')->get(['id', 'name']),
