@@ -443,8 +443,8 @@ function loadMore() {
                     tidak dicampur dengan skor sentimen.
                 </p>
                 <p class="mt-3 text-sm leading-relaxed text-neutral-700">
-                    Opini dikumpulkan dari forum, kolom komentar, dan platform video yang terbuka untuk umum. Yang dinilai
-                    adalah entitasnya, bukan penulisnya, dan nama pengguna tidak disimpan. Buka halaman entitas untuk
+                    SuaraNetijen mengambil opini dari forum, kolom komentar, dan platform video yang terbuka untuk umum.
+                    Penulis opini tidak ikut dinilai dan namanya tidak kami simpan. Buka halaman entitas untuk
                     melihat sebaran sentimen dan tema yang paling sering dibahas, atau pakai halaman perbandingan untuk
                     membandingkan dua entitas dalam kategori yang sama.
                 </p>
