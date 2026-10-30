@@ -18,10 +18,22 @@ test('a root category page lists entities, totals and topics of its child catego
     $this->get('/category/induk-otomotif')->assertInertia(fn (AssertableInertia $page) => $page
         ->component('Category/Show')
         ->where('category.total_entities', 1)
+        ->where('category.has_ranking', true)
         ->has('mostDiscussed', 1)
         ->has('recentlyUpdated', 1)
         ->has('relatedTopics', 1)
     );
+});
+
+test('a category whose ranking is empty does not offer the noindex ranking page', function () {
+    $category = Category::factory()->create(['slug' => 'tanpa-ranking']);
+    $entity = Entity::factory()->create(['category_id' => $category->id, 'status' => EntityStatus::Active, 'searchable' => true, 'rankable' => true]);
+    SentimentSnapshot::factory()->create(['entity_id' => $entity->id, 'period' => Period::OneYear->value, 'score' => 80.0, 'opinion_count' => 40]);
+
+    $this->get('/category/tanpa-ranking')->assertInertia(fn (AssertableInertia $page) => $page
+        ->where('category.has_ranking', false)
+    );
+    $this->get('/top/tanpa-ranking')->assertHeader('X-Robots-Tag', 'noindex, follow');
 });
 
 test('a root category without any entity is noindex and left out of the sitemap', function () {

@@ -14,6 +14,7 @@ interface CategoryData {
     slug: string;
     total_entities: number;
     context_description?: string;
+    has_ranking: boolean;
 }
 
 interface RankedItem {
@@ -211,6 +212,7 @@ function handleSearch() {
                         </p>
                     </div>
                     <Link
+                        v-if="category.has_ranking"
                         :href="showRanking.url(category.slug)"
                         class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
                     >
@@ -503,6 +505,27 @@ function handleSearch() {
                     </Link>
                 </div>
             </div>
+
+            <!-- How to read the scores: original copy so small category hubs are not thin pages (docs/31) -->
+            <section v-if="!filteredEntities" class="mt-12 max-w-3xl">
+                <h2 class="text-lg font-bold text-neutral-900">
+                    Cara membaca halaman {{ category.name }}
+                </h2>
+                <p class="mt-3 text-sm leading-relaxed text-neutral-700">
+                    Sentimen Netijen adalah skor 0-100 dari opini netizen yang relevan dengan tiap entitas di kategori
+                    {{ category.name }}. Opini positif dihitung penuh, netral setengah, negatif nol. Skor baru tampil
+                    setelah entitas punya minimal 30 opini, supaya angka tidak datang dari segelintir komentar.
+                </p>
+                <p class="mt-3 text-sm leading-relaxed text-neutral-700">
+                    SuaraNetijen mengambil opini dari forum, kolom komentar, dan platform video yang terbuka untuk umum.
+                    Penulis opini tidak ikut dinilai dan namanya tidak kami simpan. Rating Netijen, yaitu bintang dari
+                    pengguna, punya hitungan sendiri dan tidak dicampur dengan skor sentimen.
+                </p>
+                <p class="mt-3 text-sm leading-relaxed text-neutral-700">
+                    Pilih satu entitas untuk melihat sebaran sentimen dan tema yang paling sering dibahas. Kolom
+                    pencarian di atas membantu menyaring entitas menurut nama.
+                </p>
+            </section>
 
             <!-- Other Categories -->
             <div class="mt-12 border-t border-neutral-200 pt-8">

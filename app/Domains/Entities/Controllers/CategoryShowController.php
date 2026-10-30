@@ -158,6 +158,8 @@ class CategoryShowController extends Controller
                 'slug' => $category->slug,
                 'total_entities' => $totalEntities,
                 'context_description' => $contextDescription,
+                // Same query as /top/{slug}'s default 365d view: an empty ranking there is noindex, so do not link it.
+                'has_ranking' => $this->rankingService->getRanking($category->id, Period::OneYear, limit: 1)->isNotEmpty(),
             ],
             'topSentimen' => $topRankings->map(fn ($item) => [
                 'rank' => $item['rank'],
