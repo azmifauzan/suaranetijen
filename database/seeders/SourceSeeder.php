@@ -36,6 +36,11 @@ class SourceSeeder extends Seeder
                 'name' => 'IndoForum',
                 'adapter' => 'indoforum',
                 'source_type' => SourceType::Forum,
+                // Disabled (2 Nov 2026, operator decision): past its botguard
+                // ("Validating browser…", retried once by the adapter) forum.or.id
+                // now serves "Verification required" on every page, and the source
+                // gave 40 observations in two months. Do not bypass a human check.
+                'enabled' => false,
                 'crawl_policy' => ['rate_limit_per_minute' => 20, 'forum_ids' => [139, 107, 93]],
                 'retention_policy' => ['raw_ttl_hours' => 72],
             ],
