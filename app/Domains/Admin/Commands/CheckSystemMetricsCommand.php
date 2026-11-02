@@ -10,8 +10,10 @@ use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
 
 class CheckSystemMetricsCommand extends Command
@@ -29,6 +31,12 @@ class CheckSystemMetricsCommand extends Command
      * @var string
      */
     protected $description = 'Check operational metrics (queue depth, failure rates, crawl rates) per docs/16 and alert on breaches';
+
+    /** Low-volume sources (kaskus_politik) still add items daily; two days of nothing is a stall. */
+    private const STALE_SOURCE_HOURS = 48;
+
+    /** Daily backup plus slack for a slow dump. */
+    private const MAX_BACKUP_AGE_HOURS = 26;
 
     /**
      * Execute the console command.
@@ -81,17 +89,17 @@ class CheckSystemMetricsCommand extends Command
             $metrics[] = ['Inertia SSR', 'DISABLED'];
         }
 
-        // 1. Queue depth and age
+        // 1. Queue depth and age, read from the queue connection (Redis in every deployed
+        // environment) for each queue Horizon consumes.
         $queueDepth = 0;
         $oldestJobAgeSeconds = 0;
-        try {
-            $queueDepth = DB::table('jobs')->count();
-            $oldestJob = DB::table('jobs')->orderBy('created_at')->first();
-            if ($oldestJob) {
-                $oldestJobAgeSeconds = $now->timestamp - $oldestJob->created_at;
+        $queues = collect(config()->array('horizon.defaults'))->pluck('queue')->flatten()->unique();
+        foreach ($queues as $queue) {
+            $queueDepth += Queue::pendingSize($queue);
+            $createdAt = Queue::creationTimeOfOldestPendingJob($queue);
+            if ($createdAt !== null) {
+                $oldestJobAgeSeconds = max($oldestJobAgeSeconds, $now->getTimestamp() - $createdAt);
             }
-        } catch (\Throwable) {
-            // table might not exist in some environments
         }
 
         $metrics[] = ['Queue Depth (pending jobs)', $queueDepth];
@@ -180,6 +188,33 @@ class CheckSystemMetricsCommand extends Command
             if ($total >= 50 && $share > 60) {
                 $alerts[] = "{$top->source} gave {$share}% of its last-24h opinions ({$top->n} of {$total}) to one entity ({$top->entity}); check for a boilerplate match";
             }
+        }
+
+        // 6. Operational sources that stopped producing. Health stays "healthy" when discovery
+        // keeps bouncing (a quarantined FlareSolverr slot silenced 9 sources for 4 days, Oct 2026)
+        // or a listing URL starts returning 404, so judge by output, not by state.
+        $staleCutoff = $now->subHours(self::STALE_SOURCE_HOURS);
+        $operationalSources = Source::query()->operational()->get(['id', 'name']);
+        $producing = SourceItem::query()
+            ->whereIn('source_id', $operationalSources->pluck('id'))
+            ->where('created_at', '>=', $staleCutoff)
+            ->distinct()
+            ->pluck('source_id');
+
+        foreach ($operationalSources->whereNotIn('id', $producing) as $source) {
+            $alerts[] = "Source {$source->name} produced no new items in ".self::STALE_SOURCE_HOURS.'h';
+        }
+
+        // 7. Backup freshness: a failed nightly backup:database leaves no other trace.
+        $backups = File::glob(storage_path('app/backups/db_backup_*.enc'));
+        $backupTimes = array_filter(array_map('filemtime', $backups));
+        $backupAgeHours = $backupTimes === [] ? null : intdiv($now->getTimestamp() - max($backupTimes), 3600);
+        $metrics[] = ['Latest Backup Age', $backupAgeHours === null ? 'NONE' : "{$backupAgeHours}h"];
+
+        if ($backupAgeHours === null || $backupAgeHours > self::MAX_BACKUP_AGE_HOURS) {
+            $alerts[] = $backupAgeHours === null
+                ? 'No database backup found'
+                : "Latest database backup is {$backupAgeHours}h old";
         }
 
         // Display results

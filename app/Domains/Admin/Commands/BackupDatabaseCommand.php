@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
+use RuntimeException;
 use Throwable;
 
 class BackupDatabaseCommand extends Command
@@ -17,7 +18,7 @@ class BackupDatabaseCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'backup:database {--verify : Verify the integrity of the most recent backup} {--prune-only : Only run retention pruning without creating a new backup}';
+    protected $signature = 'backup:database {--verify : Verify the integrity of the most recent backup} {--prune-only : Only run retention pruning without creating a new backup} {--decrypt-to= : Write the latest backup decrypted to this path for pg_restore}';
 
     /**
      * The console command description.
@@ -25,6 +26,13 @@ class BackupDatabaseCommand extends Command
      * @var string
      */
     protected $description = 'Create encrypted daily PostgreSQL backup with 7 daily + 4 weekly retention (docs/16)';
+
+    /**
+     * Raw bytes encrypted per line. Each line is one Crypt envelope, so neither writing nor
+     * verifying a backup ever holds more than one chunk in memory (the scheduler container has
+     * 256MB; encrypting a whole 5GB dump as one string was OOM-killed every night).
+     */
+    private const CHUNK_BYTES = 4 * 1024 * 1024;
 
     /**
      * Execute the console command.
@@ -40,8 +48,12 @@ class BackupDatabaseCommand extends Command
             return $this->verifyBackup($backupDir);
         }
 
-        if (! $this->option('prune-only')) {
-            $this->createBackup($backupDir);
+        if (is_string($this->option('decrypt-to'))) {
+            return $this->decryptLatest($backupDir, $this->option('decrypt-to'));
+        }
+
+        if (! $this->option('prune-only') && ! $this->createBackup($backupDir)) {
+            return self::FAILURE;
         }
 
         $this->pruneOldBackups($backupDir);
@@ -52,66 +64,74 @@ class BackupDatabaseCommand extends Command
     /**
      * Create an encrypted database dump.
      */
-    protected function createBackup(string $backupDir): void
+    protected function createBackup(string $backupDir): bool
     {
         $this->info('Starting database backup...');
-        $sqlDump = $this->dumpDatabase();
+        $dumpPath = tempnam($backupDir, 'dump_');
 
-        if (empty($sqlDump)) {
-            $this->error('Failed to generate database dump.');
+        try {
+            if (! $this->dumpDatabase($dumpPath) || filesize($dumpPath) === 0) {
+                $this->error('Failed to generate database dump.');
 
-            return;
+                return false;
+            }
+
+            $filename = 'db_backup_'.CarbonImmutable::now()->format('Y-m-d_His').'.enc';
+            $filepath = "{$backupDir}/{$filename}";
+            $in = $this->openStream($dumpPath, 'rb');
+            $out = $this->openStream($filepath, 'wb');
+
+            while (($chunk = fread($in, self::CHUNK_BYTES)) !== false && $chunk !== '') {
+                fwrite($out, Crypt::encryptString($chunk)."\n");
+            }
+
+            fclose($in);
+            fclose($out);
+
+            $sizeKb = round(filesize($filepath) / 1024, 2);
+            $this->info("Encrypted backup saved: {$filename} ({$sizeKb} KB)");
+
+            return true;
+        } finally {
+            File::delete($dumpPath);
         }
-
-        $encrypted = Crypt::encryptString($sqlDump);
-        $timestamp = CarbonImmutable::now()->format('Y-m-d_His');
-        $filename = "db_backup_{$timestamp}.enc";
-        $filepath = "{$backupDir}/{$filename}";
-
-        File::put($filepath, $encrypted);
-
-        $sizeKb = round(strlen($encrypted) / 1024, 2);
-        $this->info("Encrypted backup saved: {$filename} ({$sizeKb} KB)");
     }
 
     /**
-     * Dump the database to a raw SQL string.
+     * Dump the database into a file: pg_dump custom format on PostgreSQL, SQL text elsewhere.
+     *
+     * A missing or failing pg_dump is a failed backup, never a silent fallback: the row-by-row
+     * export below loads whole tables into memory and cannot restore a production database.
      */
-    protected function dumpDatabase(): string
+    protected function dumpDatabase(string $path): bool
     {
-        $connection = config('database.default');
+        if (config('database.default') !== 'pgsql') {
+            return File::put($path, $this->exportDatabaseViaEloquent()) !== false;
+        }
 
-        if ($connection === 'pgsql') {
-            $host = config('database.connections.pgsql.host', '127.0.0.1');
-            $port = config('database.connections.pgsql.port', '5432');
-            $database = config('database.connections.pgsql.database');
-            $username = config('database.connections.pgsql.username');
-            $password = config('database.connections.pgsql.password');
-
-            // Try running pg_dump
-            $process = Process::env([
-                'PGPASSWORD' => (string) $password,
-            ])->run([
+        $process = Process::timeout(3600)
+            ->env(['PGPASSWORD' => (string) config('database.connections.pgsql.password')])
+            ->run([
                 'pg_dump',
-                '-h', (string) $host,
-                '-p', (string) $port,
-                '-U', (string) $username,
-                '--clean',
-                '--if-exists',
-                (string) $database,
+                '-h', (string) config('database.connections.pgsql.host', '127.0.0.1'),
+                '-p', (string) config('database.connections.pgsql.port', '5432'),
+                '-U', (string) config('database.connections.pgsql.username'),
+                '--format=custom',
+                '--file='.$path,
+                (string) config('database.connections.pgsql.database'),
             ]);
 
-            if ($process->successful() && ! empty($process->output())) {
-                return $process->output();
-            }
+        if (! $process->successful()) {
+            $this->error('pg_dump failed: '.trim($process->errorOutput()));
+
+            return false;
         }
 
-        // Fallback dump for SQLite or systems without pg_dump binary
-        return $this->exportDatabaseViaEloquent();
+        return true;
     }
 
     /**
-     * Fallback database exporter for testing or environments lacking pg_dump.
+     * SQL text export for non-PostgreSQL connections (the SQLite test suite).
      */
     protected function exportDatabaseViaEloquent(): string
     {
@@ -177,51 +197,120 @@ class BackupDatabaseCommand extends Command
     }
 
     /**
-     * Verify the most recent encrypted backup can be decrypted and is valid.
+     * Verify the most recent encrypted backup decrypts completely and starts like a dump.
      */
     protected function verifyBackup(string $backupDir): int
     {
-        $files = File::glob("{$backupDir}/db_backup_*.enc");
-        if (empty($files)) {
+        $latest = $this->latestBackup($backupDir);
+        if ($latest === null) {
             $this->error('No backup files found to verify.');
 
             return self::FAILURE;
         }
 
-        rsort($files);
-        $latest = $files[0];
         $this->info('Verifying latest backup: '.basename($latest));
 
         try {
-            $encrypted = File::get($latest);
-            $decrypted = Crypt::decryptString($encrypted);
-
-            if (empty($decrypted)) {
-                $this->error('Backup file decrypted to empty content.');
-
-                return self::FAILURE;
-            }
-
-            $hasValidSql = str_contains($decrypted, 'INSERT INTO')
-                || str_contains($decrypted, 'CREATE TABLE')
-                || str_contains($decrypted, 'PostgreSQL database dump')
-                || str_contains($decrypted, 'SuaraNetijen Database Backup Export');
-
-            if (! $hasValidSql) {
-                $this->error('Decrypted content does not appear to contain valid SQL dump.');
-
-                return self::FAILURE;
-            }
-
-            $sizeKb = round(strlen($decrypted) / 1024, 2);
-            $this->info("Backup verified successfully! Decrypted size: {$sizeKb} KB.");
-
-            return self::SUCCESS;
+            $bytes = $this->decryptChunks($latest, function (string $chunk, int $index): void {
+                if ($index === 0 && ! str_starts_with($chunk, 'PGDMP') && ! str_starts_with($chunk, '-- SuaraNetijen Database Backup Export')) {
+                    throw new RuntimeException('Decrypted content does not start like a database dump.');
+                }
+            });
         } catch (Throwable $e) {
             $this->error('Backup verification failed: '.$e->getMessage());
 
             return self::FAILURE;
         }
+
+        if ($bytes === 0) {
+            $this->error('Backup file decrypted to empty content.');
+
+            return self::FAILURE;
+        }
+
+        $sizeKb = round($bytes / 1024, 2);
+        $this->info("Backup verified successfully! Decrypted size: {$sizeKb} KB.");
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Write the latest backup decrypted, ready for `pg_restore --clean --if-exists -d <db> <path>`.
+     */
+    protected function decryptLatest(string $backupDir, string $target): int
+    {
+        $latest = $this->latestBackup($backupDir);
+        if ($latest === null) {
+            $this->error('No backup files found to decrypt.');
+
+            return self::FAILURE;
+        }
+
+        $out = $this->openStream($target, 'wb');
+
+        try {
+            $bytes = $this->decryptChunks($latest, fn (string $chunk) => fwrite($out, $chunk));
+        } catch (Throwable $e) {
+            $this->error('Backup decryption failed: '.$e->getMessage());
+
+            return self::FAILURE;
+        } finally {
+            fclose($out);
+        }
+
+        $this->info('Decrypted '.basename($latest)." to {$target} ({$bytes} bytes).");
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * @return resource
+     */
+    private function openStream(string $path, string $mode)
+    {
+        $stream = fopen($path, $mode);
+        if ($stream === false) {
+            throw new RuntimeException("Cannot open {$path}.");
+        }
+
+        return $stream;
+    }
+
+    private function latestBackup(string $backupDir): ?string
+    {
+        $files = File::glob("{$backupDir}/db_backup_*.enc");
+        rsort($files);
+
+        return $files[0] ?? null;
+    }
+
+    /**
+     * Decrypt a backup line by line, handing each chunk to $consume; returns the byte count.
+     *
+     * @param  \Closure(string, int): mixed  $consume
+     */
+    private function decryptChunks(string $path, \Closure $consume): int
+    {
+        $in = $this->openStream($path, 'rb');
+        $bytes = 0;
+        $index = 0;
+
+        try {
+            while (($line = fgets($in)) !== false) {
+                $line = rtrim($line, "\n");
+                if ($line === '') {
+                    continue;
+                }
+
+                $chunk = Crypt::decryptString($line);
+                $consume($chunk, $index++);
+                $bytes += strlen($chunk);
+            }
+        } finally {
+            fclose($in);
+        }
+
+        return $bytes;
     }
 
     /**

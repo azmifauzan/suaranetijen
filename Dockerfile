@@ -23,8 +23,13 @@ RUN docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype \
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
+# postgresql-client-18 matches the server major so backup:database can run pg_dump.
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends nodejs postgresql-client-18 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
