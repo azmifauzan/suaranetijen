@@ -174,6 +174,7 @@ const newEntityName = ref('');
 const newEntityCategoryId = ref<number | null>(null);
 // Pre-filled from the fetched page's meta description, still editable.
 const newEntityDescription = ref('');
+const newEntityType = ref<'brand' | 'product' | 'service'>('brand');
 const isNewEntityMode = computed(() => entityMode.value === 'new' && !selectedEntity.value);
 const hasSponsorTarget = computed(() => !!selectedEntity.value || isNewEntityMode.value);
 const contributionAmount = ref<number>(10000);
@@ -397,10 +398,24 @@ onMounted(() => {
 
     // Entry from an entity page: "?url=<its website>" pre-fills and checks it, so the domain match
     // selects that entity straight away.
+    // From the user panel's "Tambah usulan" sponsor path: name/category/type/description arrive too
+    // and override the site-derived guesses for a new entity.
     const prefillUrl = params.get('url');
+    const prefillType = params.get('type');
+    if (prefillType === 'brand' || prefillType === 'product' || prefillType === 'service') {
+        newEntityType.value = prefillType;
+    }
     if (prefillUrl) {
         urlInput.value = prefillUrl;
-        checkUrl();
+        checkUrl().then(() => {
+            if (entityMode.value !== 'new') return;
+            newEntityName.value = params.get('name') || newEntityName.value;
+            newEntityDescription.value = params.get('description') || newEntityDescription.value;
+            const categoryId = Number(params.get('category_id'));
+            if (props.categories.some((cat) => cat.id === categoryId)) {
+                newEntityCategoryId.value = categoryId;
+            }
+        });
         setTimeout(() => formSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
     }
 
@@ -512,6 +527,7 @@ async function submitOrder() {
                           new_entity_category_id: newEntityCategoryId.value,
                           new_entity_url: urlPreview.value?.url || checkedUrl.value,
                           new_entity_description: newEntityDescription.value.trim() || null,
+                          new_entity_type: newEntityType.value,
                       }),
             }),
         });

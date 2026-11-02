@@ -2,6 +2,7 @@
 
 namespace App\Domains\Sponsorships\Controllers\Api;
 
+use App\Domains\Entities\Enums\EntityType;
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Sponsorships\Models\SponsorshipOrder;
 use App\Domains\Sponsorships\Requests\StoreSponsorshipOrderRequest;
@@ -47,7 +48,8 @@ class SponsorshipOrderController extends Controller
                 (string) $request->validated('new_entity_url'),
                 $amount,
                 $redirectUrl,
-                $request->validated('new_entity_description')
+                $request->validated('new_entity_description'),
+                EntityType::tryFrom((string) $request->validated('new_entity_type')) ?? EntityType::Brand
             );
         }
 

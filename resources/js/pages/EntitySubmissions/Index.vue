@@ -29,13 +29,18 @@ type Status = 'pending' | 'approved' | 'rejected';
 
 defineProps<{
     submissions: {
-        id: number;
+        key: string;
+        kind: 'submission' | 'sponsor';
         name: string;
         entity_type: string;
         status: Status;
+        status_label: string;
         review_note: string | null;
         entity_slug: string | null;
         created_at: string | null;
+        amount?: number;
+        period_name?: string;
+        payment_link_url?: string | null;
     }[];
     categories: { id: number; name: string }[];
     brands: { id: number; name: string }[];
@@ -43,17 +48,12 @@ defineProps<{
 
 const isFormOpen = ref(false);
 const entityType = ref('brand');
+const submitMode = ref<'review' | 'sponsor'>('review');
 
 const typeLabel: Record<string, string> = {
     brand: 'Brand',
     product: 'Produk',
     service: 'Layanan',
-};
-
-const statusLabel: Record<Status, string> = {
-    pending: 'Menunggu review',
-    approved: 'Disetujui',
-    rejected: 'Ditolak',
 };
 
 const statusClass: Record<Status, string> = {
@@ -64,6 +64,10 @@ const statusClass: Record<Status, string> = {
 
 const selectClass =
     'border-input bg-background h-9 w-full rounded-md border px-3 text-sm';
+
+function formatRupiah(amount: number): string {
+    return 'Rp' + amount.toLocaleString('id-ID');
+}
 
 function formatDate(value: string | null): string {
     if (value === null) {
@@ -81,6 +85,7 @@ function formatDate(value: string | null): string {
 function onSubmitted(): void {
     isFormOpen.value = false;
     entityType.value = 'brand';
+    submitMode.value = 'review';
 }
 </script>
 
@@ -94,6 +99,8 @@ function onSubmitted(): void {
                 <p class="text-muted-foreground mt-1 text-sm">
                     Usulkan brand, produk, atau layanan yang belum ada. Admin meninjau setiap
                     usulan sebelum tampil dan usulan tidak mempengaruhi skor atau peringkat.
+                    Sponsor yang kamu kirim ke Papan Sponsor juga tercatat di sini dan langsung
+                    aktif setelah pembayaran terkonfirmasi, tanpa review admin.
                 </p>
             </div>
             <Button v-if="submissions.length > 0" @click="isFormOpen = true">
@@ -118,28 +125,46 @@ function onSubmitted(): void {
         </div>
 
         <ul v-else class="divide-y rounded-xl border">
-            <li v-for="submission in submissions" :key="submission.id" class="px-4 py-4 sm:px-5">
+            <li v-for="submission in submissions" :key="submission.key" class="px-4 py-4 sm:px-5">
                 <div class="flex items-center justify-between gap-4">
                     <div class="min-w-0">
-                        <p class="truncate font-medium">{{ submission.name }}</p>
+                        <p class="flex min-w-0 items-center gap-2 font-medium">
+                            <span class="truncate">{{ submission.name }}</span>
+                            <span
+                                v-if="submission.kind === 'sponsor'"
+                                class="shrink-0 rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                            >
+                                Sponsor
+                            </span>
+                        </p>
                         <p class="text-muted-foreground mt-0.5 text-xs">
                             {{ typeLabel[submission.entity_type] ?? submission.entity_type }}
+                            <template v-if="submission.kind === 'sponsor'">
+                                · {{ formatRupiah(submission.amount ?? 0) }} · {{ submission.period_name }}
+                            </template>
                             · {{ formatDate(submission.created_at) }}
                         </p>
                     </div>
                     <div class="flex shrink-0 items-center gap-3">
                         <Link
-                            v-if="submission.status === 'approved' && submission.entity_slug"
+                            v-if="submission.entity_slug"
                             :href="show(submission.entity_slug)"
                             class="text-primary text-sm underline"
                         >
                             Lihat halaman
                         </Link>
+                        <a
+                            v-if="submission.payment_link_url"
+                            :href="submission.payment_link_url"
+                            class="text-primary inline-flex min-h-11 items-center text-sm font-semibold underline"
+                        >
+                            Bayar sekarang
+                        </a>
                         <span
                             class="rounded-full px-2.5 py-1 text-xs font-medium"
                             :class="statusClass[submission.status]"
                         >
-                            {{ statusLabel[submission.status] }}
+                            {{ submission.status_label }}
                         </span>
                     </div>
                 </div>
@@ -153,7 +178,7 @@ function onSubmitted(): void {
         </ul>
 
     <Dialog v-model:open="isFormOpen">
-        <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
             <Form
                 v-bind="EntitySubmissionController.store.form()"
                 class="space-y-5"
@@ -168,6 +193,33 @@ function onSubmitted(): void {
                         Isi data brand, produk, atau layanan yang ingin diusulkan.
                     </DialogDescription>
                 </DialogHeader>
+
+                <fieldset class="grid gap-2 sm:grid-cols-2">
+                    <legend class="mb-2 text-sm font-medium">Cara tayang</legend>
+                    <input type="hidden" name="sponsor" :value="submitMode === 'sponsor' ? 1 : 0" />
+                    <label
+                        class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm"
+                        :class="submitMode === 'review' ? 'border-primary bg-primary/5' : ''"
+                    >
+                        <input v-model="submitMode" type="radio" value="review" class="mt-0.5 size-4" />
+                        <span>
+                            <span class="font-medium">Gratis, ditinjau admin</span>
+                            <span class="text-muted-foreground block text-xs">Tayang setelah admin menyetujui.</span>
+                        </span>
+                    </label>
+                    <label
+                        class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm"
+                        :class="submitMode === 'sponsor' ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40' : ''"
+                    >
+                        <input v-model="submitMode" type="radio" value="sponsor" class="mt-0.5 size-4" />
+                        <span>
+                            <span class="font-medium">Langsung tayang dengan sponsor</span>
+                            <span class="text-muted-foreground block text-xs">
+                                Mulai Rp1.000 via QRIS. Tanpa review admin, tampil di Papan Sponsor setelah pembayaran terkonfirmasi.
+                            </span>
+                        </span>
+                    </label>
+                </fieldset>
 
                 <div class="grid gap-2">
                     <Label for="name">Nama</Label>
@@ -197,7 +249,8 @@ function onSubmitted(): void {
                     </div>
                 </div>
 
-                <div v-if="entityType !== 'brand'" class="grid gap-2">
+                <!-- The sponsor checkout has no parent-brand field, so it is hidden there. -->
+                <div v-if="entityType !== 'brand' && submitMode === 'review'" class="grid gap-2">
                     <Label for="parent_entity_id">Brand induk (opsional)</Label>
                     <select id="parent_entity_id" name="parent_entity_id" :class="selectClass">
                         <option value="">Tidak ada</option>
@@ -209,8 +262,14 @@ function onSubmitted(): void {
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="website_url">Website (opsional)</Label>
-                    <Input id="website_url" name="website_url" type="url" placeholder="https://" />
+                    <Label for="website_url">{{ submitMode === 'sponsor' ? 'Website resmi' : 'Website (opsional)' }}</Label>
+                    <Input
+                        id="website_url"
+                        name="website_url"
+                        type="url"
+                        placeholder="https://"
+                        :required="submitMode === 'sponsor'"
+                    />
                     <InputError :message="errors.website_url" />
                 </div>
 
@@ -236,7 +295,9 @@ function onSubmitted(): void {
                     <DialogClose as-child>
                         <Button type="button" variant="secondary">Batal</Button>
                     </DialogClose>
-                    <Button type="submit" :disabled="processing">Kirim usulan</Button>
+                    <Button type="submit" :disabled="processing">
+                        {{ submitMode === 'sponsor' ? 'Lanjut ke pembayaran' : 'Kirim usulan' }}
+                    </Button>
                 </DialogFooter>
             </Form>
         </DialogContent>

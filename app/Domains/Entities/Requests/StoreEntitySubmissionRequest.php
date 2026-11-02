@@ -36,9 +36,21 @@ class StoreEntitySubmissionRequest extends FormRequest
                 'integer',
                 Rule::exists('entities', 'id')->where('type', EntityType::Brand->value),
             ],
-            'website_url' => ['nullable', 'url:http,https', 'max:255'],
+            // The sponsor path skips admin review and pays instead; the sponsor form needs the site.
+            'sponsor' => ['boolean'],
+            'website_url' => [Rule::requiredIf(fn (): bool => $this->boolean('sponsor')), 'nullable', 'url:http,https', 'max:255'],
             'description' => ['nullable', 'string', 'max:500'],
             'is_owner' => ['boolean'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'website_url.required' => 'Isi website resmi untuk jalur sponsor.',
         ];
     }
 }

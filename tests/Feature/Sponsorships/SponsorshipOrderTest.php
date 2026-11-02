@@ -165,6 +165,34 @@ test('a description supplied at sponsorship is stored on the new entity instead 
         ->and($entity->description)->toBe('Kopi robusta panggang sendiri dari Bandung.');
 });
 
+test('a new entity sponsored as a product keeps that type, and person is refused', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+
+    Http::fake([
+        'https://api-pay.sumopod.com/api/v1/payments' => Http::response([
+            'payment_id' => 'pay_newentity_product',
+            'payment_link_url' => 'https://checkout.sumopod.com/pay/order-newentity-product',
+            'status' => 'pending',
+        ], 200),
+    ]);
+
+    $payload = [
+        'new_entity_name' => 'Produk Baru',
+        'new_entity_category_id' => $category->id,
+        'new_entity_url' => 'https://produk-baru.example/',
+        'amount' => 10000,
+    ];
+
+    $this->actingAs($user)->postJson(route('api.sponsor.orders.store'), [...$payload, 'new_entity_type' => 'person'])
+        ->assertUnprocessable()->assertJsonValidationErrors(['new_entity_type']);
+
+    $this->actingAs($user)->postJson(route('api.sponsor.orders.store'), [...$payload, 'new_entity_type' => 'product'])
+        ->assertCreated();
+
+    expect(Entity::query()->where('name', 'Produk Baru')->value('type'))->toBe(EntityType::Product);
+});
+
 test('new-entity sponsorship requires a name and a category', function () {
     $user = User::factory()->create();
     $category = Category::factory()->create();

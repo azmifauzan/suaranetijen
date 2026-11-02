@@ -2,7 +2,9 @@
 
 namespace App\Domains\Sponsorships\Requests;
 
+use App\Domains\Entities\Enums\EntityType;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreSponsorshipOrderRequest extends FormRequest
 {
@@ -54,6 +56,8 @@ class StoreSponsorshipOrderRequest extends FormRequest
             'new_entity_category_id' => ['required_without:entity_id', 'nullable', 'integer', 'exists:categories,id'],
             'new_entity_url' => ['required_without:entity_id', 'nullable', 'url', 'max:2048'],
             'new_entity_description' => ['nullable', 'string', 'max:500'],
+            // Never `person`: public figures cannot be sponsored (docs/26).
+            'new_entity_type' => ['nullable', Rule::in([EntityType::Brand->value, EntityType::Product->value, EntityType::Service->value])],
             'website_url' => ['nullable', 'url', 'max:2048'],
             'amount' => ['required', 'integer', "min:{$min}"],
             'email' => [$this->user() ? 'nullable' : 'required', 'email', 'max:255'],

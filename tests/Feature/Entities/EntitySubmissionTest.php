@@ -5,6 +5,9 @@ use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Models\EntityAlias;
 use App\Domains\Entities\Models\EntityCandidate;
 use App\Domains\Entities\Models\EntitySubmission;
+use App\Domains\Sponsorships\Enums\SponsorshipOrderStatus;
+use App\Domains\Sponsorships\Models\SponsoredEntry;
+use App\Domains\Sponsorships\Models\SponsorshipOrder;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -110,6 +113,47 @@ test('index lists only the own submissions with candidate status', function () {
             ->where('submissions.0.status', 'rejected'));
 });
 
+test('index merges own sponsor orders, newest first, paid ones read approved and unpaid are not linked', function () {
+    $user = User::factory()->create();
+    $entry = SponsoredEntry::factory()->create();
+    EntitySubmission::factory()->create(['user_id' => $user->id, 'name' => 'Usulan Lama', 'created_at' => now()->subDay()]);
+    $paid = SponsorshipOrder::factory()->paid()->create(['user_id' => $user->id, 'sponsored_entry_id' => $entry->id, 'amount' => 25000, 'created_at' => now()->subHour()]);
+    $pending = SponsorshipOrder::factory()->create([
+        'user_id' => $user->id,
+        'sponsored_entry_id' => $entry->id,
+        'status' => SponsorshipOrderStatus::Pending,
+        'payment_link_url' => 'https://checkout.example/pay/1',
+        'expires_at' => now()->addHour(),
+    ]);
+    SponsorshipOrder::factory()->create(['sponsored_entry_id' => $entry->id]);
+
+    $this->actingAs($user)->get('/usulan')->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('submissions', 3)
+            ->where('submissions.0.key', 'sponsor-'.$pending->id)
+            ->where('submissions.0.status_label', 'Menunggu Pembayaran')
+            ->where('submissions.0.payment_link_url', 'https://checkout.example/pay/1')
+            ->where('submissions.0.entity_slug', null)
+            ->where('submissions.1.key', 'sponsor-'.$paid->id)
+            ->where('submissions.1.kind', 'sponsor')
+            ->where('submissions.1.status_label', 'Disetujui')
+            ->where('submissions.1.entity_slug', $entry->entity->slug)
+            ->where('submissions.1.amount', 25000)
+            ->where('submissions.2.kind', 'submission'));
+});
+
+test('an expired sponsor order offers no payment link', function () {
+    $user = User::factory()->create();
+    SponsorshipOrder::factory()->create([
+        'user_id' => $user->id,
+        'status' => SponsorshipOrderStatus::Pending,
+        'expires_at' => now()->subHour(),
+    ]);
+
+    $this->actingAs($user)->get('/usulan')
+        ->assertInertia(fn (Assert $page) => $page->where('submissions.0.payment_link_url', null));
+});
+
 test('admin rejection note reaches the submitter', function () {
     $user = User::factory()->create();
     $candidate = EntityCandidate::factory()->create();
@@ -142,4 +186,45 @@ test('user description stays off the candidate reasoning', function () {
 
     expect(EntityCandidate::first()->reasoning)->toBeNull()
         ->and(EntitySubmission::first()->description)->toBe('Kopi terbaik se-Indonesia');
+});
+
+test('the sponsor path skips the review queue and hands off to the sponsor checkout with the data', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+
+    $this->actingAs($user)
+        ->withHeaders(['X-Inertia' => 'true'])
+        ->post('/usulan', submissionPayload([
+            'sponsor' => '1',
+            'name' => 'Kopi Senja',
+            'entity_type' => 'product',
+            'category_id' => $category->id,
+            'website_url' => 'https://kopisenja.id',
+        ]))
+        ->assertStatus(409)
+        ->assertHeader('X-Inertia-Location', route('leaderboard.index', [
+            'url' => 'https://kopisenja.id',
+            'name' => 'Kopi Senja',
+            'category_id' => $category->id,
+            'type' => 'product',
+        ]));
+
+    expect(EntityCandidate::count())->toBe(0)
+        ->and(EntitySubmission::count())->toBe(0);
+});
+
+test('the sponsor path requires a website', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post('/usulan', submissionPayload(['sponsor' => '1']))
+        ->assertSessionHasErrors(['website_url' => 'Isi website resmi untuk jalur sponsor.']);
+});
+
+test('the sponsor path still refuses a name that already exists', function () {
+    $user = User::factory()->create();
+    $entity = Entity::factory()->create(['name' => 'Kopi Senja']);
+    EntityAlias::factory()->create(['entity_id' => $entity->id, 'alias' => 'Kopi Senja', 'normalized_alias' => 'kopi senja']);
+
+    $this->actingAs($user)->post('/usulan', submissionPayload(['sponsor' => '1', 'website_url' => 'https://kopisenja.id']))
+        ->assertSessionHasErrors('name');
 });

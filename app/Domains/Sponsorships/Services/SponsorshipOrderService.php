@@ -93,7 +93,8 @@ class SponsorshipOrderService
         string $sourceUrl,
         int $amount,
         ?string $redirectUrl = null,
-        ?string $description = null
+        ?string $description = null,
+        EntityType $type = EntityType::Brand
     ): SponsorshipOrder {
         $name = trim($name);
         if ($name === '') {
@@ -118,10 +119,10 @@ class SponsorshipOrderService
             ? 'https://'.$sourceUrl
             : $sourceUrl;
 
-        $order = DB::transaction(function () use ($user, $name, $category, $normalizedUrl, $amount, $period, $description): SponsorshipOrder {
+        $order = DB::transaction(function () use ($user, $name, $category, $normalizedUrl, $amount, $period, $description, $type): SponsorshipOrder {
             $entity = Entity::create([
                 'category_id' => $category->id,
-                'type' => EntityType::Brand,
+                'type' => $type,
                 'name' => $name,
                 'slug' => $this->uniqueSlug($name),
                 // The sponsor's own description when they supplied one (pre-filled from the site's
