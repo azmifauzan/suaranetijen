@@ -162,25 +162,24 @@ it('does not create a replacement for an unrelated session error', function () {
             : Http::response(['status' => 'ok']);
     });
 
-    expect(fn () => testChallengeSolvingAdapter()->callRequest('https://example.test/'))
-        ->toThrow(RateLimitExceededException::class);
-    expect($commands)->toBe(['sessions.destroy', 'sessions.create', 'request.get']);
+    expect(testChallengeSolvingAdapter()->callRequest('https://example.test/')->status())->toBe(502);
+    expect($commands)->toBe(['sessions.destroy', 'sessions.create', 'request.get', 'sessions.destroy']);
 });
 
-it('stays quarantined after crash cleanup fails even beyond the normal cooldown', function () {
+it('stays quarantined after error cleanup fails even beyond the normal cooldown', function (string $error) {
     config(['services.flaresolverr.url' => 'http://flaresolverr:8191', 'services.flaresolverr.slot_wait_seconds' => 0]);
     Cache::flush();
     $commands = [];
     $destroyCalls = 0;
     Http::preventStrayRequests();
-    Http::fake(function (Request $request) use (&$commands, &$destroyCalls) {
+    Http::fake(function (Request $request) use (&$commands, &$destroyCalls, $error) {
         $commands[] = $request['cmd'];
         if ($request['cmd'] === 'sessions.destroy' && ++$destroyCalls > 1) {
             throw new ConnectionException('cleanup timed out');
         }
 
         return $request['cmd'] === 'request.get'
-            ? Http::response(['status' => 'error', 'message' => 'tab crashed'])
+            ? Http::response(['status' => 'error', 'message' => $error], 500)
             : Http::response(['status' => 'ok']);
     });
 
@@ -191,7 +190,7 @@ it('stays quarantined after crash cleanup fails even beyond the normal cooldown'
     expect(fn () => testChallengeSolvingAdapter()->callRequest('https://example.test/again'))
         ->toThrow(RateLimitExceededException::class);
     expect($commands)->toBe($before);
-});
+})->with(['tab crashed', 'Error: Error solving the challenge. Timeout after 45.0 seconds.']);
 
 it('accepts confirmed session absence when rotating a fresh sidecar', function () {
     config(['services.flaresolverr.url' => 'http://flaresolverr:8191']);
@@ -225,7 +224,6 @@ it('quarantines invalid request responses instead of reusing an uncertain browse
 
         return match ($failure) {
             'http' => Http::response(['status' => 'ok', 'solution' => ['status' => 200, 'response' => 'ok']], 502),
-            'error' => Http::response(['status' => 'error', 'message' => 'Timeout after 45 seconds.']),
             'malformed' => Http::response('not json'),
             'solution' => Http::response(['status' => 'ok', 'solution' => []]),
         };
@@ -237,7 +235,7 @@ it('quarantines invalid request responses instead of reusing an uncertain browse
     expect(fn () => testChallengeSolvingAdapter()->callRequest('https://example.test/again'))
         ->toThrow(RateLimitExceededException::class);
     expect($commands)->toBe($before);
-})->with(['http', 'error', 'malformed', 'solution']);
+})->with(['http', 'malformed', 'solution']);
 
 it('preserves a query string already embedded in the URL when no extra query is passed', function () {
     Http::preventStrayRequests();
@@ -523,4 +521,35 @@ it('destroys the session and pauses the container after a tab crash, bouncing jo
     $adapter->callRequest('https://example.test/page-3');
 
     expect(array_slice($commands, count($afterCrash)))->toBe(['sessions.destroy', 'sessions.create', 'request.get', 'sessions.destroy']);
+});
+
+it('reopens the slot after a challenge timeout once FlareSolverr confirms the session is destroyed', function () {
+    config([
+        'services.flaresolverr.url' => 'http://flaresolverr:8191',
+        'services.flaresolverr.slot_wait_seconds' => 0,
+        'services.flaresolverr.crash_cooldown_seconds' => 60,
+    ]);
+    Cache::flush();
+    $commands = [];
+    $requests = 0;
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) use (&$commands, &$requests) {
+        $commands[] = $request['cmd'];
+        if ($request['cmd'] !== 'request.get') {
+            return Http::response(['status' => 'ok']);
+        }
+
+        return ++$requests === 1
+            ? Http::response(['status' => 'error', 'message' => 'Error: Error solving the challenge. Timeout after 45.0 seconds.'], 500)
+            : Http::response(['status' => 'ok', 'solution' => ['status' => 200, 'response' => 'halaman']]);
+    });
+    $adapter = testChallengeSolvingAdapter();
+
+    $timedOut = $adapter->callRequest('https://example.test/page-1');
+
+    expect($timedOut->status())->toBe(502)
+        ->and($commands)->toBe(['sessions.destroy', 'sessions.create', 'request.get', 'sessions.destroy']);
+    expect(fn () => $adapter->callRequest('https://example.test/page-2'))->toThrow(RateLimitExceededException::class);
+    $this->travel(61)->seconds();
+    expect($adapter->callRequest('https://example.test/page-3')->body())->toBe('halaman');
 });

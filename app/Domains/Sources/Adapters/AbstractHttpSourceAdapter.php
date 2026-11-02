@@ -167,8 +167,8 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
                 $envelope = $this->postFlareSolverrRequest($flareSolverrUrl, $targetUrl, $sessionId, $maxTimeout);
             }
 
-            if ($this->flareSolverrTabCrashed($envelope)) {
-                $this->recoverFromFlareSolverrCrash($flareSolverrUrl, $sessionId);
+            if ($this->flareSolverrReportedError($envelope)) {
+                $this->recoverFromFlareSolverrError($flareSolverrUrl, $sessionId);
             } elseif (! $envelope->successful() || $envelope->json('status') !== 'ok'
                 || ! is_int($envelope->json('solution.status')) || ! is_string($envelope->json('solution.response'))) {
                 throw new RuntimeException('FlareSolverr did not confirm request completion.');
@@ -187,13 +187,18 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
     }
 
     /**
-     * After a tab crash the container is out of memory. Retrying at once only crashes the next
-     * tab (measured: 32 of 32 requests in 90s on a 1GB worker), and the failed jobs' own retries
-     * kept the pressure on. So the crashed session's browser is destroyed to free its memory and
-     * the container refuses new requests for a while; jobs bounce back with a delay, which does
-     * not spend their retry budget.
+     * FlareSolverr answered with an error ("tab crashed", "Error solving the challenge. Timeout
+     * after 45.0 seconds."), so its session browser may still be busy. Destroying the session
+     * quits that browser; only once FlareSolverr confirms it does the slot reopen. A failed
+     * destroy throws and leaves the slot quarantined (docs/16). Treating every error reply as
+     * unconfirmed instead quarantined both worker slots within 30 minutes of a reset on routine
+     * SerayaMotor challenge timeouts (2 Nov 2026), silencing every FlareSolverr source.
+     *
+     * After a tab crash the container is out of memory and retrying at once only crashes the next
+     * tab (measured: 32 of 32 requests in 90s on a 1GB worker), so the container also refuses new
+     * requests for a while; jobs bounce back with a delay, which does not spend their retry budget.
      */
-    private function recoverFromFlareSolverrCrash(string $flareSolverrUrl, string $sessionId): void
+    private function recoverFromFlareSolverrError(string $flareSolverrUrl, string $sessionId): void
     {
         $this->flareSolverrCommand($flareSolverrUrl, ['cmd' => 'sessions.destroy', 'session' => $sessionId]);
         Cache::forget('flaresolverr:session:'.$this->flareSolverrInstanceId().':'.$sessionId);
@@ -211,10 +216,9 @@ abstract class AbstractHttpSourceAdapter implements SourceAdapter
         }
     }
 
-    private function flareSolverrTabCrashed(Response $envelope): bool
+    private function flareSolverrReportedError(Response $envelope): bool
     {
-        return $envelope->json('status') === 'error'
-            && str_contains((string) $envelope->json('message'), 'tab crashed');
+        return $envelope->json('status') === 'error' && is_string($envelope->json('message'));
     }
 
     /**
