@@ -63,11 +63,19 @@ class BackupDatabaseCommand extends Command
 
     /**
      * Create an encrypted database dump.
+     *
+     * The plaintext dump goes to the container's own temp dir (0600, gone on recreate), never
+     * the backups dir, which is a host bind mount. Each line encrypts "<id>|<index>|<bytes>" and
+     * a final "<id>|end|<count>|<length>|<sha256>" trailer, so a reordered, foreign, dropped or
+     * truncated chunk fails verification instead of restoring a partial database.
      */
     protected function createBackup(string $backupDir): bool
     {
         $this->info('Starting database backup...');
-        $dumpPath = tempnam($backupDir, 'dump_');
+        File::delete(File::glob(sys_get_temp_dir().'/sn_dump_*'));
+        $dumpPath = tempnam(sys_get_temp_dir(), 'sn_dump_');
+        $filename = 'db_backup_'.CarbonImmutable::now()->format('Y-m-d_His').'.enc';
+        $filepath = "{$backupDir}/{$filename}";
 
         try {
             if (! $this->dumpDatabase($dumpPath) || filesize($dumpPath) === 0) {
@@ -76,24 +84,49 @@ class BackupDatabaseCommand extends Command
                 return false;
             }
 
-            $filename = 'db_backup_'.CarbonImmutable::now()->format('Y-m-d_His').'.enc';
-            $filepath = "{$backupDir}/{$filename}";
+            $id = bin2hex(random_bytes(8));
+            $hash = hash_init('sha256');
+            $index = 0;
+            $length = 0;
             $in = $this->openStream($dumpPath, 'rb');
             $out = $this->openStream($filepath, 'wb');
 
-            while (($chunk = fread($in, self::CHUNK_BYTES)) !== false && $chunk !== '') {
-                fwrite($out, Crypt::encryptString($chunk)."\n");
-            }
+            try {
+                while (($chunk = fread($in, self::CHUNK_BYTES)) !== false && $chunk !== '') {
+                    hash_update($hash, $chunk);
+                    $length += strlen($chunk);
+                    $this->writeLine($out, Crypt::encryptString("{$id}|".$index++.'|'.$chunk));
+                }
 
-            fclose($in);
-            fclose($out);
+                $this->writeLine($out, Crypt::encryptString("{$id}|end|{$index}|{$length}|".hash_final($hash)));
+            } finally {
+                fclose($in);
+                if (! fclose($out)) {
+                    throw new RuntimeException("Cannot finish writing {$filepath}.");
+                }
+            }
 
             $sizeKb = round(filesize($filepath) / 1024, 2);
             $this->info("Encrypted backup saved: {$filename} ({$sizeKb} KB)");
 
             return true;
+        } catch (Throwable $e) {
+            File::delete($filepath);
+            $this->error('Backup failed: '.$e->getMessage());
+
+            return false;
         } finally {
             File::delete($dumpPath);
+        }
+    }
+
+    /**
+     * @param  resource  $stream
+     */
+    private function writeLine($stream, string $line): void
+    {
+        if (fwrite($stream, $line."\n") !== strlen($line) + 1) {
+            throw new RuntimeException('Short write while saving the backup.');
         }
     }
 
@@ -249,15 +282,20 @@ class BackupDatabaseCommand extends Command
         $out = $this->openStream($target, 'wb');
 
         try {
-            $bytes = $this->decryptChunks($latest, fn (string $chunk) => fwrite($out, $chunk));
+            $bytes = $this->decryptChunks($latest, function (string $chunk) use ($out): void {
+                if (fwrite($out, $chunk) !== strlen($chunk)) {
+                    throw new RuntimeException('Short write while decrypting the backup.');
+                }
+            });
         } catch (Throwable $e) {
+            fclose($out);
+            File::delete($target);
             $this->error('Backup decryption failed: '.$e->getMessage());
 
             return self::FAILURE;
-        } finally {
-            fclose($out);
         }
 
+        fclose($out);
         $this->info('Decrypted '.basename($latest)." to {$target} ({$bytes} bytes).");
 
         return self::SUCCESS;
@@ -287,11 +325,16 @@ class BackupDatabaseCommand extends Command
     /**
      * Decrypt a backup line by line, handing each chunk to $consume; returns the byte count.
      *
+     * Throws unless every chunk carries the backup's id in order and the trailer's count,
+     * length and SHA-256 match what was decrypted.
+     *
      * @param  \Closure(string, int): mixed  $consume
      */
     private function decryptChunks(string $path, \Closure $consume): int
     {
         $in = $this->openStream($path, 'rb');
+        $hash = hash_init('sha256');
+        $id = null;
         $bytes = 0;
         $index = 0;
 
@@ -302,15 +345,34 @@ class BackupDatabaseCommand extends Command
                     continue;
                 }
 
-                $chunk = Crypt::decryptString($line);
-                $consume($chunk, $index++);
-                $bytes += strlen($chunk);
+                [$lineId, $position, $body] = array_pad(explode('|', Crypt::decryptString($line), 3), 3, '');
+                $id ??= $lineId;
+
+                if ($lineId !== $id) {
+                    throw new RuntimeException('Backup contains a chunk from another backup.');
+                }
+
+                if ($position === 'end') {
+                    if ($body !== "{$index}|{$bytes}|".hash_final($hash) || fgets($in) !== false) {
+                        throw new RuntimeException('Backup trailer does not match its chunks.');
+                    }
+
+                    return $bytes;
+                }
+
+                if ($position !== (string) $index) {
+                    throw new RuntimeException("Backup chunk {$index} is missing or out of order.");
+                }
+
+                $consume($body, $index++);
+                hash_update($hash, $body);
+                $bytes += strlen($body);
             }
         } finally {
             fclose($in);
         }
 
-        return $bytes;
+        throw new RuntimeException('Backup is truncated: no trailer.');
     }
 
     /**
