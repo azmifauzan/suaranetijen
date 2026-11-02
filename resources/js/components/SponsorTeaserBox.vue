@@ -78,7 +78,7 @@ const isEmpty = computed(() => {
                 :href="leaderboardPage.url()"
                 class="inline-flex min-h-11 items-center text-[11px] font-medium text-amber-800 hover:underline"
             >
-                Lihat papan penuh →
+                Lihat papan &amp; pasang sponsor →
             </Link>
         </div>
 

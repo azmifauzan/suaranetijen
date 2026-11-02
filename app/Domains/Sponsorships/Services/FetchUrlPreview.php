@@ -17,8 +17,8 @@ use Throwable;
  *
  * SSRF guard: only http/https; the resolved IP must be publicly routable (blocks loopback,
  * RFC1918 private ranges, and link-local — which covers the 169.254.169.254 cloud metadata
- * address); redirects are never followed automatically, so a redirecting URL is reported as
- * unreachable rather than silently chasing an unvalidated Location header.
+ * address); redirects are followed manually (at most MAX_REDIRECTS hops) and every hop's host is
+ * re-validated, so `dana.id` -> `www.dana.id` works without chasing an unvalidated Location header.
  *
  * ponytail: resolves only the first A/AAAA record via gethostbyname(), not a DNS-rebinding-proof
  * pinned connection (CURLOPT_RESOLVE). Fine for an MVP preview endpoint whose output the user edits
@@ -30,6 +30,8 @@ class FetchUrlPreview
 
     private const MAX_DESCRIPTION_LENGTH = 500;
 
+    private const MAX_REDIRECTS = 3;
+
     public function __construct(private readonly HostResolver $resolver) {}
 
     /**
@@ -39,28 +41,33 @@ class FetchUrlPreview
      */
     public function handle(string $url): array
     {
-        $parts = parse_url($url);
-        $scheme = $parts['scheme'] ?? null;
-        $host = $parts['host'] ?? null;
+        $redirects = 0;
 
-        if (! in_array($scheme, ['http', 'https'], true) || ! $host) {
-            throw new RuntimeException('URL tidak valid.');
-        }
+        while (true) {
+            $origin = $this->assertPublicHttpUrl($url);
 
-        $ip = $this->resolver->resolve($host);
-        if ($ip === $host || ! $this->isPubliclyRoutable($ip)) {
-            throw new RuntimeException('URL tidak dapat diakses.');
-        }
+            try {
+                $response = Http::timeout(5)
+                    ->withOptions(['allow_redirects' => false])
+                    ->withHeaders(['User-Agent' => 'SuaraNetijenBot/1.0 (+https://suaranetijen.id)'])
+                    ->get($url);
+            } catch (Throwable $e) {
+                Log::info('Sponsor URL preview fetch failed', ['url' => $url, 'error' => $e->getMessage()]);
 
-        try {
-            $response = Http::timeout(5)
-                ->withOptions(['allow_redirects' => false])
-                ->withHeaders(['User-Agent' => 'SuaraNetijenBot/1.0 (+https://suaranetijen.id)'])
-                ->get($url);
-        } catch (Throwable $e) {
-            Log::info('Sponsor URL preview fetch failed', ['url' => $url, 'error' => $e->getMessage()]);
+                throw new RuntimeException('Gagal mengambil informasi dari URL tersebut.');
+            }
 
-            throw new RuntimeException('Gagal mengambil informasi dari URL tersebut.');
+            $location = $response->redirect() ? $response->header('Location') : '';
+
+            if ($location === '') {
+                break;
+            }
+
+            if (++$redirects > self::MAX_REDIRECTS) {
+                throw new RuntimeException('URL tidak dapat diakses (terlalu banyak pengalihan).');
+            }
+
+            $url = $this->absoluteUrl($location, $origin);
         }
 
         if (! $response->successful()) {
@@ -120,6 +127,47 @@ class FetchUrlPreview
         }
 
         return null;
+    }
+
+    /**
+     * @return array{scheme: string, host: string, port: int|null}
+     *
+     * @throws RuntimeException
+     */
+    public function assertPublicHttpUrl(string $url): array
+    {
+        $parts = parse_url($url);
+        $scheme = is_array($parts) ? ($parts['scheme'] ?? null) : null;
+        $host = is_array($parts) ? ($parts['host'] ?? null) : null;
+
+        if (! in_array($scheme, ['http', 'https'], true) || ! $host) {
+            throw new RuntimeException('URL tidak valid.');
+        }
+
+        $ip = $this->resolver->resolve($host);
+        if ($ip === $host || ! $this->isPubliclyRoutable($ip)) {
+            throw new RuntimeException('URL tidak dapat diakses.');
+        }
+
+        return ['scheme' => $scheme, 'host' => $host, 'port' => $parts['port'] ?? null];
+    }
+
+    /**
+     * @param  array{scheme: string, host: string, port: int|null}  $origin
+     */
+    private function absoluteUrl(string $location, array $origin): string
+    {
+        if (preg_match('~^https?://~i', $location)) {
+            return $location;
+        }
+
+        if (str_starts_with($location, '//')) {
+            return $origin['scheme'].':'.$location;
+        }
+
+        $port = $origin['port'] !== null ? ':'.$origin['port'] : '';
+
+        return $origin['scheme'].'://'.$origin['host'].$port.'/'.ltrim($location, '/');
     }
 
     private function isPubliclyRoutable(string $ip): bool

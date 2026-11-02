@@ -161,19 +161,20 @@ const urlInput = ref('');
 const isFetchingPreview = ref(false);
 const previewError = ref<string | null>(null);
 const urlPreview = ref<{ title: string; url: string; description: string | null } | null>(null);
+// The normalized URL the last successful check ran against; null until "Cek situs" succeeds.
+const checkedUrl = ref<string | null>(null);
+const fetchError = ref<string | null>(null);
+// Title-search hits, shown only as optional "already registered?" suggestions.
 const candidates = ref<SponsorEntitySelection[]>([]);
 const selectedEntity = ref<SponsorEntitySelection | null>(null);
-// New-entity mode: the retrieved URL matched no existing entity, so the user names it and picks
-// a category instead (RankUp asks the same at submission) — the entity itself isn't created
-// until the payment actually confirms (docs/26; see ProcessSponsorshipRelayWebhook).
+// 'existing' = sponsoring a registered entity; 'new' = registering one (created Disabled now, made
+// visible only once payment confirms — docs/26; see ProcessSponsorshipRelayWebhook).
+const entityMode = ref<'existing' | 'new' | null>(null);
 const newEntityName = ref('');
 const newEntityCategoryId = ref<number | null>(null);
-// Pre-filled from the fetched page's own meta description (FetchUrlPreview), still fully editable;
-// only used on the new-entity path, where it lands in Entity.description.
+// Pre-filled from the fetched page's meta description, still editable.
 const newEntityDescription = ref('');
-const isNewEntityMode = computed(
-    () => !!urlPreview.value && !isFetchingPreview.value && candidates.value.length === 0 && !selectedEntity.value,
-);
+const isNewEntityMode = computed(() => entityMode.value === 'new' && !selectedEntity.value);
 const hasSponsorTarget = computed(() => !!selectedEntity.value || isNewEntityMode.value);
 const contributionAmount = ref<number>(10000);
 const customAmount = ref<string>('10000');
@@ -281,64 +282,96 @@ function normalizeUrlInput(value: string): string | null {
     }
 }
 
-let previewTimer: ReturnType<typeof setTimeout> | null = null;
-watch(urlInput, (value) => {
-    if (previewTimer) clearTimeout(previewTimer);
+function resetEntityStep() {
     urlPreview.value = null;
+    checkedUrl.value = null;
+    fetchError.value = null;
     candidates.value = [];
     previewError.value = null;
-    if (value.trim()) {
-        selectedEntity.value = null;
-    }
+    selectedEntity.value = null;
+    entityMode.value = null;
     newEntityName.value = '';
     newEntityCategoryId.value = null;
     newEntityDescription.value = '';
+}
 
-    const normalized = normalizeUrlInput(value);
+// Editing the URL invalidates the previous check; nothing is fetched until the user asks.
+watch(urlInput, (value) => {
+    if (checkedUrl.value && normalizeUrlInput(value) !== checkedUrl.value) {
+        resetEntityStep();
+    }
+    previewError.value = null;
+});
+
+async function checkUrl() {
+    const normalized = normalizeUrlInput(urlInput.value);
     if (!normalized) {
+        previewError.value = 'Tulis alamat situs, contoh: namabrand.com';
         return;
     }
 
-    previewTimer = setTimeout(async () => {
-        isFetchingPreview.value = true;
-        try {
-            const csrfToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content;
-            const res = await fetch('/api/sponsor/preview', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN': csrfToken || '',
-                },
-                body: JSON.stringify({ url: normalized }),
-            });
-            const json = await res.json();
+    resetEntityStep();
+    isFetchingPreview.value = true;
+    try {
+        const csrfToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content;
+        const res = await fetch('/api/sponsor/preview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrfToken || '',
+            },
+            body: JSON.stringify({ url: normalized }),
+        });
+        const json = await res.json();
 
-            if (!res.ok) {
-                previewError.value = json.error || 'Gagal mengambil informasi dari URL tersebut.';
-                return;
-            }
-
-            urlPreview.value = json.preview;
-            candidates.value = (json.candidates || []).slice(0, 5).map((item: any) => ({
-                id: item.id,
-                name: item.name,
-                category_name: item.category_name || item.category?.name || 'Umum',
-                type_label: item.type_label || 'Entitas',
-                website_url: item.website_url || urlPreview.value?.url || null,
-            }));
-
-            if (candidates.value.length === 0) {
-                newEntityName.value = json.preview.title;
-                newEntityDescription.value = json.preview.description || '';
-            }
-        } catch {
-            previewError.value = 'Gagal mengambil informasi dari URL tersebut.';
-        } finally {
-            isFetchingPreview.value = false;
+        if (!res.ok) {
+            previewError.value = json.error || json.message || 'Alamat situs tidak valid.';
+            return;
         }
-    }, 400);
-});
+
+        checkedUrl.value = normalized;
+        urlPreview.value = json.preview;
+        fetchError.value = json.fetch_error;
+        // Kept even on a domain match, so "Bukan ini, daftarkan baru" starts pre-filled.
+        newEntityName.value = json.suggested_name || '';
+        newEntityDescription.value = json.preview?.description || '';
+
+        if (json.domain_match) {
+            selectedEntity.value = json.domain_match;
+            entityMode.value = 'existing';
+            return;
+        }
+
+        candidates.value = (json.candidates || []).slice(0, 3).map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            category_name: item.category_name || item.category?.name || 'Umum',
+            type_label: item.type_label || 'Entitas',
+            website_url: item.website_url || null,
+        }));
+        entityMode.value = 'new';
+    } catch {
+        previewError.value = 'Koneksi bermasalah. Coba lagi.';
+    } finally {
+        isFetchingPreview.value = false;
+    }
+}
+
+function chooseCandidate(item: SponsorEntitySelection) {
+    selectedEntity.value = item;
+    entityMode.value = 'existing';
+}
+
+function registerAsNewEntity() {
+    selectedEntity.value = null;
+    entityMode.value = 'new';
+}
+
+function changeEntity() {
+    urlInput.value = '';
+    resetEntityStep();
+}
 
 watch(selectedEntity, (newEntity) => {
     if (rebutTarget.value) {
@@ -361,6 +394,16 @@ onMounted(() => {
     if (typeof window === 'undefined') return;
 
     const params = new URLSearchParams(window.location.search);
+
+    // Entry from an entity page: "?url=<its website>" pre-fills and checks it, so the domain match
+    // selects that entity straight away.
+    const prefillUrl = params.get('url');
+    if (prefillUrl) {
+        urlInput.value = prefillUrl;
+        checkUrl();
+        setTimeout(() => formSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+    }
+
     const rebutRank = params.get('rebut_rank');
     const targetName = params.get('target_name');
     const neededAmountStr = params.get('needed_amount');
@@ -391,6 +434,8 @@ onMounted(() => {
 // Used by "+ Sponsori" buttons on already-listed entities: skip the URL step entirely and jump
 // straight to step 2, scrolling the (always-on-page) form into view.
 function selectEntityAndScrollToForm(entry: LeaderboardEntry) {
+    urlInput.value = '';
+    resetEntityStep();
     selectedEntity.value = {
         id: entry.entity_id,
         name: entry.name,
@@ -398,10 +443,7 @@ function selectEntityAndScrollToForm(entry: LeaderboardEntry) {
         category_name: entry.category_name,
         website_url: entry.website_url || null,
     };
-    urlInput.value = '';
-    urlPreview.value = null;
-    candidates.value = [];
-    previewError.value = null;
+    entityMode.value = 'existing';
     errorMessage.value = null;
     formSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -463,12 +505,12 @@ async function submitOrder() {
                 ...(selectedEntity.value
                     ? {
                           entity_id: selectedEntity.value.id,
-                          website_url: urlPreview.value?.url || undefined,
+                          website_url: urlPreview.value?.url || checkedUrl.value || undefined,
                       }
                     : {
                           new_entity_name: newEntityName.value.trim(),
                           new_entity_category_id: newEntityCategoryId.value,
-                          new_entity_url: urlPreview.value?.url,
+                          new_entity_url: urlPreview.value?.url || checkedUrl.value,
                           new_entity_description: newEntityDescription.value.trim() || null,
                       }),
             }),
@@ -576,10 +618,22 @@ function formatRupiah(amount: number): string {
             </div>
 
             <!-- Header -->
-            <div class="mb-6">
-                <h1 class="text-2xl font-black tracking-tight text-[#18392d] sm:text-3xl">
-                    Papan Sponsor
-                </h1>
+            <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight text-[#18392d] sm:text-3xl">
+                        Papan Sponsor
+                    </h1>
+                    <p class="mt-1 max-w-xl text-sm text-[#5d6e61]">
+                        Tempat brand, produk, atau layanan tampil lebih menonjol. Siapa pun bisa memasang, mulai {{ formatRupiah(minAmount) }}.
+                    </p>
+                </div>
+                <a
+                    href="#formSection"
+                    class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-[#9a3412] px-5 text-sm font-bold text-white transition hover:bg-[#7c2d12]"
+                    @click.prevent="formSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })"
+                >
+                    Pasang sponsor
+                </a>
             </div>
 
             <!-- Top 3 sits first so the competitive target is visible before the sponsor form. -->
@@ -746,16 +800,12 @@ function formatRupiah(amount: number): string {
 
             <!-- Sponsor Entry Form — inline on the page, not a popup (Pamerin/RankUp both keep
                  this as a plain section; only the final payment confirmation below is a modal). -->
-            <div ref="formSection" class="mt-5 rounded-2xl border border-[#e5e9e2] bg-white p-4 shadow-sm sm:p-5">
-                <div class="flex items-center gap-2 text-xs font-bold text-[#d97706]">
-                    <Trophy class="size-4" />
-                    SPONSORI ENTITAS
-                </div>
-                <h3 class="mt-1 text-lg font-extrabold text-[#18392d]">
-                    Tingkatkan Posisi di Leaderboard
-                </h3>
+            <div id="formSection" ref="formSection" class="mt-5 scroll-mt-4 rounded-2xl border border-[#e5e9e2] bg-white p-4 shadow-sm sm:p-5">
+                <h2 class="text-lg font-extrabold text-[#18392d]">
+                    Pasang brand di Papan Sponsor
+                </h2>
                 <p class="mt-1 text-xs text-[#5d6e61]">
-                    Dukungan Anda terakumulasi pada entitas pilihan untuk periode {{ activePeriod.name }}.
+                    Bayar via QRIS, tanpa perlu akun. Berlaku untuk periode {{ activePeriod.name }}.
                 </p>
 
                 <!-- Mode Rebut Posisi Banner -->
@@ -792,175 +842,145 @@ function formatRupiah(amount: number): string {
                     </div>
                 </div>
 
-                <!-- Step 1: URL first — fetch the site, then match against existing entities. -->
-                <div class="mt-4">
-                    <label v-if="!selectedEntity" class="block text-xs font-bold text-[#31483b]">
-                        Link Website Resmi Entitas
-                    </label>
-                    <div v-if="!selectedEntity" class="relative mt-1.5">
-                        <Search class="absolute top-3 left-3 size-4 text-[#5d6e61]" />
-                        <input
-                            v-model="urlInput"
-                            type="url"
-                            placeholder="https://situs-resmi-brand.com"
-                            class="w-full rounded-xl border border-[#cfd9ce] py-2.5 pr-4 pl-9 text-sm text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
-                        />
-                    </div>
-                    <p v-if="!selectedEntity" class="mt-1.5 text-[11px] text-[#5d6e61]">
-                        Kami ambil judul situsnya, lalu cocokkan dengan entitas yang sudah terdaftar di SuaraNetijen.
-                    </p>
+                <ol class="mt-5 space-y-5">
+                    <!-- Langkah 1: alamat situs. Disembunyikan bila entitas dipilih dari papan. -->
+                    <li v-if="!(entityMode === 'existing' && !checkedUrl)">
+                        <p class="flex items-center gap-2 text-sm font-bold text-[#18392d]">
+                            <span class="inline-flex size-6 items-center justify-center rounded-full bg-[#18392d] text-xs text-white">1</span>
+                            Alamat situs resmi
+                        </p>
+                        <form class="mt-2 flex flex-col gap-2 sm:flex-row" @submit.prevent="checkUrl()">
+                            <label for="sponsor-url" class="sr-only">Alamat situs resmi</label>
+                            <div class="relative flex-1">
+                                <Globe class="absolute top-3.5 left-3 size-4 text-[#5d6e61]" />
+                                <input
+                                    id="sponsor-url"
+                                    v-model="urlInput"
+                                    type="text"
+                                    inputmode="url"
+                                    autocomplete="url"
+                                    placeholder="namabrand.com"
+                                    class="min-h-11 w-full rounded-xl border border-[#cfd9ce] py-2.5 pr-4 pl-9 text-base text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none sm:text-sm"
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#18392d] px-5 text-sm font-bold text-white transition hover:bg-[#0f2a20] disabled:opacity-60"
+                                :disabled="isFetchingPreview"
+                            >
+                                <span v-if="isFetchingPreview" class="size-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                                {{ isFetchingPreview ? 'Mengecek...' : 'Cek situs' }}
+                            </button>
+                        </form>
+                        <p v-if="!checkedUrl && !previewError" class="mt-1.5 text-xs text-[#5d6e61]">
+                            Kami cek apakah brand ini sudah terdaftar di SuaraNetijen.
+                        </p>
+                        <p v-if="previewError" role="alert" class="mt-2 text-xs font-semibold text-[#b91c1c]">
+                            {{ previewError }}
+                        </p>
+                        <p v-if="urlPreview" class="mt-2 flex items-center gap-1.5 text-xs text-[#1b6b44]">
+                            <CheckCircle2 class="size-4 shrink-0" />
+                            <span class="truncate">Situs ditemukan: <strong>{{ urlPreview.title }}</strong></span>
+                        </p>
+                        <p v-else-if="checkedUrl && fetchError" class="mt-2 text-xs text-[#92400e]">
+                            Situs ini tidak bisa kami buka otomatis. Tidak masalah, isi namanya di langkah 2.
+                        </p>
+                    </li>
 
-                    <div v-if="isFetchingPreview && !selectedEntity" class="mt-3 flex items-center gap-2 text-xs text-[#5d6e61]">
-                        <span class="size-3.5 animate-spin rounded-full border-2 border-[#cfd9ce] border-t-[#087f5b]" />
-                        Mengambil informasi situs...
-                    </div>
+                    <!-- Langkah 2: entitas -->
+                    <li v-if="entityMode">
+                        <p class="flex items-center gap-2 text-sm font-bold text-[#18392d]">
+                            <span class="inline-flex size-6 items-center justify-center rounded-full bg-[#18392d] text-xs text-white">{{ checkedUrl ? 2 : 1 }}</span>
+                            {{ isNewEntityMode ? 'Daftarkan brand ini' : 'Brand yang disponsori' }}
+                        </p>
 
-                    <div
-                        v-if="previewError && !selectedEntity"
-                        class="mt-3 rounded-xl border border-[#f3c9c9] bg-[#fdf2f2] p-3 text-xs text-[#b91c1c]"
-                    >
-                        {{ previewError }}
-                    </div>
+                        <div v-if="selectedEntity" class="mt-2 rounded-xl border border-[#bfe2ca] bg-[#f0faf2] p-3 text-sm">
+                            <p class="text-xs text-[#1b6b44]">{{ checkedUrl ? 'Sudah terdaftar di SuaraNetijen' : 'Dipilih dari papan' }}</p>
+                            <p class="mt-0.5 font-bold text-[#18392d]">{{ selectedEntity.name }}</p>
+                            <p class="text-xs text-[#5d6e61]">{{ selectedEntity.type_label }} · {{ selectedEntity.category_name }}</p>
+                            <div class="mt-2 flex flex-wrap gap-x-4">
+                                <button
+                                    v-if="checkedUrl"
+                                    type="button"
+                                    class="inline-flex min-h-11 items-center text-xs font-semibold text-[#087f5b] hover:underline"
+                                    @click="registerAsNewEntity()"
+                                >
+                                    Bukan ini? Daftarkan sebagai brand baru
+                                </button>
+                                <button
+                                    type="button"
+                                    class="inline-flex min-h-11 items-center text-xs font-semibold text-[#31483b] hover:text-[#a73520]"
+                                    @click="changeEntity()"
+                                >
+                                    Ganti situs
+                                </button>
+                            </div>
+                        </div>
 
-                    <!-- Live preview, mirroring Pamerin's "Nanti tampil seperti ini" card -->
-                    <div
-                        v-if="urlPreview && !selectedEntity"
-                        class="mt-3 rounded-xl border border-[#d8e2d6] bg-[#f7faf6] p-3 text-xs"
-                    >
-                        <p class="text-[10px] font-bold tracking-wide text-[#5d6e61] uppercase">Ditemukan</p>
-                        <p class="mt-1 font-bold text-[#18392d]">{{ urlPreview.title }}</p>
-                        <p class="mt-0.5 truncate text-[#5d6e61]">{{ urlPreview.url }}</p>
-                    </div>
+                        <div v-else class="mt-2 rounded-xl border border-[#e5d4b8] bg-[#fffaf0] p-3">
+                            <p class="text-xs text-[#7c694e]">
+                                Brand ini belum ada di SuaraNetijen. Isi datanya, lalu brand tampil di papan setelah pembayaran terkonfirmasi.
+                            </p>
+                            <label for="sponsor-new-name" class="mt-3 block text-xs font-bold text-[#31483b]">Nama brand</label>
+                            <input
+                                id="sponsor-new-name"
+                                v-model="newEntityName"
+                                type="text"
+                                placeholder="Nama brand, produk, atau layanan"
+                                class="mt-1.5 min-h-11 w-full rounded-xl border border-[#cfd9ce] bg-white px-4 py-2.5 text-base text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none sm:text-sm"
+                            />
+                            <label for="sponsor-new-category" class="mt-3 block text-xs font-bold text-[#31483b]">Kategori</label>
+                            <select
+                                id="sponsor-new-category"
+                                v-model="newEntityCategoryId"
+                                class="mt-1.5 min-h-11 w-full rounded-xl border border-[#cfd9ce] bg-white px-4 py-2.5 text-base text-[#18392d] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none sm:text-sm"
+                            >
+                                <option :value="null" disabled>Pilih kategori...</option>
+                                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                                    {{ cat.name }}
+                                </option>
+                            </select>
+                            <label for="sponsor-new-description" class="mt-3 block text-xs font-bold text-[#31483b]">
+                                Deskripsi singkat <span class="font-normal text-[#5d6e61]">(opsional)</span>
+                            </label>
+                            <textarea
+                                id="sponsor-new-description"
+                                v-model="newEntityDescription"
+                                rows="2"
+                                maxlength="500"
+                                placeholder="Contoh: Kue kering dan takoyaki rumahan dari Bandung"
+                                class="mt-1.5 w-full rounded-xl border border-[#cfd9ce] bg-white px-4 py-2.5 text-base text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none sm:text-sm"
+                            ></textarea>
 
-                    <!-- Candidate entity matches -->
-                    <div
-                        v-if="candidates.length > 0 && !selectedEntity"
-                        class="mt-2 max-h-48 overflow-y-auto rounded-xl border border-[#d8e2d6] bg-white shadow-lg"
-                    >
-                        <button
-                            v-for="item in candidates"
-                            :key="item.id"
-                            type="button"
-                            class="flex min-h-11 w-full items-center justify-between p-3 text-left transition hover:bg-[#f0f7f0]"
-                            @click="selectedEntity = item"
-                        >
-                            <div>
-                                <div class="text-sm font-bold text-[#18392d]">
-                                    {{ item.name }}
-                                </div>
-                                <div class="text-xs text-[#5d6e61]">
-                                    {{ item.type_label }} · {{ item.category_name }}
+                            <div v-if="candidates.length > 0" class="mt-3 border-t border-[#efe3cf] pt-3">
+                                <p class="text-xs text-[#5d6e61]">Ternyata sudah terdaftar? Pilih di sini:</p>
+                                <div class="mt-1.5 flex flex-wrap gap-2">
+                                    <button
+                                        v-for="item in candidates"
+                                        :key="item.id"
+                                        type="button"
+                                        class="inline-flex min-h-11 items-center rounded-lg border border-[#d8e2d6] bg-white px-3 text-xs font-semibold text-[#18392d] hover:border-[#8cb896]"
+                                        @click="chooseCandidate(item)"
+                                    >
+                                        {{ item.name }}
+                                        <span class="ml-1 font-normal text-[#5d6e61]">· {{ item.category_name }}</span>
+                                    </button>
                                 </div>
                             </div>
-                            <span class="rounded-lg bg-[#e2efe4] px-2.5 py-1 text-xs font-bold text-[#19613c]">
-                                Ini entitasnya
-                            </span>
-                        </button>
-                    </div>
-
-                    <!-- No match: register it as a new entity instead (docs/26 override) — it's
-                         created now but Disabled/invisible everywhere, and only flips to a real,
-                         visible listing once the payment actually confirms. -->
-                    <div
-                        v-if="isNewEntityMode"
-                        class="mt-3 rounded-xl border border-[#e5d4b8] bg-[#fffaf0] p-3"
-                    >
-                        <p class="text-xs text-[#7c694e]">
-                            Belum terdaftar di SuaraNetijen. Daftarkan sebagai entitas baru — akan tampil di leaderboard
-                            begitu pembayaran terkonfirmasi.
-                        </p>
-                        <label class="mt-3 block text-xs font-bold text-[#31483b]">
-                            Nama Entitas
-                        </label>
-                        <input
-                            v-model="newEntityName"
-                            type="text"
-                            placeholder="Nama brand, produk, atau layanan"
-                            class="mt-1.5 w-full rounded-xl border border-[#cfd9ce] py-2.5 px-4 text-sm text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
-                        />
-                        <label class="mt-3 block text-xs font-bold text-[#31483b]">
-                            Kategori
-                        </label>
-                        <select
-                            v-model="newEntityCategoryId"
-                            class="mt-1.5 w-full rounded-xl border border-[#cfd9ce] bg-white py-2.5 px-4 text-sm text-[#18392d] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
-                        >
-                            <option :value="null" disabled>Pilih kategori...</option>
-                            <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                                {{ cat.name }}
-                            </option>
-                        </select>
-                        <label class="mt-3 block text-xs font-bold text-[#31483b]">
-                            Deskripsi
-                        </label>
-                        <textarea
-                            v-model="newEntityDescription"
-                            rows="3"
-                            maxlength="500"
-                            placeholder="Deskripsi singkat brand, produk, atau layanan"
-                            class="mt-1.5 w-full rounded-xl border border-[#cfd9ce] py-2.5 px-4 text-sm text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
-                        ></textarea>
-                        <p class="mt-1.5 text-[11px] text-[#5d6e61]">
-                            Kami isi otomatis dari deskripsi situs. Bisa Anda ubah.
-                        </p>
-                    </div>
-
-                    <div
-                        v-if="selectedEntity"
-                        class="mt-2 rounded-xl border border-[#bfe2ca] bg-[#f0faf2] p-3 text-xs"
-                    >
-                        <div class="flex items-start justify-between gap-3">
-                            <dl class="min-w-0 flex-1 space-y-2">
-                                <div>
-                                    <dt class="text-[10px] font-bold tracking-wide text-[#31483b] uppercase">Nama entitas</dt>
-                                    <dd class="mt-0.5 font-bold text-[#1b6b44]">{{ selectedEntity.name }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-[10px] font-bold tracking-wide text-[#31483b] uppercase">Jenis</dt>
-                                    <dd class="mt-0.5 text-[#18392d]">{{ selectedEntity.type_label }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-[10px] font-bold tracking-wide text-[#31483b] uppercase">Kategori</dt>
-                                    <dd class="mt-0.5 text-[#18392d]">{{ selectedEntity.category_name }}</dd>
-                                </div>
-                                <div class="min-w-0">
-                                    <dt class="text-[10px] font-bold tracking-wide text-[#31483b] uppercase">Situs resmi</dt>
-                                    <dd class="mt-0.5 break-all text-[#18392d]">{{ selectedEntity.website_url || 'Tidak tercantum' }}</dd>
-                                </div>
-                            </dl>
-                            <button
-                                type="button"
-                                class="inline-flex min-h-11 shrink-0 items-center px-2 font-semibold text-[#31483b] hover:text-[#a73520]"
-                                @click="selectedEntity = null"
-                            >
-                                Ganti
-                            </button>
                         </div>
-                    </div>
-                </div>
+                    </li>
+                </ol>
 
-                <!-- Step 2: appears once an entity is confirmed or a new one is ready to name. -->
+                <!-- Langkah 3: nominal dan email, muncul setelah entitas jelas. -->
                 <template v-if="hasSponsorTarget">
-                    <!-- Guest email (no account required) -->
-                    <div v-if="!currentUser" class="mt-4">
-                        <label class="block text-xs font-bold text-[#31483b]">
-                            Email
-                        </label>
-                        <input
-                            v-model="guestEmail"
-                            type="email"
-                            placeholder="nama@email.com"
-                            class="mt-1.5 w-full rounded-xl border border-[#cfd9ce] py-2.5 px-4 text-sm text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
-                        />
-                        <p class="mt-1.5 text-[11px] text-[#5d6e61]">
-                            Tidak perlu akun. Kami kirim link masuk ke email ini agar Anda bisa cek status sponsor kapan saja.
-                        </p>
-                    </div>
-
+                    <p class="mt-5 flex items-center gap-2 text-sm font-bold text-[#18392d]">
+                        <span class="inline-flex size-6 items-center justify-center rounded-full bg-[#18392d] text-xs text-white">{{ checkedUrl ? 3 : 2 }}</span>
+                        Nominal dan pembayaran
+                    </p>
                     <!-- Contribution Amount -->
-                    <div class="mt-4">
+                    <div class="mt-2">
                         <label class="block text-xs font-bold text-[#31483b]">
-                            Nominal Sponsor (Minimal Rp{{ minAmount.toLocaleString('id-ID') }})
+                            Nominal sponsor (minimal {{ formatRupiah(minAmount) }})
                         </label>
 
                         <!-- Presets -->
@@ -994,7 +1014,7 @@ function formatRupiah(amount: number): string {
                             />
                         </div>
                         <p class="mt-1 text-[11px] text-[#5d6e61]">
-                            Bebas tentukan nominal (minimal {{ formatRupiah(minAmount) }}, kelipatan {{ formatRupiah(incrementAmount || 100) }}). Untuk merebut posisi, cukup tambah {{ formatRupiah(incrementAmount || 100) }} di atas total sponsor target.
+                            Makin besar total sponsor, makin tinggi posisinya di papan.
                         </p>
 
                         <!-- Quick Rebut Target Amount Button -->
@@ -1017,6 +1037,24 @@ function formatRupiah(amount: number): string {
                         <span class="font-bold">Estimasi Posisi:</span>
                         Dengan tambahan {{ formatRupiah(contributionAmount) }}, entitas ini diperkirakan menempati posisi
                         <strong class="font-extrabold text-[#92400e]">#{{ predictedRank }}</strong> di Leaderboard!
+                    </div>
+
+                    <!-- Guest email (no account required) -->
+                    <div v-if="!currentUser" class="mt-4">
+                        <label for="sponsor-email" class="block text-xs font-bold text-[#31483b]">
+                            Email
+                        </label>
+                        <input
+                            id="sponsor-email"
+                            v-model="guestEmail"
+                            autocomplete="email"
+                            type="email"
+                            placeholder="nama@email.com"
+                            class="mt-1.5 w-full rounded-xl border border-[#cfd9ce] py-2.5 px-4 text-sm text-[#18392d] placeholder-[#8e9f93] focus:border-[#087f5b] focus:ring-1 focus:ring-[#087f5b] focus:outline-none"
+                        />
+                        <p class="mt-1.5 text-[11px] text-[#5d6e61]">
+                            Tidak perlu akun. Kami kirim link masuk ke email ini agar Anda bisa cek status sponsor kapan saja.
+                        </p>
                     </div>
 
                     <!-- Error message -->
@@ -1272,9 +1310,8 @@ function formatRupiah(amount: number): string {
                 </p>
                 <ol class="list-decimal space-y-2 pl-5">
                     <li>
-                        Tempel link website resmi entitas. Kami membaca judul situsnya, lalu mencocokkannya dengan entitas
-                        yang sudah terdaftar. Kalau belum ada, kamu bisa mendaftarkannya sebagai entitas baru dengan nama dan
-                        kategori pilihanmu.
+                        Tulis alamat situs resmi brand, lalu tekan Cek situs. Kalau brand itu sudah terdaftar di SuaraNetijen,
+                        kami pilihkan otomatis. Kalau belum, isi nama dan kategorinya untuk mendaftarkannya sebagai brand baru.
                     </li>
                     <li>
                         Isi nominal, mulai {{ formatRupiah(minAmount) }}. Pembayaran memakai QRIS. Kamu tidak perlu membuat

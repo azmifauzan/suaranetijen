@@ -19,12 +19,14 @@ import { index as searchPage } from '@/routes/search';
 import { index as rankingIndex } from '@/routes/rankings';
 import { index as comparisonsIndex } from '@/routes/comparisons';
 import { index as topicsIndex } from '@/routes/topics';
+import { index as leaderboardPage } from '@/routes/leaderboard';
 
 const page = usePage();
 const menuOpen = ref(false);
 const navigation = [
     { label: 'Jelajahi', href: searchPage() },
     { label: 'Ranking', href: rankingIndex() },
+    { label: 'Papan Sponsor', href: leaderboardPage() },
     { label: 'Cara kerja', href: methodology() },
     { label: 'Tentang kami', href: about() },
 ];
@@ -175,6 +177,7 @@ const navigation = [
                                 ><Search class="size-4" /> Cari & jelajahi</Link
                             ><Link :href="topicsIndex()">Topik populer</Link
                             ><Link :href="comparisonsIndex()">Perbandingan</Link
+                            ><Link :href="leaderboardPage()">Pasang sponsor</Link
                             ><Link :href="terms()">Ketentuan penggunaan</Link
                             ><Link :href="privacy()">Privasi</Link>
                         </div>

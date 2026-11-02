@@ -4,6 +4,7 @@ import { contact, home, methodology, sources } from "@/routes";
 import { show as showEntity } from "@/routes/entities";
 import { show as showCategory } from "@/routes/categories";
 import { show as showRanking } from "@/routes/rankings";
+import { index as leaderboardPage } from "@/routes/leaderboard";
 import { Link, router, useHttp } from "@inertiajs/vue3";
 import { ArrowUpRight, Play, Star, Trophy } from "@lucide/vue";
 import { computed, ref } from "vue";
@@ -466,6 +467,7 @@ async function removeRating(): Promise<void> {
                             entity.image_url ||
                             entity.aliases.length > 0 ||
                             specs ||
+                            entity.type !== 'person' ||
                             (leaderboard && leaderboard.is_active)
                         "
                         class="w-full sm:col-start-1 sm:row-start-2"
@@ -548,6 +550,26 @@ async function removeRating(): Promise<void> {
                                 <ArrowUpRight class="size-3.5" />
                             </a>
                         </div>
+
+                        <!-- Jalan masuk Papan Sponsor; tokoh publik tidak bisa disponsori (docs/26). -->
+                        <Link
+                            v-if="entity.type !== 'person'"
+                            :href="
+                                leaderboardPage({
+                                    query: entity.website_url
+                                        ? { url: entity.website_url }
+                                        : {},
+                                })
+                            "
+                            class="mt-3 inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-[#b45309] hover:underline"
+                        >
+                            <Trophy class="size-3.5" />
+                            {{
+                                leaderboard && leaderboard.is_active
+                                    ? `Tambah sponsor untuk ${entity.name}`
+                                    : `Pasang ${entity.name} di Papan Sponsor`
+                            }}
+                        </Link>
 
                         <!-- Reference specs: curated data, not part of Sentimen Netijen (docs/03, ADR-008) -->
                         <div

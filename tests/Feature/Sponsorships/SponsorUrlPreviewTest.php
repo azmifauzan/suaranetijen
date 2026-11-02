@@ -102,27 +102,113 @@ test('it rejects a non-http(s) URL', function () {
     $response->assertUnprocessable();
 });
 
-test('it reports an error when the URL is unreachable', function () {
+test('an unreachable site still returns a name suggested from its domain instead of a dead end', function () {
     fakePublicResolver();
 
     Http::fake([
-        'https://down.example/*' => Http::response('', 500),
+        'https://www.dsfa-homemade.example/*' => Http::response('', 403),
     ]);
 
-    $response = $this->postJson(route('api.sponsor.preview'), ['url' => 'https://down.example/']);
-
-    $response->assertUnprocessable();
+    $this->postJson(route('api.sponsor.preview'), ['url' => 'https://www.dsfa-homemade.example/'])
+        ->assertOk()
+        ->assertJsonPath('preview', null)
+        ->assertJsonPath('fetch_error', 'URL tidak dapat diakses (status 403).')
+        ->assertJsonPath('suggested_name', 'Dsfa Homemade');
 });
 
-test('it reports an error when the page has no title', function () {
+test('a page without a title is reported as a fetch error, not a rejected URL', function () {
     fakePublicResolver();
 
     Http::fake([
         'https://no-title.example/*' => Http::response('<html><body>No title here</body></html>', 200),
     ]);
 
-    $response = $this->postJson(route('api.sponsor.preview'), ['url' => 'https://no-title.example/']);
+    $this->postJson(route('api.sponsor.preview'), ['url' => 'https://no-title.example/'])
+        ->assertOk()
+        ->assertJsonPath('fetch_error', 'Tidak dapat menemukan judul halaman.');
+});
 
-    $response->assertUnprocessable()
-        ->assertJsonPath('error', 'Tidak dapat menemukan judul halaman.');
+test('it follows a redirect to the final page', function () {
+    fakePublicResolver();
+
+    Http::fake([
+        'https://dana.example/' => Http::response('', 301, ['Location' => 'https://www.dana.example/']),
+        'https://www.dana.example/' => Http::response('<html><head><title>DANA</title></head></html>', 200),
+    ]);
+
+    $this->postJson(route('api.sponsor.preview'), ['url' => 'https://dana.example/'])
+        ->assertOk()
+        ->assertJsonPath('preview.title', 'DANA')
+        ->assertJsonPath('preview.url', 'https://www.dana.example/');
+});
+
+test('it never follows a redirect into a private network', function () {
+    app()->instance(HostResolver::class, new class extends HostResolver
+    {
+        public function resolve(string $host): string
+        {
+            return $host === 'internal.example' ? '10.0.0.5' : '93.184.216.34';
+        }
+    });
+
+    Http::fake([
+        'https://public.example/' => Http::response('', 302, ['Location' => 'https://internal.example/admin']),
+        'https://internal.example/*' => Http::response('<html><head><title>Secret</title></head></html>', 200),
+    ]);
+
+    $this->postJson(route('api.sponsor.preview'), ['url' => 'https://public.example/'])
+        ->assertOk()
+        ->assertJsonPath('preview', null)
+        ->assertJsonPath('fetch_error', 'URL tidak dapat diakses.');
+
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), 'internal.example'));
+});
+
+test('an entity registered with the same domain is matched directly and title search is skipped', function () {
+    fakePublicResolver();
+    $entity = Entity::factory()->create([
+        'name' => 'DSFA Homemade',
+        'website_url' => 'https://www.dsfahomemade.example',
+        'status' => EntityStatus::Active,
+        'searchable' => true,
+    ]);
+
+    Http::fake([
+        'https://dsfahomemade.example/*' => Http::response('<html><head><title>DSFA Homemade Bandung | Cheesecuit, Takoyaki</title></head></html>', 200),
+    ]);
+
+    $this->postJson(route('api.sponsor.preview'), ['url' => 'https://dsfahomemade.example/'])
+        ->assertOk()
+        ->assertJsonPath('domain_match.id', $entity->id)
+        ->assertJsonPath('candidates', []);
+});
+
+test('a page title is trimmed to its brand part for the suggested name', function () {
+    fakePublicResolver();
+
+    Http::fake([
+        'https://dsfa.example/*' => Http::response('<html><head><title>DSFA Homemade Bandung | Cheesecuit, Takoyaki, Puding &amp; Jus</title></head></html>', 200),
+    ]);
+
+    $this->postJson(route('api.sponsor.preview'), ['url' => 'https://dsfa.example/'])
+        ->assertOk()
+        ->assertJsonPath('domain_match', null)
+        ->assertJsonPath('suggested_name', 'DSFA Homemade Bandung');
+});
+
+test('a weak category-context hit is not offered as an existing-entity suggestion', function () {
+    fakePublicResolver();
+    Entity::factory()->create([
+        'name' => 'Band-Aid',
+        'status' => EntityStatus::Active,
+        'searchable' => true,
+    ]);
+
+    Http::fake([
+        'https://dsfa.example/*' => Http::response('<html><head><title>DSFA Homemade Bandung | Takoyaki</title></head></html>', 200),
+    ]);
+
+    $this->postJson(route('api.sponsor.preview'), ['url' => 'https://dsfa.example/'])
+        ->assertOk()
+        ->assertJsonPath('candidates', []);
 });
