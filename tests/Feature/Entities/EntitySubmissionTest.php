@@ -116,11 +116,12 @@ test('index lists only the own submissions with candidate status', function () {
 test('index merges own sponsor orders, newest first, paid ones read approved and unpaid are not linked', function () {
     $user = User::factory()->create();
     $entry = SponsoredEntry::factory()->create();
+    $pendingEntry = SponsoredEntry::factory()->create();
     EntitySubmission::factory()->create(['user_id' => $user->id, 'name' => 'Usulan Lama', 'created_at' => now()->subDay()]);
-    $paid = SponsorshipOrder::factory()->paid()->create(['user_id' => $user->id, 'sponsored_entry_id' => $entry->id, 'amount' => 25000, 'created_at' => now()->subHour()]);
-    $pending = SponsorshipOrder::factory()->create([
+    SponsorshipOrder::factory()->paid()->create(['user_id' => $user->id, 'sponsored_entry_id' => $entry->id, 'amount' => 25000, 'created_at' => now()->subHour()]);
+    SponsorshipOrder::factory()->create([
         'user_id' => $user->id,
-        'sponsored_entry_id' => $entry->id,
+        'sponsored_entry_id' => $pendingEntry->id,
         'status' => SponsorshipOrderStatus::Pending,
         'payment_link_url' => 'https://checkout.example/pay/1',
         'expires_at' => now()->addHour(),
@@ -130,16 +131,52 @@ test('index merges own sponsor orders, newest first, paid ones read approved and
     $this->actingAs($user)->get('/usulan')->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->has('submissions', 3)
-            ->where('submissions.0.key', 'sponsor-'.$pending->id)
+            ->where('submissions.0.key', 'sponsor-entity-'.$pendingEntry->entity_id)
             ->where('submissions.0.status_label', 'Menunggu Pembayaran')
             ->where('submissions.0.payment_link_url', 'https://checkout.example/pay/1')
             ->where('submissions.0.entity_slug', null)
-            ->where('submissions.1.key', 'sponsor-'.$paid->id)
+            ->where('submissions.1.key', 'sponsor-entity-'.$entry->entity_id)
             ->where('submissions.1.kind', 'sponsor')
             ->where('submissions.1.status_label', 'Disetujui')
             ->where('submissions.1.entity_slug', $entry->entity->slug)
             ->where('submissions.1.amount', 25000)
             ->where('submissions.2.kind', 'submission'));
+});
+
+test('several orders for one brand collapse into a single row with the paid total', function () {
+    $user = User::factory()->create();
+    $entry = SponsoredEntry::factory()->create();
+    $other = SponsoredEntry::factory()->create();
+    SponsorshipOrder::factory()->paid()->count(3)->create(['user_id' => $user->id, 'sponsored_entry_id' => $entry->id, 'amount' => 1000]);
+    SponsorshipOrder::factory()->create(['user_id' => $user->id, 'sponsored_entry_id' => $entry->id, 'status' => SponsorshipOrderStatus::Failed, 'amount' => 9999]);
+    SponsorshipOrder::factory()->paid()->create(['user_id' => $user->id, 'sponsored_entry_id' => $other->id, 'amount' => 5000]);
+
+    $this->actingAs($user)->get('/usulan')
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('submissions', 2)
+            ->where('submissions', fn ($rows) => collect($rows)->firstWhere('name', $entry->entity->name)['amount'] === 3000
+                && collect($rows)->firstWhere('name', $entry->entity->name)['contributions'] === 3
+                && collect($rows)->firstWhere('name', $entry->entity->name)['status_label'] === 'Disetujui'));
+});
+
+test('a paid brand with a newer unpaid top-up stays approved and offers the pay link', function () {
+    $user = User::factory()->create();
+    $entry = SponsoredEntry::factory()->create();
+    SponsorshipOrder::factory()->paid()->create(['user_id' => $user->id, 'sponsored_entry_id' => $entry->id, 'amount' => 2000, 'created_at' => now()->subDay()]);
+    SponsorshipOrder::factory()->create([
+        'user_id' => $user->id,
+        'sponsored_entry_id' => $entry->id,
+        'status' => SponsorshipOrderStatus::Pending,
+        'payment_link_url' => 'https://checkout.example/pay/topup',
+        'expires_at' => now()->addHour(),
+    ]);
+
+    $this->actingAs($user)->get('/usulan')
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('submissions', 1)
+            ->where('submissions.0.status_label', 'Disetujui')
+            ->where('submissions.0.amount', 2000)
+            ->where('submissions.0.payment_link_url', 'https://checkout.example/pay/topup'));
 });
 
 test('an expired sponsor order offers no payment link', function () {

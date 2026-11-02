@@ -39,6 +39,7 @@ defineProps<{
         entity_slug: string | null;
         created_at: string | null;
         amount?: number;
+        contributions?: number;
         period_name?: string;
         payment_link_url?: string | null;
     }[];
@@ -140,7 +141,11 @@ function onSubmitted(): void {
                         <p class="text-muted-foreground mt-0.5 text-xs">
                             {{ typeLabel[submission.entity_type] ?? submission.entity_type }}
                             <template v-if="submission.kind === 'sponsor'">
-                                · {{ formatRupiah(submission.amount ?? 0) }} · {{ submission.period_name }}
+                                · {{ formatRupiah(submission.amount ?? 0) }}
+                                <template v-if="(submission.contributions ?? 0) > 1">
+                                    ({{ submission.contributions }}× sponsor)
+                                </template>
+                                · {{ submission.period_name }}
                             </template>
                             · {{ formatDate(submission.created_at) }}
                         </p>

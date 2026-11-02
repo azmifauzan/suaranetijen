@@ -14,6 +14,7 @@ use App\Domains\Sponsorships\Enums\SponsorshipOrderStatus;
 use App\Domains\Sponsorships\Models\SponsorshipOrder;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -54,36 +55,43 @@ class EntitySubmissionController extends Controller
                 ];
             });
 
+        // One row per sponsored brand: top-ups to the same brand add up instead of repeating.
         $sponsorOrders = SponsorshipOrder::query()
             ->where('user_id', $userId)
             ->with(['sponsoredEntry.entity:id,name,slug,type', 'sponsoredEntry.period:id,name'])
             ->get()
-            ->map(function (SponsorshipOrder $order): array {
-                $entity = $order->sponsoredEntry->entity;
-                $isPaid = $order->status === SponsorshipOrderStatus::Paid;
-                $canPay = $order->status === SponsorshipOrderStatus::Pending
-                    && ($order->expires_at === null || $order->expires_at->isFuture());
+            ->groupBy(fn (SponsorshipOrder $order): int => $order->sponsoredEntry->entity_id)
+            ->map(function (Collection $orders, int $entityId): array {
+                $newest = $orders->sortByDesc('created_at')->values();
+                $paid = $newest->where('status', SponsorshipOrderStatus::Paid)->values();
+                $shown = $paid->first() ?? $newest->first();
+                $entity = $shown->sponsoredEntry->entity;
+                $payable = $newest->first(fn (SponsorshipOrder $order): bool => $order->status === SponsorshipOrderStatus::Pending
+                    && ($order->expires_at === null || $order->expires_at->isFuture()));
 
                 return [
-                    'key' => 'sponsor-'.$order->id,
+                    'key' => 'sponsor-entity-'.$entityId,
                     'kind' => 'sponsor',
                     'name' => $entity->name,
                     'entity_type' => $entity->type->value,
-                    'status' => match ($order->status) {
+                    'status' => match ($shown->status) {
                         SponsorshipOrderStatus::Paid => 'approved',
                         SponsorshipOrderStatus::Pending => 'pending',
                         default => 'rejected',
                     },
-                    'status_label' => $isPaid ? 'Disetujui' : $order->status->label(),
+                    // A brand with any confirmed payment is live; otherwise show its newest order.
+                    'status_label' => $paid->isNotEmpty() ? 'Disetujui' : $shown->status->label(),
                     'review_note' => null,
                     // An unpaid order's new entity is still disabled and 404s publicly.
-                    'entity_slug' => $isPaid ? $entity->slug : null,
-                    'amount' => $order->amount,
-                    'period_name' => $order->sponsoredEntry->period->name,
-                    'payment_link_url' => $canPay ? $order->payment_link_url : null,
-                    'created_at' => $order->created_at,
+                    'entity_slug' => $paid->isNotEmpty() ? $entity->slug : null,
+                    'amount' => $paid->isNotEmpty() ? (int) $paid->sum('amount') : $shown->amount,
+                    'contributions' => $paid->count(),
+                    'period_name' => $shown->sponsoredEntry->period->name,
+                    'payment_link_url' => $payable?->payment_link_url,
+                    'created_at' => $newest->first()->created_at,
                 ];
-            });
+            })
+            ->values();
 
         $items = $submissions->concat($sponsorOrders)
             ->sortByDesc('created_at')
