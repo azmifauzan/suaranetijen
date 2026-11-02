@@ -103,6 +103,66 @@ it('wraps an exhausted SerayaMotor forum back to page 1 instead of paginating fo
         ->and($batch->nextCursor->metadata['page'])->toBe(1);
 });
 
+it('rotates past the last SerayaMotor page, which phpBB repeats for any start beyond it', function () {
+    $lastPage = str_replace('</body>', '<span class="sr-only">Page <strong>65</strong> of <strong>65</strong></span></body>', sourceFixture('serayamotor', 'listing.html'));
+    Http::preventStrayRequests();
+    Http::fake(function (Request $request) use ($lastPage) {
+        expect($request->url())->toBe('https://www.serayamotor.com/diskusi/viewforum.php?f=64&start=30600');
+
+        return Http::response($lastPage);
+    });
+
+    $adapter = new SerayaMotorAdapter;
+    $batch = $adapter->discover(new CrawlCursor('serayamotor', metadata: ['forum_index' => 1, 'page' => 613]));
+
+    expect($batch->documents)->toHaveCount(2)
+        ->and($batch->nextCursor->metadata['forum_index'])->toBe(2)
+        ->and($batch->nextCursor->metadata['page'])->toBe(1)
+        ->and($batch->nextCursor->cursorValue)->toBe('forum_63_page_1');
+});
+
+it('keeps paginating a SerayaMotor forum while phpBB reports more pages', function () {
+    $middlePage = str_replace('</body>', '<span class="sr-only">Page <strong>3</strong> of <strong>65</strong></span></body>', sourceFixture('serayamotor', 'listing.html'));
+    Http::preventStrayRequests();
+    Http::fake(fn () => Http::response($middlePage));
+
+    $batch = (new SerayaMotorAdapter)->discover(new CrawlCursor('serayamotor', metadata: ['forum_index' => 1, 'page' => 3]));
+
+    expect($batch->nextCursor->metadata['forum_index'])->toBe(1)
+        ->and($batch->nextCursor->metadata['page'])->toBe(4);
+});
+
+it('retries an IndoForum page once when the botguard challenge answers first', function () {
+    $challenge = '<html><head><title>Validating browser…</title></head><body><script src="/js/zee/botguard/check.js"></script></body></html>';
+    $requests = 0;
+    Http::preventStrayRequests();
+    Http::fake(function () use (&$requests, $challenge) {
+        return ++$requests === 1 ? Http::response($challenge) : Http::response(sourceFixture('indoforum', 'listing.html'));
+    });
+
+    $batch = (new IndoForumAdapter)->discover(new CrawlCursor('indoforum', metadata: ['forum_ids' => [139]]));
+
+    expect($batch->documents)->not->toBe([])
+        ->and($requests)->toBe(2);
+});
+
+it('gives up on an IndoForum page after one retry when the challenge persists', function () {
+    $challenge = '<html><head><title>Validating browser…</title></head><body></body></html>';
+    $requests = 0;
+    Http::preventStrayRequests();
+    Http::fake(function () use (&$requests, $challenge) {
+        $requests++;
+
+        return Http::response($challenge);
+    });
+
+    $batch = (new IndoForumAdapter)->discover(new CrawlCursor('indoforum', metadata: ['forum_ids' => [139, 107]]));
+
+    expect($batch->documents)->toBe([])
+        ->and($requests)->toBe(2)
+        ->and($batch->nextCursor->metadata['forum_index'])->toBe(1);
+});
+
 it('runs the allowlisted IndoForum adapter without discovering other forum ids', function () {
     Http::preventStrayRequests();
     Http::fake(function (Request $request) {

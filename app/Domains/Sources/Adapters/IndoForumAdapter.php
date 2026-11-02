@@ -6,6 +6,7 @@ use App\Domains\Sources\Contracts\CrawlCursor;
 use App\Domains\Sources\Contracts\DiscoveryBatch;
 use App\Domains\Sources\Contracts\FetchedDocument;
 use App\Domains\Sources\Contracts\SourceDocumentRef;
+use Illuminate\Http\Client\Response;
 
 class IndoForumAdapter extends AbstractHttpSourceAdapter
 {
@@ -27,6 +28,25 @@ class IndoForumAdapter extends AbstractHttpSourceAdapter
     protected function usesChallengeSolver(): bool
     {
         return true;
+    }
+
+    /**
+     * forum.or.id's own botguard (not Cloudflare, so FlareSolverr does not wait for it) answers
+     * the first visit of a browser session with a "Validating browser…" page and stores its
+     * pass in that session; the next request gets the real page. Measured 2 Nov 2026: challenge
+     * on request 1, real listing on requests 2-4 of one session. Sessions rotate every 15 minutes
+     * and discovery runs every 30, so nearly every cycle met a fresh session and found nothing.
+     * Retry once; a second challenge is returned as is and yields no documents.
+     *
+     * @param  array<string, mixed>  $query
+     */
+    protected function request(string $url, array $query = [], ?int $maxTimeoutMs = null): Response
+    {
+        $response = parent::request($url, $query, $maxTimeoutMs);
+
+        return str_contains($response->body(), '<title>Validating browser')
+            ? parent::request($url, $query, $maxTimeoutMs)
+            : $response;
     }
 
     public function discover(CrawlCursor $cursor): DiscoveryBatch

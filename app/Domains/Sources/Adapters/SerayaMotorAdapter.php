@@ -39,10 +39,13 @@ class SerayaMotorAdapter extends AbstractHttpSourceAdapter
 
         // An empty page means this forum is exhausted at this cursor position
         // (or currently unparseable) — move to the next configured forum
-        // rather than paginating the same one forever.
+        // rather than paginating the same one forever. phpBB never returns an
+        // empty page past the end: any start beyond the last page renders the
+        // last page again, so its own "Page X of Y" marks the end too (the
+        // cursor sat on forum 64 page 613 of 65 for weeks, Nov 2026).
         $nextForumIndex = $forumIndex;
         $nextPage = $page + 1;
-        if ($documents === []) {
+        if ($documents === [] || $this->isLastPhpbbPage($response->body())) {
             $nextForumIndex = ($forumIndex + 1) % $forumCount;
             $nextPage = 1;
         }
@@ -64,6 +67,15 @@ class SerayaMotorAdapter extends AbstractHttpSourceAdapter
             ),
             hasMore: $documents !== []
         );
+    }
+
+    private function isLastPhpbbPage(string $html): bool
+    {
+        if (preg_match('~Page <strong>(\d+)</strong> of <strong>(\d+)</strong>~i', $html, $match) !== 1) {
+            return false;
+        }
+
+        return (int) $match[1] >= (int) $match[2];
     }
 
     public function fetch(SourceDocumentRef $ref): FetchedDocument
