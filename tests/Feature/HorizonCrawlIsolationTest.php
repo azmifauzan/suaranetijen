@@ -21,7 +21,7 @@ it('omits crawl on an isolated light node while retaining its other supervisors'
 
     $provisioned = [];
     $commands = Mockery::mock(HorizonCommandQueue::class);
-    $commands->shouldReceive('push')->times(5)->andReturnUsing(function ($queue, $command, $options) use (&$provisioned): void {
+    $commands->shouldReceive('push')->once()->andReturnUsing(function ($queue, $command, $options) use (&$provisioned): void {
         $provisioned[] = $options['queue'];
     });
     $this->app->instance(HorizonCommandQueue::class, $commands);
@@ -29,7 +29,23 @@ it('omits crawl on an isolated light node while retaining its other supervisors'
 
     $plan->deploy('worker-light');
 
-    expect($provisioned)->toContain('analysis', 'critical,aggregate', 'crawl-youtube', 'themes', 'maintenance')
-        ->not->toContain('discovery,crawl');
+    expect($provisioned)->toBe(['critical,aggregate,analysis,crawl-youtube,themes,maintenance']);
     expect($plan->optionsFor('worker-heavy', 'supervisor-crawl')->maxProcesses)->toBeGreaterThan(0);
+});
+
+it('runs every non-crawl queue on a light node in one fixed pool, plus crawl when enabled', function () {
+    $horizon = require config_path('horizon.php');
+    $provisioned = [];
+    $commands = Mockery::mock(HorizonCommandQueue::class);
+    $commands->shouldReceive('push')->twice()->andReturnUsing(function ($queue, $command, $options) use (&$provisioned): void {
+        $provisioned[$options['queue']] = [$options['balance'], $options['minProcesses'], $options['maxProcesses']];
+    });
+    $this->app->instance(HorizonCommandQueue::class, $commands);
+
+    (new ProvisioningPlan('test-node', $horizon['environments'], $horizon['defaults']))->deploy('worker-light');
+
+    expect($provisioned)->toBe([
+        'discovery,crawl' => ['auto', 1, 1],
+        'critical,aggregate,analysis,crawl-youtube,themes,maintenance' => [false, 2, 2],
+    ]);
 });

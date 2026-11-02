@@ -370,32 +370,39 @@ return [
             ],
         ],
 
-        // worker2 and worker3 (cpus:1.5 container cap): analysis-focused —
+        // worker2 and worker3 (cpus:1.5, 768MB container cap): one fixed pool works every
+        // non-crawl queue in priority order instead of one supervisor per queue. Six
+        // supervisors with a one-process floor each ran ~14 PHP processes (~1.1GB) and
+        // OOM-killed worker2 (2 Nov 2026). balance=false makes min=max the exact worker
+        // count; the heavy node keeps per-queue autoscaling. timeout is the largest of the
+        // merged queues' supervisor timeouts (critical/themes 150), under retry_after 180.
         // Disable shared discovery/crawl on a node whose renderer is unstable
         // with HORIZON_LIGHT_CRAWL_MAX_PROCESSES=0; other light nodes retain it.
         'worker-light' => [
-            'supervisor-critical' => [
-                'minProcesses' => 1,
-                'maxProcesses' => 1,
+            'supervisor-light' => [
+                'connection' => 'redis',
+                'queue' => ['critical', 'aggregate', 'analysis', 'crawl-youtube', 'themes', 'maintenance'],
+                'balance' => false,
+                'minProcesses' => (int) env('HORIZON_LIGHT_PROCESSES', 2),
+                'maxProcesses' => (int) env('HORIZON_LIGHT_PROCESSES', 2),
+                'maxTime' => 0,
+                'maxJobs' => 0,
+                'memory' => 128,
+                'tries' => 1,
+                'timeout' => 150,
+                'nice' => 0,
             ],
             'supervisor-crawl' => [
                 'minProcesses' => 1,
                 'maxProcesses' => (int) env('HORIZON_LIGHT_CRAWL_MAX_PROCESSES', 1),
             ],
-            'supervisor-crawl-youtube' => [
-                'minProcesses' => 1,
-                'maxProcesses' => 1,
-            ],
-            'supervisor-analysis' => [
-                'maxProcesses' => 1,
-            ],
-            'supervisor-themes' => [
-                'maxProcesses' => 1,
-            ],
-            'supervisor-maintenance' => [
-                'minProcesses' => 1,
-                'maxProcesses' => 1,
-            ],
+            // Defaults are merged into every environment; maxProcesses=0 keeps the
+            // per-queue supervisors that supervisor-light replaces from being provisioned.
+            'supervisor-critical' => ['minProcesses' => 1, 'maxProcesses' => 0],
+            'supervisor-analysis' => ['minProcesses' => 1, 'maxProcesses' => 0],
+            'supervisor-crawl-youtube' => ['minProcesses' => 1, 'maxProcesses' => 0],
+            'supervisor-themes' => ['minProcesses' => 1, 'maxProcesses' => 0],
+            'supervisor-maintenance' => ['minProcesses' => 1, 'maxProcesses' => 0],
         ],
 
         'local' => [
