@@ -30,3 +30,5 @@ yarn-error.log
 opencode.json
 /.claude/autoharness
 /docs/marketing/
+/.hallmark/
+/.playwright-mcp/
