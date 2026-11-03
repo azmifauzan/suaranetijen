@@ -2,7 +2,10 @@
 
 namespace App\Domains\Entities\Services;
 
+use App\Domains\Entities\Enums\EntityType;
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Sentiment\Enums\Period;
+use App\Domains\Themes\Services\PublicCopyGuard;
 
 class EntitySeoService
 {
@@ -25,7 +28,8 @@ class EntitySeoService
         Entity $entity,
         array $sentiment,
         array $themes = [],
-        array $rating = ['rating_count' => 0, 'rating_average' => null]
+        array $rating = ['rating_count' => 0, 'rating_average' => null],
+        ?Period $period = null
     ): array {
         $baseUrl = rtrim((string) config('app.url'), '/');
         $name = $entity->name;
@@ -37,14 +41,14 @@ class EntitySeoService
         $neuPct = $sentiment['distribution']['neutral_pct'] ?? 0;
         $negPct = $sentiment['distribution']['negative_pct'] ?? 0;
 
-        $positiveThemes = $themes['positive_themes'] ?? [];
-        $negativeThemes = $themes['negative_themes'] ?? [];
+        $positiveThemes = PublicCopyGuard::publishableThemes($themes['positive_themes'] ?? []);
+        $negativeThemes = PublicCopyGuard::publishableThemes($themes['negative_themes'] ?? []);
 
         // 1. Title generation (target <= 60 chars)
         $title = $this->buildTitle($name, $isEligible, $opinionCount, $score);
 
         // 2. Meta description (deterministic, data-driven, max ~160 chars)
-        $metaDescription = $this->buildMetaDescription($name, $isEligible, $opinionCount, $posPct, $negPct, $positiveThemes, $negativeThemes);
+        $metaDescription = $this->buildMetaDescription($entity, $isEligible, $opinionCount, $posPct, $negPct, $positiveThemes, $negativeThemes);
 
         // 3. Subtitle intent statement
         $intentSubtitle = $isEligible
@@ -52,7 +56,7 @@ class EntitySeoService
             : 'Opini netizen dan indeks sentimen publik.';
 
         // 4. FAQ generation (3-5 questions)
-        $faq = $this->buildFaq($entity, $isEligible, $opinionCount, $score, $posPct, $neuPct, $negPct, $positiveThemes, $negativeThemes, $rating);
+        $faq = $this->buildFaq($entity, $isEligible, $opinionCount, $score, $posPct, $neuPct, $negPct, $positiveThemes, $negativeThemes, $rating, $period);
 
         // 5. Breadcrumb JSON-LD
         $breadcrumbs = [
@@ -156,13 +160,14 @@ class EntitySeoService
     }
 
     /**
-     * Build deterministic meta description from sentiment and theme data.
+     * Build deterministic meta description from sentiment and theme data. A product leads with the
+     * "masih worth it" question people search for; other types keep "Apakah X bagus?".
      *
      * @param  array<int, array{display_label: string, observation_count: int}>  $positiveThemes
      * @param  array<int, array{display_label: string, observation_count: int}>  $negativeThemes
      */
     protected function buildMetaDescription(
-        string $name,
+        Entity $entity,
         bool $isEligible,
         int $opinionCount,
         float $posPct,
@@ -170,25 +175,30 @@ class EntitySeoService
         array $positiveThemes,
         array $negativeThemes
     ): string {
+        $name = $entity->name;
+
         if (! $isEligible) {
             return "Indeks sentimen dan opini netizen untuk {$name} di SuaraNetijen.";
         }
 
         $formattedCount = number_format($opinionCount, 0, ',', '.');
-        $desc = "Apakah {$name} bagus? {$formattedCount} opini netizen: {$posPct}% positif, {$negPct}% negatif.";
+        $question = $entity->type === EntityType::Product
+            ? "{$name} masih worth it di ".now()->year.'?'
+            : "Apakah {$name} bagus?";
+        $desc = "{$question} {$formattedCount} opini netizen: ".round($posPct).'% positif, '.round($negPct).'% negatif.';
 
-        $topPos = $this->firstPublishableLabel($positiveThemes);
-        $topNeg = $this->firstPublishableLabel($negativeThemes);
+        $topPos = $positiveThemes[0]['display_label'] ?? null;
+        $topNeg = $negativeThemes[0]['display_label'] ?? null;
 
         if ($topPos !== null) {
-            $addition = " Paling sering dipuji: {$topPos}.";
+            $addition = " Kelebihan: {$topPos}.";
             if (mb_strlen($desc.$addition) <= 160) {
                 $desc .= $addition;
             }
         }
 
         if ($topNeg !== null) {
-            $addition = " Paling sering dikeluhkan: {$topNeg}.";
+            $addition = " Kekurangan: {$topNeg}.";
             if (mb_strlen($desc.$addition) <= 160) {
                 $desc .= $addition;
             }
@@ -215,42 +225,64 @@ class EntitySeoService
         float $negPct,
         array $positiveThemes,
         array $negativeThemes,
-        array $rating
+        array $rating,
+        ?Period $period
     ): array {
         $name = $entity->name;
         $faq = [];
+        $formattedCount = number_format($opinionCount, 0, ',', '.');
 
         // Q1: Apakah X bagus menurut netizen?
         $q1 = "Apakah {$name} bagus menurut netizen?";
         if ($isEligible && $score !== null) {
-            $formattedCount = number_format($opinionCount, 0, ',', '.');
             $a1 = "Berdasarkan analisis {$formattedCount} opini publik di SuaraNetijen, {$name} memiliki skor sentimen {$score}/100 dengan {$posPct}% sentimen positif, {$neuPct}% netral, dan {$negPct}% negatif.";
         } else {
             $a1 = "Saat ini SuaraNetijen belum mengumpulkan minimal 30 opini publik yang dibutuhkan untuk menghitung skor sentimen publik {$name}.";
         }
         $faq[] = ['question' => $q1, 'answer' => $a1];
 
-        // Q2: Apa keluhan paling sering tentang X?
-        $q2 = "Apa keluhan paling sering tentang {$name}?";
-        if (! empty($negativeThemes)) {
-            $items = array_slice($negativeThemes, 0, 3);
-            $labels = array_map(fn ($t) => "{$t['display_label']} ({$t['observation_count']} opini)", $items);
-            $a2 = "Keluhan netizen yang paling sering muncul tentang {$name} adalah seputar ".implode(', ', $labels).'.';
-        } else {
-            $a2 = "Belum tercatat keluhan dominan dalam agregat opini publik netizen untuk {$name} pada periode ini.";
-        }
-        $faq[] = ['question' => $q2, 'answer' => $a2];
+        // Q2 (products only): Apakah X masih worth it di {tahun}? Answers with opinion data, never a verdict on price or specs.
+        if ($entity->type === EntityType::Product && $isEligible && $score !== null) {
+            $window = match ($period) {
+                Period::ThirtyDays => 'Dalam 30 hari terakhir, ',
+                Period::NinetyDays => 'Dalam 90 hari terakhir, ',
+                Period::OneYear => 'Dalam setahun terakhir, ',
+                Period::All => 'Sejak pencatatan dimulai, ',
+                null => '',
+            };
+            $answer = "{$window}SuaraNetijen mencatat {$formattedCount} opini netizen tentang {$name}: ".round($posPct).'% positif dan '.round($negPct)."% negatif, dengan Sentimen Netijen {$score}/100.";
 
-        // Q3: Apa kelebihan X yang paling sering dipuji?
-        $q3 = "Apa kelebihan {$name} menurut netizen?";
-        if (! empty($positiveThemes)) {
-            $items = array_slice($positiveThemes, 0, 3);
-            $labels = array_map(fn ($t) => "{$t['display_label']} ({$t['observation_count']} opini)", $items);
-            $a3 = "Hal yang paling sering dipuji netizen mengenai {$name} antara lain seputar ".implode(', ', $labels).'.';
-        } else {
-            $a3 = 'Pujian spesifik belum mencapai frekuensi tema dominan pada periode ini.';
+            $topPos = $positiveThemes[0]['display_label'] ?? null;
+            $topNeg = $negativeThemes[0]['display_label'] ?? null;
+            if ($topPos !== null && $topNeg !== null) {
+                $answer .= ' Netizen paling sering memuji '.mb_lcfirst($topPos).' dan paling sering mengeluhkan '.mb_lcfirst($topNeg).'.';
+            } elseif ($topPos !== null) {
+                $answer .= ' Netizen paling sering memuji '.mb_lcfirst($topPos).'.';
+            } elseif ($topNeg !== null) {
+                $answer .= ' Netizen paling sering mengeluhkan '.mb_lcfirst($topNeg).'.';
+            }
+
+            $faq[] = [
+                'question' => "Apakah {$name} masih worth it di ".now()->year.'?',
+                'answer' => $answer.' Skor ini merangkum opini publik, bukan penilaian harga atau spesifikasi.',
+            ];
         }
-        $faq[] = ['question' => $q3, 'answer' => $a3];
+
+        // Q3: Apa kelebihan dan kekurangan X menurut netizen?
+        $describe = fn (array $themes): string => implode(', ', array_map(
+            fn (array $theme): string => mb_lcfirst($theme['display_label'])." ({$theme['observation_count']} opini)",
+            array_slice($themes, 0, 3),
+        ));
+        $answers = array_filter([
+            $positiveThemes !== [] ? "Kelebihan {$name} yang paling sering disebut netizen: {$describe($positiveThemes)}." : null,
+            $negativeThemes !== [] ? "Kekurangan yang paling sering dikeluhkan: {$describe($negativeThemes)}." : null,
+        ]);
+        $faq[] = [
+            'question' => "Apa kelebihan dan kekurangan {$name} menurut netizen?",
+            'answer' => $answers !== []
+                ? implode(' ', $answers)
+                : "Belum ada pujian atau keluhan tentang {$name} yang cukup sering muncul pada periode ini.",
+        ];
 
         // Q4: Dari mana data ini berasal?
         $faq[] = [
@@ -267,24 +299,5 @@ class EntitySeoService
         }
 
         return $faq;
-    }
-
-    /**
-     * First theme label that may appear in a meta description. Labels with a superlative
-     * ("Samsung terbaik") are skipped, not stripped: stripping leaves a meaningless fragment.
-     *
-     * @param  array<int, array{display_label: string, observation_count: int}>  $themes
-     */
-    protected function firstPublishableLabel(array $themes): ?string
-    {
-        foreach ($themes as $theme) {
-            $label = trim($theme['display_label']);
-
-            if ($label !== '' && ! preg_match('/\b(terbaik|terburuk)\b/iu', $label)) {
-                return $label;
-            }
-        }
-
-        return null;
     }
 }

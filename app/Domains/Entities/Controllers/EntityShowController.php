@@ -154,7 +154,8 @@ class EntityShowController extends Controller
             [
                 'rating_count' => $entity->ratingSnapshot ? (int) $entity->ratingSnapshot->rating_count : 0,
                 'rating_average' => $entity->ratingSnapshot?->rating_average !== null ? (float) $entity->ratingSnapshot->rating_average : null,
-            ]
+            ],
+            $activeSnapshot?->period,
         );
 
         $relatedEntities = $this->buildRelatedEntities($entity);

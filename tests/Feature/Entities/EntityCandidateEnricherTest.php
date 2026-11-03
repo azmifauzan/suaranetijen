@@ -13,6 +13,7 @@ it('enriches a candidate term and resolves the suggested category to an existing
     Http::preventStrayRequests();
     Http::fake(function (Request $request) {
         expect($request['messages'][1]['content'])->toContain('iphone 17 pro')
+            ->and($request['messages'][0]['content'])->toContain('capitalization the manufacturer uses')
             ->and($request['response_format']['type'])->toBe('json_schema');
 
         return Http::response(['choices' => [['message' => ['content' => json_encode([

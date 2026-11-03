@@ -221,10 +221,48 @@ test('entity SEO meta description skips superlative theme labels instead of stri
     );
 
     expect($seo['meta_description'])
-        ->toContain('Paling sering dipuji: Ponsel lipat bagus.')
-        ->not->toContain('terbaik')
-        ->and(mb_strlen($seo['meta_description']))->toBeLessThanOrEqual(160)
-        ->and(collect($seo['faq'])->pluck('answer')->implode(' '))->not->toContain('objektif');
+        ->toBe('Apakah Samsung bagus? 100 opini netizen: 70% positif, 25% negatif. Kelebihan: Ponsel lipat bagus.')
+        ->and(collect($seo['faq'])->pluck('question')->implode(' '))->not->toContain('worth it')
+        ->and(collect($seo['faq'])->pluck('answer')->implode(' '))->not->toContain('objektif')->not->toContain('terbaik');
+});
+
+test('product SEO answers the worth-it and kelebihan-kekurangan questions without generic theme labels', function () {
+    $this->travelTo('2026-11-03');
+    $category = Category::query()->create(['name' => 'Smartphone', 'slug' => 'smartphone', 'status' => 'active']);
+    $entity = Entity::query()->create([
+        'name' => 'Infinix GT 20 Pro',
+        'slug' => 'infinix-gt-20-pro',
+        'type' => EntityType::Product,
+        'status' => EntityStatus::Active,
+        'category_id' => $category->id,
+        'searchable' => true,
+        'rankable' => true,
+    ]);
+
+    $seo = app(EntitySeoService::class)->generate(
+        $entity->load('category'),
+        ['is_eligible' => true, 'score' => 75.0, 'opinion_count' => 60, 'distribution' => ['positive_pct' => 71.7, 'neutral_pct' => 6.6, 'negative_pct' => 21.7]],
+        [
+            'positive_themes' => [
+                ['display_label' => 'Rekomendasi beli bagus', 'observation_count' => 14],
+                ['display_label' => 'Performa gaming bagus', 'observation_count' => 9],
+            ],
+            'negative_themes' => [
+                ['display_label' => 'Kualitas biasa saja', 'observation_count' => 5],
+                ['display_label' => 'Baterai cepat habis', 'observation_count' => 4],
+            ],
+        ],
+        period: Period::OneYear,
+    );
+    $faq = collect($seo['faq'])->pluck('answer', 'question');
+
+    expect($seo['meta_description'])
+        ->toBe('Infinix GT 20 Pro masih worth it di 2026? 60 opini netizen: 72% positif, 22% negatif. Kelebihan: Performa gaming bagus. Kekurangan: Baterai cepat habis.')
+        ->and($faq['Apakah Infinix GT 20 Pro masih worth it di 2026?'])
+        ->toStartWith('Dalam setahun terakhir, SuaraNetijen mencatat 60 opini netizen')
+        ->toContain('paling sering memuji performa gaming bagus dan paling sering mengeluhkan baterai cepat habis')
+        ->and($faq['Apa kelebihan dan kekurangan Infinix GT 20 Pro menurut netizen?'])
+        ->toBe('Kelebihan Infinix GT 20 Pro yang paling sering disebut netizen: performa gaming bagus (9 opini). Kekurangan yang paling sering dikeluhkan: baterai cepat habis (4 opini).');
 });
 
 test('sitemap lastmod for an entity follows its snapshot calculation time', function () {

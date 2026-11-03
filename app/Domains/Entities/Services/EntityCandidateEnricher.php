@@ -35,7 +35,9 @@ class EntityCandidateEnricher
                         .'person or an unfamiliar name — do not invent a brand interpretation just to fill the '
                         .'other fields either. Set sold_in_indonesia to true only when you are confident the '
                         .'brand/product is officially sold or marketed in Indonesia; false when it is a '
-                        .'region-only model or you are unsure.',
+                        .'region-only model or you are unsure. Write suggested_name with the capitalization the '
+                        .'manufacturer uses (e.g. "Xiaomi 14T", "iQOO Z10R", "Samsung Galaxy S24 FE 5G"), not the '
+                        .'lowercase or title-cased form of the candidate term.',
                 ],
                 [
                     'role' => 'user',

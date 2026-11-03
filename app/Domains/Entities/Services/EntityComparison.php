@@ -4,6 +4,7 @@ namespace App\Domains\Entities\Services;
 
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
+use App\Domains\Themes\Services\PublicCopyGuard;
 use App\Domains\Themes\Services\TopThemesService;
 use Illuminate\Support\Str;
 
@@ -222,8 +223,8 @@ class EntityComparison
                 'neutral_pct' => round((int) $snapshot->neutral_count / $total * 100, 1),
                 'negative_pct' => round((int) $snapshot->negative_count / $total * 100, 1),
             ],
-            'positive_themes' => array_slice($themes['positive_themes'], 0, 3),
-            'negative_themes' => array_slice($themes['negative_themes'], 0, 3),
+            'positive_themes' => array_slice(PublicCopyGuard::publishableThemes($themes['positive_themes']), 0, 3),
+            'negative_themes' => array_slice(PublicCopyGuard::publishableThemes($themes['negative_themes']), 0, 3),
         ];
     }
 
