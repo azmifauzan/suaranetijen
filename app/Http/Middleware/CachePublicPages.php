@@ -68,7 +68,11 @@ class CachePublicPages
         }
 
         if (is_array($hit)) {
-            return response($hit['content'], 200, $hit['headers'])->header('X-Page-Cache', 'HIT');
+            // A hit carries no cookie and no per-user data, so the Cloudflare edge may keep it too. Its cache rule
+            // must bypass any request with a cookie or an X-Inertia header, since the edge ignores Vary.
+            return response($hit['content'], 200, $hit['headers'])
+                ->header('Cache-Control', 'public, max-age=0, s-maxage='.self::TTL_SECONDS)
+                ->header('X-Page-Cache', 'HIT');
         }
 
         $response = $next($request);

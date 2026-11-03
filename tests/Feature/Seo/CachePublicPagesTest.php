@@ -60,6 +60,18 @@ it('serves the second cookie-less request from the cache without a cookie or a q
     expect($second->getContent())->toBe($first->getContent())->and($queries)->toBe(0);
 });
 
+it('lets the edge cache only a cached hit, never the miss that sets the session cookie', function () {
+    $miss = $this->get('/methodology');
+    expect($miss->headers->get('Cache-Control'))->toContain('private')->not->toContain('s-maxage');
+
+    $hit = $this->get('/methodology');
+    $hit->assertHeader('X-Page-Cache', 'HIT');
+    expect($hit->headers->get('Cache-Control'))->toContain('public')->toContain('s-maxage=300')->toContain('max-age=0');
+
+    $withCookie = $this->withUnencryptedCookie('appearance', 'dark')->get('/methodology');
+    expect($withCookie->headers->get('Cache-Control'))->not->toContain('public');
+});
+
 it('never caches or serves a request that carries a cookie', function () {
     $this->get('/methodology')->assertHeader('X-Page-Cache', 'MISS');
 
