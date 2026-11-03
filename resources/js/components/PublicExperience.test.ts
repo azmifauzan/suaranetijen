@@ -119,7 +119,38 @@ it('connects category discovery and real entity summaries to their detail pages'
     expect(html).not.toContain('Baru diperbarui');
     expect(html).toContain('href="/search?q=IndiHome"');
     expect(html.indexOf('id="topics-heading"')).toBeGreaterThan(-1);
-    expect(html.indexOf('id="topics-heading"')).toBeLessThan(html.indexOf('id="categories-heading"'));
+    expect(html.indexOf('id="topics-heading"')).toBeLessThan(
+        html.indexOf('id="categories-heading"'),
+    );
+});
+
+it('lists every sponsor rank in one board, keeping spotlight and table placements', async () => {
+    const entry = (rank: number) => ({
+        id: rank,
+        rank,
+        name: `Sponsor ${rank}`,
+        slug: `sponsor-${rank}`,
+        category_name: 'Internet',
+        website_url: `https://sponsor${rank}.example`,
+        settled_total_amount: 1000 * (11 - rank),
+    });
+    const html = await renderToString(
+        createSSRApp(Welcome, {
+            sponsorTeaser: {
+                period_key: 'all',
+                period_name: 'Semua Waktu',
+                total_settled_amount: 0,
+                is_empty: false,
+                top_entries: [1, 3, 4].map(entry),
+            },
+        }),
+    );
+
+    expect(html).toContain('Rebut #1');
+    expect(html).toContain('Rebut #4');
+    expect(html).toContain('utm_content=homepage_spotlight');
+    expect(html).toContain('utm_content=homepage_table');
+    expect(html).not.toContain('Papan Sponsor periode ini masih kosong');
 });
 
 it.each([

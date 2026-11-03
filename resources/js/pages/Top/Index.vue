@@ -108,7 +108,8 @@ const itemListJsonLd = computed(() => ({
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: 'Ranking Sentimen Netijen Tertinggi',
-    description: 'Daftar entitas di semua kategori yang diurutkan berdasarkan agregat opini publik netizen (minimal 100 opini dianalisis).',
+    description:
+        'Daftar entitas di semua kategori yang diurutkan berdasarkan agregat opini publik netizen (minimal 100 opini dianalisis).',
     itemListElement: props.rankings.map((item) => ({
         '@type': 'ListItem',
         position: item.rank,
@@ -178,18 +179,23 @@ function loadMore() {
 
             <!-- Page Title -->
             <div class="mb-6">
-                <h1 class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl">
+                <h1
+                    class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl"
+                >
                     Sentimen Netijen Tertinggi
                 </h1>
                 <p class="mt-2 text-sm text-neutral-600">
-                    Ranking semua kategori berdasarkan agregat opini publik dari netizen (minimal 100
-                    opini dianalisis).
+                    Ranking semua kategori berdasarkan agregat opini publik dari
+                    netizen (minimal 100 opini dianalisis).
                 </p>
             </div>
 
             <!-- Sponsor Teaser Box -->
             <div class="mb-6">
-                <SponsorTeaserBox :teaser="sponsorTeaser" label="Papan Sponsor" />
+                <SponsorTeaserBox
+                    :teaser="sponsorTeaser"
+                    label="Papan Sponsor"
+                />
             </div>
 
             <!-- Controls: Category Pills & Period Selector -->
@@ -198,7 +204,9 @@ function loadMore() {
             >
                 <!-- Category Pills -->
                 <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-xs font-semibold text-neutral-500">Kategori:</span>
+                    <span class="text-xs font-semibold text-neutral-500"
+                        >Kategori:</span
+                    >
                     <span
                         class="inline-flex min-h-11 items-center rounded-full bg-emerald-600 px-3 py-2.5 text-xs font-semibold text-white"
                     >
@@ -223,8 +231,10 @@ function loadMore() {
                         :aria-pressed="period === p.key"
                         class="min-h-11 rounded-md px-3 py-2.5 text-xs font-medium transition-colors"
                         :class="{
-                            'bg-white text-neutral-900 shadow-sm': period === p.key,
-                            'text-neutral-600 hover:text-neutral-900': period !== p.key,
+                            'bg-white text-neutral-900 shadow-sm':
+                                period === p.key,
+                            'text-neutral-600 hover:text-neutral-900':
+                                period !== p.key,
                         }"
                         @click="switchPeriod(p.key)"
                     >
@@ -242,6 +252,7 @@ function loadMore() {
                     class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100"
                 >
                     <svg
+                        aria-hidden="true"
                         class="h-6 w-6 text-neutral-400"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -259,8 +270,8 @@ function loadMore() {
                     Belum Ada Ranking
                 </h3>
                 <p class="mt-1 text-sm text-neutral-500">
-                    Belum ada entitas yang memenuhi batas minimal 100 opini netizen untuk
-                    ranking publik.
+                    Belum ada entitas yang memenuhi batas minimal 100 opini
+                    netizen untuk ranking publik.
                 </p>
             </div>
 
@@ -272,14 +283,20 @@ function loadMore() {
                     class="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:border-emerald-500/50 sm:flex-row sm:items-center sm:justify-between sm:p-5"
                 >
                     <!-- Left: Rank & Entity Details -->
-                    <div class="flex items-start gap-3 sm:items-center sm:gap-4">
+                    <div
+                        class="flex items-start gap-3 sm:items-center sm:gap-4"
+                    >
                         <div
                             class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-black"
                             :class="{
-                                'bg-amber-400/20 text-amber-800': item.rank === 1,
-                                'bg-neutral-300/40 text-neutral-600': item.rank === 2,
-                                'bg-amber-700/20 text-amber-800': item.rank === 3,
-                                'bg-neutral-100 text-neutral-500': item.rank > 3,
+                                'bg-amber-400/20 text-amber-800':
+                                    item.rank === 1,
+                                'bg-neutral-300/40 text-neutral-600':
+                                    item.rank === 2,
+                                'bg-amber-700/20 text-amber-800':
+                                    item.rank === 3,
+                                'bg-neutral-100 text-neutral-500':
+                                    item.rank > 3,
                             }"
                         >
                             {{ item.rank }}
@@ -294,7 +311,7 @@ function loadMore() {
                                     {{ item.entity.name }}
                                 </Link>
                                 <span
-                                    class="rounded bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-600 uppercase"
+                                    class="rounded bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-600"
                                 >
                                     {{ item.entity.type_label }}
                                 </span>
@@ -307,7 +324,8 @@ function loadMore() {
                                 </Link>
                             </div>
                             <div class="mt-1 text-xs text-neutral-500">
-                                {{ item.opinion_count.toLocaleString() }} opini dianalisis
+                                {{ item.opinion_count.toLocaleString() }} opini
+                                dianalisis
                             </div>
                         </div>
                     </div>
@@ -318,23 +336,39 @@ function loadMore() {
                     >
                         <!-- Distribution Bar -->
                         <div class="w-36">
-                            <div class="flex h-2 overflow-hidden rounded-full bg-neutral-100">
+                            <div
+                                class="flex h-2 overflow-hidden rounded-full bg-neutral-100"
+                            >
                                 <div
                                     class="bg-emerald-500"
-                                    :style="{ width: `${item.distribution.positive_pct}%` }"
+                                    :style="{
+                                        width: `${item.distribution.positive_pct}%`,
+                                    }"
                                 />
                                 <div
                                     class="bg-neutral-400"
-                                    :style="{ width: `${item.distribution.neutral_pct}%` }"
+                                    :style="{
+                                        width: `${item.distribution.neutral_pct}%`,
+                                    }"
                                 />
                                 <div
                                     class="bg-rose-500"
-                                    :style="{ width: `${item.distribution.negative_pct}%` }"
+                                    :style="{
+                                        width: `${item.distribution.negative_pct}%`,
+                                    }"
                                 />
                             </div>
-                            <div class="mt-1 flex justify-between text-[10px] text-neutral-400">
-                                <span>{{ item.distribution.positive_pct }}% pos</span>
-                                <span>{{ item.distribution.negative_pct }}% neg</span>
+                            <div
+                                class="mt-1 flex justify-between text-[10px] text-neutral-400"
+                            >
+                                <span
+                                    >{{ item.distribution.positive_pct }}%
+                                    pos</span
+                                >
+                                <span
+                                    >{{ item.distribution.negative_pct }}%
+                                    neg</span
+                                >
                             </div>
                         </div>
 
@@ -343,18 +377,23 @@ function loadMore() {
                             <div
                                 class="inline-flex items-center rounded-lg px-3 py-1.5 text-lg font-black"
                                 :class="{
-                                    'bg-emerald-100 text-emerald-800': item.score >= 70,
+                                    'bg-emerald-100 text-emerald-800':
+                                        item.score >= 70,
                                     'bg-amber-100 text-amber-800':
                                         item.score >= 50 && item.score < 70,
-                                    'bg-rose-100 text-rose-800': item.score < 50,
+                                    'bg-rose-100 text-rose-800':
+                                        item.score < 50,
                                 }"
                             >
                                 {{ item.score }}
-                                <span class="ml-1 text-[11px] font-normal text-neutral-500"
+                                <span
+                                    class="ml-1 text-[11px] font-normal text-neutral-500"
                                     >/100</span
                                 >
                             </div>
-                            <span class="mt-0.5 text-[10px] text-neutral-400">Sentimen Netijen</span>
+                            <span class="mt-0.5 text-[10px] text-neutral-400"
+                                >Sentimen Netijen</span
+                            >
                         </div>
                     </div>
                 </div>
@@ -365,9 +404,17 @@ function loadMore() {
                         :disabled="loadingMore"
                         @click="loadMore"
                     >
-                        {{ loadingMore ? 'Memuat ranking...' : 'Muat lebih banyak' }}
+                        {{
+                            loadingMore
+                                ? 'Memuat ranking...'
+                                : 'Muat lebih banyak'
+                        }}
                     </button>
-                    <p v-if="loadMoreFailed" class="mt-2 text-xs text-rose-700" role="alert">
+                    <p
+                        v-if="loadMoreFailed"
+                        class="mt-2 text-xs text-rose-700"
+                        role="alert"
+                    >
                         Gagal memuat ranking berikutnya. Coba tekan lagi.
                     </p>
                 </div>

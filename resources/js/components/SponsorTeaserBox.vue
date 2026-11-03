@@ -78,7 +78,7 @@ const isEmpty = computed(() => {
                 :href="leaderboardPage.url()"
                 class="inline-flex min-h-11 items-center text-[11px] font-medium text-amber-800 hover:underline"
             >
-                Lihat papan &amp; pasang sponsor →
+                Lihat papan &amp; pasang sponsor
             </Link>
         </div>
 
@@ -90,7 +90,7 @@ const isEmpty = computed(() => {
 
         <!-- Empty invite -->
         <div v-if="isEmpty" class="py-3 text-center">
-            <p class="text-xs text-amber-800">Papan Sponsor masih kosong —</p>
+            <p class="text-xs text-amber-800">Papan Sponsor masih kosong.</p>
             <Link
                 :href="leaderboardPage.url()"
                 class="mt-1 inline-flex min-h-11 items-center text-xs font-semibold text-amber-800 hover:underline"
@@ -131,15 +131,9 @@ const isEmpty = computed(() => {
                             >
                             <span
                                 v-if="entry.rank <= 3"
-                                class="flex-shrink-0 text-[10px]"
+                                class="bg-paid-soft text-paid flex-shrink-0 rounded px-1.5 text-[10px] font-bold"
                                 :title="`#${entry.rank} Papan Sponsor`"
-                                >{{
-                                    entry.rank === 1
-                                        ? '🥇'
-                                        : entry.rank === 2
-                                          ? '🥈'
-                                          : '🥉'
-                                }}</span
+                                >#{{ entry.rank }}</span
                             >
                         </div>
                         <div class="mt-0.5 flex items-center gap-1.5">

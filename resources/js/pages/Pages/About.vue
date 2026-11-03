@@ -35,8 +35,8 @@ import PublicSeo from '@/components/PublicSeo.vue';
                     <p>
                         SuaraNetijen mengolah opini publik tentang brand,
                         produk, dan layanan di Indonesia. Halaman entitas
-                        menampilkan skor sentimen, tema yang sering muncul,
-                        dan rating pengguna secara terpisah.
+                        menampilkan skor sentimen, tema yang sering muncul, dan
+                        rating pengguna secara terpisah.
                     </p>
                     <p>
                         Model mengelompokkan opini relevan sebagai positif,
@@ -73,11 +73,11 @@ import PublicSeo from '@/components/PublicSeo.vue';
                     <p>
                         Yang kami nilai adalah entitas: brand, produk, layanan,
                         atau tokoh publik. Brand dan produknya punya halaman
-                        sendiri-sendiri. Opini yang menyebut nama brand
-                        dihitung untuk brand itu, sedangkan opini yang
-                        menyebut produk atau layanan tertentu dihitung untuk
-                        produk atau layanan tersebut. Opini tentang brand tidak
-                        otomatis menurun ke produk atau layanannya.
+                        sendiri-sendiri. Opini yang menyebut nama brand dihitung
+                        untuk brand itu, sedangkan opini yang menyebut produk
+                        atau layanan tertentu dihitung untuk produk atau layanan
+                        tersebut. Opini tentang brand tidak otomatis menurun ke
+                        produk atau layanannya.
                     </p>
 
                     <h2 class="pt-4 text-xl font-bold text-neutral-900">
@@ -85,9 +85,9 @@ import PublicSeo from '@/components/PublicSeo.vue';
                     </h2>
                     <p>
                         Crawler kami membaca forum komunitas, kolom komentar
-                        YouTube, situs keluhan konsumen, dan artikel media
-                        yang terbuka untuk umum. Daftar lengkapnya, beserta
-                        status tiap sumber, ada di halaman
+                        YouTube, situs keluhan konsumen, dan artikel media yang
+                        terbuka untuk umum. Daftar lengkapnya, beserta status
+                        tiap sumber, ada di halaman
                         <Link
                             :href="sources()"
                             class="font-semibold text-emerald-700 hover:underline"
@@ -104,13 +104,13 @@ import PublicSeo from '@/components/PublicSeo.vue';
                         Kapan Skor Ditampilkan
                     </h2>
                     <p>
-                        Skor Sentimen Netijen baru tampil setelah sebuah
-                        entitas punya minimal 30 opini relevan, dan entitas
-                        baru masuk ranking kategori setelah punya minimal 100
-                        opini. Di bawah angka itu, sampelnya terlalu kecil
-                        untuk ditarik kesimpulan. Periode bawaan adalah 365
-                        hari terakhir, dan kamu bisa memilih 30 hari, 90 hari,
-                        atau semua waktu. Rumus lengkapnya ada di halaman
+                        Skor Sentimen Netijen baru tampil setelah sebuah entitas
+                        punya minimal 30 opini relevan, dan entitas baru masuk
+                        ranking kategori setelah punya minimal 100 opini. Di
+                        bawah angka itu, sampelnya terlalu kecil untuk ditarik
+                        kesimpulan. Periode bawaan adalah 365 hari terakhir, dan
+                        kamu bisa memilih 30 hari, 90 hari, atau semua waktu.
+                        Rumus lengkapnya ada di halaman
                         <Link
                             :href="methodology()"
                             class="font-semibold text-emerald-700 hover:underline"

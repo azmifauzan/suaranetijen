@@ -39,10 +39,12 @@ defineProps<{
             </nav>
 
             <!-- Hero Section -->
-            <div class="mb-10 rounded-2xl border border-[#e5e9e2] bg-white p-6 sm:p-8 shadow-xs">
+            <div
+                class="border-line mb-10 rounded-2xl border bg-white p-6 shadow-xs sm:p-8"
+            >
                 <div class="mb-3 flex items-center gap-2">
                     <span
-                        class="inline-flex items-center gap-1.5 rounded-full bg-[#edf8f0] px-3 py-1 text-xs font-semibold text-[#185b3b]"
+                        class="bg-sage text-brand-deep inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
                     >
                         <Compass class="size-3.5" />
                         Eksplorasi Topik
@@ -53,13 +55,17 @@ defineProps<{
                 </div>
 
                 <h1
-                    class="text-2xl font-bold tracking-tight text-[#18392d] sm:text-3xl lg:text-4xl"
+                    class="text-ink text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl"
                 >
                     Topik Pembahasan Populer Netizen
                 </h1>
 
-                <p class="mt-3 max-w-2xl text-sm leading-relaxed text-[#4a554e] sm:text-base">
-                    Temukan rangkuman pilihan dan peringkat entitas berdasarkan suara netizen di berbagai kategori dan tema kebutuhan harian.
+                <p
+                    class="text-ink-muted mt-3 max-w-2xl text-sm leading-relaxed sm:text-base"
+                >
+                    Temukan rangkuman pilihan dan peringkat entitas berdasarkan
+                    suara netizen di berbagai kategori dan tema kebutuhan
+                    harian.
                 </p>
             </div>
 
@@ -78,31 +84,41 @@ defineProps<{
                     :key="categoryGroup"
                     class="space-y-4"
                 >
-                    <div class="flex items-center gap-2 border-b border-[#e5e9e2] pb-2">
-                        <Hash class="size-4 text-[#185b3b]" />
-                        <h2 class="text-lg font-bold text-[#18392d]">
+                    <div
+                        class="border-line flex items-center gap-2 border-b pb-2"
+                    >
+                        <Hash class="text-brand-deep size-4" />
+                        <h2 class="text-ink text-lg font-bold">
                             {{ categoryGroup }}
                         </h2>
-                        <span class="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500">
+                        <span
+                            class="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500"
+                        >
                             {{ topics.length }}
                         </span>
                     </div>
 
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+                    <div
+                        class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3"
+                    >
                         <Link
                             v-for="topic in topics"
                             :key="topic.id"
                             :href="showTopic.url(topic.slug)"
-                            class="group block rounded-xl border border-[#e5e9e2] bg-white p-5 transition hover:border-[#185b3b]/40 hover:shadow-xs"
+                            class="group border-line hover:border-brand-deep/40 block rounded-xl border bg-white p-5 transition hover:shadow-xs"
                         >
-                            <span class="text-xs font-semibold text-[#185b3b]">
+                            <span class="text-brand-deep text-xs font-semibold">
                                 {{ topic.category_name }}
                             </span>
-                            <h3 class="mt-1 font-bold text-[#18392d] group-hover:text-[#087f5b] group-hover:underline">
+                            <h3
+                                class="text-ink group-hover:text-brand mt-1 font-bold group-hover:underline"
+                            >
                                 {{ topic.title }}
                             </h3>
-                            <div class="mt-3 flex items-center text-xs font-semibold text-[#087f5b]">
-                                Telusuri topik →
+                            <div
+                                class="text-brand mt-3 flex items-center text-xs font-semibold"
+                            >
+                                Telusuri topik
                             </div>
                         </Link>
                     </div>

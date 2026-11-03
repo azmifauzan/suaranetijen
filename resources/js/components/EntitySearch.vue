@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import { onClickOutside, useDebounceFn } from '@vueuse/core';
-import { ArrowUpRight, LoaderCircle, Search } from '@lucide/vue';
+import { LoaderCircle, Search } from '@lucide/vue';
 import { onBeforeUnmount, ref, useId, watch } from 'vue';
 import { search as searchApi } from '@/routes/api';
 import { show as showEntity } from '@/routes/entities';
@@ -117,11 +117,11 @@ function matchedTheme(item: Suggestion): string | null {
     >
         <form
             role="search"
-            class="flex min-h-18 items-center gap-2 rounded-2xl border border-[#c7d9ca] bg-white p-2 shadow-[0_8px_30px_-12px_#54886b50] focus-within:border-[#087f5b] focus-within:ring-4 focus-within:ring-[#087f5b]/10 sm:p-2.5"
+            class="border-line-strong focus-within:border-brand focus-within:ring-brand/10 flex min-h-18 items-center gap-2 rounded-2xl border bg-white p-2 focus-within:ring-4 sm:p-2.5"
             @submit.prevent="submit"
         >
             <Search
-                class="ml-2 size-5 shrink-0 text-[#5d6e61] sm:ml-3 sm:size-6"
+                class="text-ink-muted ml-2 size-5 shrink-0 sm:ml-3 sm:size-6"
                 aria-hidden="true"
             />
             <label :for="inputId" class="sr-only"
@@ -139,8 +139,8 @@ function matchedTheme(item: Suggestion): string | null {
                 :aria-activedescendant="
                     activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined
                 "
-                placeholder="Cari brand, produk, atau layanan..."
-                class="h-12 w-full min-w-0 bg-transparent px-1 text-sm text-[#18392d] outline-none placeholder:text-neutral-500 sm:px-2 sm:text-base"
+                placeholder="Cari brand, produk, atau layanan…"
+                class="text-ink h-12 w-full min-w-0 bg-transparent px-1 text-sm outline-none placeholder:text-neutral-500 sm:px-2 sm:text-base"
                 @focus="updateSuggestions"
                 @keydown.down.prevent="moveSelection(1)"
                 @keydown.up.prevent="moveSelection(-1)"
@@ -148,33 +148,36 @@ function matchedTheme(item: Suggestion): string | null {
             />
             <button
                 type="submit"
-                class="flex h-12 shrink-0 items-center gap-2 rounded-xl bg-[#087f5b] px-5 text-sm font-bold text-white transition hover:bg-[#066446] sm:px-7"
+                class="bg-brand hover:bg-brand-strong flex h-12 shrink-0 items-center gap-2 rounded-xl px-5 text-sm font-bold text-white transition sm:px-7"
             >
                 <span>Cari</span><Search class="hidden size-4 sm:block" />
             </button>
         </form>
         <div
             v-if="open"
-            class="absolute inset-x-0 top-full z-30 mt-2 rounded-2xl border border-[#dce5dc] bg-white p-2 shadow-xl"
+            class="border-line absolute inset-x-0 top-full z-30 mt-2 rounded-2xl border bg-white p-2 shadow-lg"
         >
             <p
                 v-if="loading"
                 role="status"
-                class="flex items-center gap-2 p-4 text-sm text-[#5d6e61]"
+                class="text-ink-muted flex items-center gap-2 p-4 text-sm"
             >
-                <LoaderCircle class="size-4 animate-spin" /> Mencari...
+                <LoaderCircle
+                    class="size-4 animate-spin motion-reduce:animate-none"
+                />
+                Mencari…
             </p>
             <p
                 v-else-if="failed"
                 role="status"
-                class="p-4 text-sm text-[#5d6e61]"
+                class="text-ink-muted p-4 text-sm"
             >
                 Saran belum dapat dimuat. Tekan Cari untuk melihat hasil.
             </p>
             <p
                 v-else-if="!suggestions.length"
                 role="status"
-                class="p-4 text-sm text-[#5d6e61]"
+                class="text-ink-muted p-4 text-sm"
             >
                 Belum ada yang cocok. Coba nama atau kata kunci lain.
             </p>
@@ -185,8 +188,8 @@ function matchedTheme(item: Suggestion): string | null {
                     :key="item.id"
                     role="option"
                     :aria-selected="activeIndex === index"
-                    class="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-4 py-3 hover:bg-[#edf8f0]"
-                    :class="{ 'bg-[#edf8f0]': activeIndex === index }"
+                    class="hover:bg-sage flex cursor-pointer items-center justify-between gap-3 rounded-xl px-4 py-3"
+                    :class="{ 'bg-sage': activeIndex === index }"
                     @mousedown.prevent
                     @click="select(item)"
                 >
@@ -194,17 +197,19 @@ function matchedTheme(item: Suggestion): string | null {
                         <span class="block text-sm font-bold">{{
                             item.name
                         }}</span>
-                        <span class="text-xs text-[#5d6e61]">
-                            {{ item.type_label }} · {{ item.category.name }}
+                        <span
+                            class="text-ink-muted flex flex-wrap gap-x-3 text-xs"
+                        >
+                            <span>{{ item.type_label }}</span>
+                            <span>{{ item.category.name }}</span>
                         </span>
                         <span
                             v-if="matchedTheme(item)"
-                            class="mt-0.5 block text-[11px] font-medium text-[#2b8a3e]"
+                            class="text-brand mt-0.5 block text-[11px] font-medium"
                         >
                             Sering disebut: {{ matchedTheme(item) }}
                         </span>
                     </span>
-                    <ArrowUpRight class="size-4 text-[#087f5b]" />
                 </li>
             </ul>
         </div>

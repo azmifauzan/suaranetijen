@@ -65,7 +65,12 @@ const props = defineProps<{
     nextPage: number | null;
     otherCategories: CategoryData[];
     sponsorTeaser: SponsorTeaser;
-    relatedTopics?: Array<{ id: number; slug: string; title: string; keyword: string }>;
+    relatedTopics?: Array<{
+        id: number;
+        slug: string;
+        title: string;
+        keyword: string;
+    }>;
 }>();
 
 const periods = [
@@ -82,7 +87,8 @@ const siteUrl = computed(() => {
 });
 
 const pageDescription = computed(
-    () => `Ranking ${props.category.name} dengan sentimen netizen tertinggi, urut dari skor sampai jumlah opini. Dihitung dari opini publik, bukan iklan.`,
+    () =>
+        `Ranking ${props.category.name} dengan sentimen netizen tertinggi, urut dari skor sampai jumlah opini. Dihitung dari opini publik, bukan iklan.`,
 );
 
 const breadcrumbJsonLd = computed(() => ({
@@ -185,24 +191,33 @@ function loadMore() {
             <nav class="mb-4 flex items-center gap-2 text-xs text-neutral-500">
                 <Link :href="home()" class="hover:underline">Beranda</Link>
                 <span>/</span>
-                <Link :href="rankingIndex.url()" class="hover:underline">Ranking</Link>
+                <Link :href="rankingIndex.url()" class="hover:underline"
+                    >Ranking</Link
+                >
                 <span>/</span>
-                <span class="font-medium text-neutral-800">{{ category.name }}</span>
+                <span class="font-medium text-neutral-800">{{
+                    category.name
+                }}</span>
             </nav>
 
             <!-- Page Title -->
             <div class="mb-6">
-                <h1 class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl">
+                <h1
+                    class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl"
+                >
                     {{ category.name }} dengan Sentimen Netijen Tertinggi
                 </h1>
                 <Link
                     :href="showCategory.url(category.slug)"
                     class="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-emerald-700 hover:underline"
                 >
-                    Lihat semua {{ category.name }} yang dinilai netizen →
+                    Lihat semua {{ category.name }} yang dinilai netizen
                 </Link>
                 <p class="mt-2 text-sm text-neutral-600">
-                    {{ category.context_description || `Daftar entitas dalam kategori ${category.name} yang diurutkan berdasarkan agregat opini publik dari netizen (minimal 100 opini dianalisis).` }}
+                    {{
+                        category.context_description ||
+                        `Daftar entitas dalam kategori ${category.name} yang diurutkan berdasarkan agregat opini publik dari netizen (minimal 100 opini dianalisis).`
+                    }}
                 </p>
             </div>
 
@@ -221,7 +236,9 @@ function loadMore() {
             >
                 <!-- Category Pills -->
                 <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-xs font-semibold text-neutral-500">Kategori:</span>
+                    <span class="text-xs font-semibold text-neutral-500"
+                        >Kategori:</span
+                    >
                     <!-- "Semua" links to global /top ranking -->
                     <Link
                         :href="rankingIndex.url()"
@@ -274,6 +291,7 @@ function loadMore() {
                     class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100"
                 >
                     <svg
+                        aria-hidden="true"
                         class="h-6 w-6 text-neutral-400"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -333,7 +351,7 @@ function loadMore() {
                                     {{ item.entity.name }}
                                 </Link>
                                 <span
-                                    class="rounded bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-600 uppercase"
+                                    class="rounded bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-600"
                                 >
                                     {{ item.entity.type_label }}
                                 </span>
@@ -419,9 +437,17 @@ function loadMore() {
                         :disabled="loadingMore"
                         @click="loadMore"
                     >
-                        {{ loadingMore ? 'Memuat ranking...' : 'Muat lebih banyak' }}
+                        {{
+                            loadingMore
+                                ? 'Memuat ranking...'
+                                : 'Muat lebih banyak'
+                        }}
                     </button>
-                    <p v-if="loadMoreFailed" class="mt-2 text-xs text-rose-700" role="alert">
+                    <p
+                        v-if="loadMoreFailed"
+                        class="mt-2 text-xs text-rose-700"
+                        role="alert"
+                    >
                         Gagal memuat ranking berikutnya. Coba tekan lagi.
                     </p>
                 </div>
@@ -433,36 +459,47 @@ function loadMore() {
                     Cara membaca peringkat {{ category.name }}
                 </h2>
                 <p class="mt-3 text-sm leading-relaxed text-neutral-700">
-                    Urutan di atas memakai Sentimen Netijen, skor 0-100 dari opini netizen yang relevan dengan tiap entitas.
-                    Opini positif dihitung penuh, netral setengah, negatif nol. Entitas dengan opini terlalu sedikit tidak
-                    masuk daftar, supaya skor tidak datang dari segelintir komentar.
+                    Urutan di atas memakai Sentimen Netijen, skor 0-100 dari
+                    opini netizen yang relevan dengan tiap entitas. Opini
+                    positif dihitung penuh, netral setengah, negatif nol.
+                    Entitas dengan opini terlalu sedikit tidak masuk daftar,
+                    supaya skor tidak datang dari segelintir komentar.
                 </p>
                 <p class="mt-3 text-sm leading-relaxed text-neutral-700">
-                    Skor yang sama diurutkan menurut jumlah opini terbanyak, lalu nama. Tidak ada bonus popularitas dan
-                    sponsor tidak memengaruhi urutan. Rating Netijen, yaitu bintang dari pengguna, dihitung terpisah dan
-                    tidak dicampur dengan skor sentimen.
+                    Skor yang sama diurutkan menurut jumlah opini terbanyak,
+                    lalu nama. Tidak ada bonus popularitas dan sponsor tidak
+                    memengaruhi urutan. Rating Netijen, yaitu bintang dari
+                    pengguna, dihitung terpisah dan tidak dicampur dengan skor
+                    sentimen.
                 </p>
                 <p class="mt-3 text-sm leading-relaxed text-neutral-700">
-                    SuaraNetijen mengambil opini dari forum, kolom komentar, dan platform video yang terbuka untuk umum.
-                    Penulis opini tidak ikut dinilai dan namanya tidak kami simpan. Buka halaman entitas untuk
-                    melihat sebaran sentimen dan tema yang paling sering dibahas, atau pakai halaman perbandingan untuk
+                    SuaraNetijen mengambil opini dari forum, kolom komentar, dan
+                    platform video yang terbuka untuk umum. Penulis opini tidak
+                    ikut dinilai dan namanya tidak kami simpan. Buka halaman
+                    entitas untuk melihat sebaran sentimen dan tema yang paling
+                    sering dibahas, atau pakai halaman perbandingan untuk
                     membandingkan dua entitas dalam kategori yang sama.
                 </p>
             </section>
 
             <!-- Related Topics (docs/28) -->
-            <div v-if="relatedTopics && relatedTopics.length > 0" class="mt-12 rounded-2xl border border-[#e5e9e2] bg-[#f9faf7] p-6">
-                <div class="text-xs font-semibold tracking-wider text-emerald-600 uppercase">
+            <div
+                v-if="relatedTopics && relatedTopics.length > 0"
+                class="border-line bg-canvas mt-12 rounded-2xl border p-6"
+            >
+                <div class="text-xs font-semibold text-emerald-600">
                     Topik Terkait Kategori Ini
                 </div>
-                <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                <div
+                    class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3"
+                >
                     <Link
                         v-for="topic in relatedTopics"
                         :key="topic.id"
                         :href="`/topik/${topic.slug}`"
-                        class="block rounded-xl border border-white bg-white p-4 transition hover:border-[#185b3b]/30 hover:shadow-xs"
+                        class="hover:border-brand-deep/30 block rounded-xl border border-white bg-white p-4 transition hover:shadow-xs"
                     >
-                        <div class="font-bold text-[#18392d] hover:text-[#087f5b]">
+                        <div class="text-ink hover:text-brand font-bold">
                             {{ topic.title }}
                         </div>
                         <div class="mt-1 text-xs text-neutral-500">

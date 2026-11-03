@@ -144,11 +144,17 @@ function restoreVideo(video: ReviewVideo): void {
                         >
                             {{ video.title }}
                         </div>
-                        <div class="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
+                        <div
+                            class="mt-1 flex flex-wrap items-center gap-2 text-[11px]"
+                        >
                             <span
                                 class="rounded bg-neutral-200 px-1.5 py-0.5 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200"
                             >
-                                {{ video.source === 'manual' ? 'Manual' : 'Automatic' }}
+                                {{
+                                    video.source === 'manual'
+                                        ? 'Manual'
+                                        : 'Automatic'
+                                }}
                             </span>
                             <span
                                 v-if="video.is_hidden"
@@ -169,7 +175,11 @@ function restoreVideo(video: ReviewVideo): void {
                         <button
                             type="button"
                             class="text-indigo-600 hover:underline focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:outline-none dark:text-indigo-400"
-                            @click="editingId === video.id ? (editingId = null) : startEdit(video)"
+                            @click="
+                                editingId === video.id
+                                    ? (editingId = null)
+                                    : startEdit(video)
+                            "
                         >
                             {{ editingId === video.id ? 'Cancel' : 'Edit' }}
                         </button>
@@ -227,8 +237,8 @@ function restoreVideo(video: ReviewVideo): void {
                         <InputError :message="editForm.errors.url" />
                     </div>
                     <p v-else class="text-[11px] text-neutral-500">
-                        The link of an automatic video cannot be changed. Hide it
-                        and add the right link instead.
+                        The link of an automatic video cannot be changed. Hide
+                        it and add the right link instead.
                     </p>
                     <button
                         type="submit"

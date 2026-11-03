@@ -60,7 +60,8 @@ const siteUrl = computed(() => {
     return (raw || '').replace(/\/$/, '');
 });
 const pageDescription = computed(
-    () => `Opini netizen tentang ${props.topic.keyword.slice(0, 70)}. Daftar entitas diurutkan berdasarkan frekuensi tema.`,
+    () =>
+        `Opini netizen tentang ${props.topic.keyword.slice(0, 70)}. Daftar entitas diurutkan berdasarkan frekuensi tema.`,
 );
 
 const breadcrumbJsonLd = computed(() => ({
@@ -107,7 +108,9 @@ const itemListJsonLd = computed(() => ({
         '@type': 'ListItem',
         position: index + 1,
         name: item.name,
-        ...(item.is_indexable ? { url: `${siteUrl.value}/e/${item.slug}` } : {}),
+        ...(item.is_indexable
+            ? { url: `${siteUrl.value}/e/${item.slug}` }
+            : {}),
     })),
 }));
 </script>
@@ -137,7 +140,9 @@ const itemListJsonLd = computed(() => ({
             >
                 <Link :href="home()" class="hover:underline">Beranda</Link>
                 <span>/</span>
-                <Link :href="topicsIndex.url()" class="hover:underline">Topik</Link>
+                <Link :href="topicsIndex.url()" class="hover:underline"
+                    >Topik</Link
+                >
                 <template v-if="topic.category">
                     <span>/</span>
                     <Link
@@ -147,14 +152,18 @@ const itemListJsonLd = computed(() => ({
                     >
                 </template>
                 <span>/</span>
-                <span class="font-medium text-neutral-800">{{ topic.keyword }}</span>
+                <span class="font-medium text-neutral-800">{{
+                    topic.keyword
+                }}</span>
             </nav>
 
             <!-- Header Section -->
-            <div class="mb-10 rounded-2xl border border-[#e5e9e2] bg-white p-6 sm:p-8 shadow-xs">
+            <div
+                class="border-line mb-10 rounded-2xl border bg-white p-6 shadow-xs sm:p-8"
+            >
                 <div class="mb-3 flex flex-wrap items-center gap-2">
                     <span
-                        class="inline-flex items-center gap-1.5 rounded-full bg-[#edf8f0] px-3 py-1 text-xs font-semibold text-[#185b3b]"
+                        class="bg-sage text-brand-deep inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
                     >
                         <Tag class="size-3.5" />
                         Topik Bahasan Netizen
@@ -168,18 +177,22 @@ const itemListJsonLd = computed(() => ({
                 </div>
 
                 <h1
-                    class="text-2xl font-bold tracking-tight text-[#18392d] sm:text-3xl lg:text-4xl"
+                    class="text-ink text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl"
                 >
                     {{ topic.title }}
                 </h1>
 
-                <div class="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[#f0f3eb] pt-4 text-xs text-neutral-500">
+                <div
+                    class="border-line-soft mt-6 flex flex-wrap items-center justify-between gap-4 border-t pt-4 text-xs text-neutral-500"
+                >
                     <div class="flex flex-wrap items-center gap-1.5">
-                        <span class="font-medium text-neutral-700">Tema terkait:</span>
+                        <span class="font-medium text-neutral-700"
+                            >Tema terkait:</span
+                        >
                         <span
                             v-for="t in topic.themes"
                             :key="t.id"
-                            class="rounded-md bg-[#f4f7f2] px-2 py-0.5 font-medium text-[#185b3b]"
+                            class="bg-paper text-brand-deep rounded-md px-2 py-0.5 font-medium"
                         >
                             {{ t.display_label }}
                         </span>
@@ -192,31 +205,38 @@ const itemListJsonLd = computed(() => ({
             <div class="mb-12">
                 <div class="mb-5 flex items-center justify-between">
                     <div>
-                        <h2 class="text-lg font-bold text-[#18392d] sm:text-xl">
+                        <h2 class="text-ink text-lg font-bold sm:text-xl">
                             Daftar Entitas Terkait
                         </h2>
                         <p class="text-xs text-neutral-500">
-                            Diurutkan berdasarkan frekuensi suara netizen menyebut tema terkait
+                            Diurutkan berdasarkan frekuensi suara netizen
+                            menyebut tema terkait
                         </p>
                     </div>
-                    <span class="rounded-full bg-[#edf8f0] px-3 py-1 text-xs font-semibold text-[#185b3b]">
+                    <span
+                        class="bg-sage text-brand-deep rounded-full px-3 py-1 text-xs font-semibold"
+                    >
                         {{ entities.length }} Entitas
                     </span>
                 </div>
 
-                <div v-if="entities.length === 0" class="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-neutral-500">
-                    Belum ada entitas aktif dengan data opini yang cukup pada topik ini.
+                <div
+                    v-if="entities.length === 0"
+                    class="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-neutral-500"
+                >
+                    Belum ada entitas aktif dengan data opini yang cukup pada
+                    topik ini.
                 </div>
 
                 <div v-else class="space-y-4">
                     <div
                         v-for="(item, idx) in entities"
                         :key="item.id"
-                        class="group relative flex flex-col gap-4 rounded-xl border border-[#e5e9e2] bg-white p-5 transition hover:border-[#185b3b]/40 hover:shadow-xs sm:flex-row sm:items-start sm:justify-between"
+                        class="group border-line hover:border-brand-deep/40 relative flex flex-col gap-4 rounded-xl border bg-white p-5 transition hover:shadow-xs sm:flex-row sm:items-start sm:justify-between"
                     >
                         <div class="flex items-start gap-4">
                             <div
-                                class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#edf8f0] text-sm font-bold text-[#185b3b]"
+                                class="bg-sage text-brand-deep flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
                             >
                                 {{ idx + 1 }}
                             </div>
@@ -225,13 +245,13 @@ const itemListJsonLd = computed(() => ({
                                     <Link
                                         v-if="item.is_indexable"
                                         :href="showEntity.url(item.slug)"
-                                        class="text-lg font-bold text-[#18392d] transition hover:text-[#087f5b] group-hover:underline"
+                                        class="text-ink hover:text-brand text-lg font-bold transition group-hover:underline"
                                     >
                                         {{ item.name }}
                                     </Link>
                                     <span
                                         v-else
-                                        class="text-lg font-bold text-[#18392d]"
+                                        class="text-ink text-lg font-bold"
                                         >{{ item.name }}</span
                                     >
                                     <span
@@ -241,41 +261,61 @@ const itemListJsonLd = computed(() => ({
                                     </span>
                                 </div>
 
-                                <div class="flex flex-wrap items-center gap-2 text-xs">
-                                    <span class="inline-flex items-center gap-1 font-semibold text-[#185b3b]">
+                                <div
+                                    class="flex flex-wrap items-center gap-2 text-xs"
+                                >
+                                    <span
+                                        class="text-brand-deep inline-flex items-center gap-1 font-semibold"
+                                    >
                                         <MessageSquare class="size-3.5" />
-                                        {{ item.mention_count }} opini menyebut tema topik
+                                        {{ item.mention_count }} opini menyebut
+                                        tema topik
                                     </span>
                                     <span
                                         v-for="tb in item.theme_breakdown"
                                         :key="tb.theme_id"
                                         class="text-neutral-500"
                                     >
-                                        • {{ tb.mention_count }}x {{ tb.display_label }}
+                                        {{ tb.mention_count }}x
+                                        {{ tb.display_label }}
                                     </span>
                                 </div>
 
                                 <!-- Quote from netizen context -->
                                 <div
                                     v-if="item.quote"
-                                    class="relative mt-2 rounded-lg bg-[#fafbf9] p-3 text-xs italic text-[#4a554e] border-l-2 border-[#bceccb]"
+                                    class="bg-canvas text-ink-muted border-brand-tint-strong relative mt-2 rounded-lg border-l-2 p-3 text-xs italic"
                                 >
-                                    <Quote class="mb-1 size-3 text-[#185b3b]/50" />
+                                    <Quote
+                                        class="text-brand-deep/50 mb-1 size-3"
+                                    />
                                     <span>“{{ item.quote }}”</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Right / Score badge -->
-                        <div class="flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0 border-t border-neutral-100 sm:border-0 pt-3 sm:pt-0">
+                        <div
+                            class="flex shrink-0 items-center justify-between gap-2 border-t border-neutral-100 pt-3 sm:flex-col sm:items-end sm:border-0 sm:pt-0"
+                        >
                             <div v-if="item.score !== null" class="text-right">
-                                <div class="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Sentimen Netijen</div>
-                                <div class="text-xl font-extrabold text-[#087f5b]">
-                                    {{ item.score }}<span class="text-xs font-normal text-neutral-400">/100</span>
+                                <div
+                                    class="text-[10px] font-bold text-neutral-500"
+                                >
+                                    Sentimen Netijen
+                                </div>
+                                <div class="text-brand text-xl font-extrabold">
+                                    {{ item.score
+                                    }}<span
+                                        class="text-xs font-normal text-neutral-400"
+                                        >/100</span
+                                    >
                                 </div>
                             </div>
                             <div v-else class="text-right">
-                                <span class="rounded bg-neutral-100 px-2 py-1 text-[11px] text-neutral-500">
+                                <span
+                                    class="rounded bg-neutral-100 px-2 py-1 text-[11px] text-neutral-500"
+                                >
                                     Menunggu data
                                 </span>
                             </div>
@@ -283,9 +323,9 @@ const itemListJsonLd = computed(() => ({
                             <Link
                                 v-if="item.is_indexable"
                                 :href="showEntity.url(item.slug)"
-                                class="inline-flex items-center text-xs font-semibold text-[#087f5b] hover:underline"
+                                class="text-brand inline-flex items-center text-xs font-semibold hover:underline"
                             >
-                                Lihat Profil →
+                                Lihat Profil
                             </Link>
                         </div>
                     </div>
@@ -295,23 +335,25 @@ const itemListJsonLd = computed(() => ({
             <!-- Related Topics Section -->
             <div
                 v-if="relatedTopics.length > 0"
-                class="rounded-2xl border border-[#e5e9e2] bg-[#f9faf7] p-6"
+                class="border-line bg-canvas rounded-2xl border p-6"
             >
                 <div class="mb-4 flex items-center gap-2">
-                    <Sparkles class="size-4 text-[#185b3b]" />
-                    <h3 class="text-base font-bold text-[#18392d]">
+                    <Sparkles class="text-brand-deep size-4" />
+                    <h3 class="text-ink text-base font-bold">
                         Topik Terkait Lainnya
                     </h3>
                 </div>
 
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                <div
+                    class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3"
+                >
                     <Link
                         v-for="rel in relatedTopics"
                         :key="rel.id"
                         :href="showTopic.url(rel.slug)"
-                        class="block rounded-xl border border-white bg-white p-4 transition hover:border-[#185b3b]/30 hover:shadow-xs"
+                        class="hover:border-brand-deep/30 block rounded-xl border border-white bg-white p-4 transition hover:shadow-xs"
                     >
-                        <div class="font-bold text-[#18392d] hover:text-[#087f5b]">
+                        <div class="text-ink hover:text-brand font-bold">
                             {{ rel.title }}
                         </div>
                         <div class="mt-1 text-xs text-neutral-500">

@@ -19,20 +19,20 @@ defineProps<{
 <template>
     <Link
         :href="show(entity.slug)"
-        class="group flex h-full flex-col rounded-2xl border border-[#dfe5dc] bg-white p-6 transition duration-200 hover:-translate-y-1 hover:border-[#90b79b] hover:shadow-lg motion-reduce:transform-none"
+        class="group border-line hover:border-line-strong flex h-full flex-col rounded-2xl border bg-white p-6 transition duration-200 hover:-translate-y-1 hover:shadow-lg motion-reduce:transform-none"
     >
         <div class="flex items-start justify-between gap-4">
             <span
-                class="flex size-12 items-center justify-center rounded-xl bg-[#edf4ec] text-lg font-bold text-[#426448]"
+                class="bg-line-soft text-ink-muted flex size-12 items-center justify-center rounded-xl text-lg font-bold"
                 aria-hidden="true"
                 >{{ entity.name.slice(0, 2).toUpperCase() }}</span
             ><ArrowUpRight
-                class="size-5 text-[#5d6e61] transition group-hover:text-[#087f5b]"
+                class="text-ink-muted group-hover:text-brand size-5 transition"
             />
         </div>
         <h3 class="mt-5 text-lg font-bold tracking-tight">{{ entity.name }}</h3>
         <p class="mt-1 text-xs text-neutral-500">
-            {{ entity.type_label }} · {{ entity.category_name }}
+            {{ entity.type_label }}, {{ entity.category_name }}
         </p>
         <div class="mt-5 flex flex-1 flex-col justify-end">
             <div class="flex flex-wrap items-center gap-3">
@@ -41,10 +41,10 @@ defineProps<{
                     class="rounded-lg px-3 py-1.5 text-xl font-bold"
                     :class="
                         entity.score >= 70
-                            ? 'bg-[#dcf5e5] text-[#17623d]'
+                            ? 'bg-brand-tint text-brand-deep'
                             : entity.score >= 50
-                              ? 'bg-[#fff1d5] text-[#845713]'
-                              : 'bg-[#fce5e1] text-[#a74232]'
+                              ? 'bg-paid-soft text-paid'
+                              : 'bg-danger-tint text-paid-strong'
                     "
                     >{{
                         entity.score.toLocaleString('id-ID', {
@@ -53,9 +53,9 @@ defineProps<{
                     }}<span class="text-xs font-medium"> / 100</span></span
                 ><span
                     v-else
-                    class="rounded-lg bg-[#f1f3ed] px-3 py-2 text-xs font-medium text-[#5d6e61]"
+                    class="bg-line-soft text-ink-muted rounded-lg px-3 py-2 text-xs font-medium"
                     >Belum cukup opini</span
-                ><span class="text-xs text-[#5d6e61]">Sentimen Netijen</span>
+                ><span class="text-ink-muted text-xs">Sentimen Netijen</span>
             </div>
             <p class="mt-4 flex items-center gap-1.5 text-xs text-neutral-500">
                 <MessageCircle class="size-3.5" />{{

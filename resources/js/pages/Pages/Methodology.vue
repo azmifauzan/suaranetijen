@@ -42,11 +42,10 @@ defineProps<{
                     SuaraNetijen adalah indeks sentimen publik independen untuk
                     brand, produk, dan layanan di Indonesia. Kami mengumpulkan
                     opini publik dari forum diskusi, komunitas, dan media
-                    terbuka. Model mengelompokkan opini relevan sebagai
-                    positif, netral, atau negatif. Klasifikasi dapat keliru,
-                    terutama pada sarkasme atau typo berat; opini ambigu bisa
-                    tidak diklasifikasikan. Nilai sponsor tidak masuk ke
-                    formula skor.
+                    terbuka. Model mengelompokkan opini relevan sebagai positif,
+                    netral, atau negatif. Klasifikasi dapat keliru, terutama
+                    pada sarkasme atau typo berat; opini ambigu bisa tidak
+                    diklasifikasikan. Nilai sponsor tidak masuk ke formula skor.
                 </p>
 
                 <div class="mt-8 space-y-8 text-neutral-700">
@@ -63,9 +62,7 @@ defineProps<{
                         </p>
                         <div class="mt-4 grid gap-4 sm:grid-cols-3">
                             <div class="rounded-xl bg-neutral-50 p-4">
-                                <div
-                                    class="text-xs font-bold text-emerald-600 uppercase"
-                                >
+                                <div class="text-xs font-bold text-emerald-600">
                                     Sentimen Netijen
                                 </div>
                                 <div class="mt-1 text-2xl font-black">
@@ -76,9 +73,7 @@ defineProps<{
                                 </div>
                             </div>
                             <div class="rounded-xl bg-neutral-50 p-4">
-                                <div
-                                    class="text-xs font-bold text-amber-800 uppercase"
-                                >
+                                <div class="text-xs font-bold text-amber-800">
                                     Rating Netijen
                                 </div>
                                 <div class="mt-1 text-2xl font-black">
@@ -90,9 +85,7 @@ defineProps<{
                                 </div>
                             </div>
                             <div class="rounded-xl bg-neutral-50 p-4">
-                                <div
-                                    class="text-xs font-bold text-indigo-600 uppercase"
-                                >
+                                <div class="text-xs font-bold text-indigo-600">
                                     Top Suara Netijen
                                 </div>
                                 <div class="mt-1 text-2xl font-black">
@@ -108,7 +101,9 @@ defineProps<{
 
                     <!-- Section: Formula Skor -->
                     <section class="border-t border-neutral-100 pt-8">
-                        <h2 class="text-xl font-bold text-neutral-900">
+                        <h2
+                            class="min-w-0 text-xl font-bold break-words text-neutral-900"
+                        >
                             2. Formula Sentimen Netijen (v{{
                                 scoring.formula_version
                             }})

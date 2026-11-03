@@ -85,7 +85,7 @@ defineProps<{
                                         {{ source.name }}
                                     </span>
                                     <span
-                                        class="rounded bg-neutral-200/80 px-2 py-0.5 text-[10px] font-semibold text-neutral-600 uppercase"
+                                        class="rounded bg-neutral-200/80 px-2 py-0.5 text-[10px] font-semibold text-neutral-600"
                                     >
                                         {{ source.source_type }}
                                     </span>
@@ -96,7 +96,7 @@ defineProps<{
                                         source.key
                                     }}</code>
                                     <template v-if="source.last_preflight_at">
-                                        • Preflight terakhir:
+                                        Preflight terakhir:
                                         {{ source.last_preflight_at }}
                                     </template>
                                 </div>

@@ -165,11 +165,9 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
         />
 
         <!-- Search Header Section -->
-        <div class="border-b border-neutral-200 bg-[#eff7eb] py-8">
+        <div class="bg-sage border-b border-neutral-200 py-8">
             <div class="mx-auto max-w-6xl px-4 sm:px-6">
-                <p
-                    class="mb-2 text-xs font-semibold tracking-widest text-emerald-600 uppercase"
-                >
+                <p class="mb-2 text-xs font-semibold text-emerald-600">
                     Sebelum pilih, cek kata netizen.
                 </p>
                 <p class="mb-5 text-2xl font-bold tracking-tight sm:text-3xl">
@@ -178,6 +176,7 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                 <form role="search" @submit="handleFormSubmit" class="relative">
                     <div class="relative flex items-center">
                         <svg
+                            aria-hidden="true"
                             class="absolute left-4 h-5 w-5 text-neutral-400"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
@@ -198,7 +197,7 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                             type="search"
                             autofocus
                             placeholder="Cari brand, produk, atau layanan..."
-                            class="h-12 min-h-[56px] w-full rounded-xl border border-neutral-300 bg-neutral-50 pr-32 pl-11 text-base text-neutral-900 transition-all placeholder:text-neutral-400 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
+                            class="h-12 min-h-[56px] w-full rounded-xl border border-neutral-300 bg-neutral-50 pr-32 pl-11 text-base text-neutral-900 transition-[color,background-color,border-color,box-shadow] placeholder:text-neutral-400 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                         />
                         <div class="absolute right-2 flex items-center gap-1">
                             <button
@@ -209,6 +208,7 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                                 aria-label="Hapus pencarian"
                             >
                                 <svg
+                                    aria-hidden="true"
                                     class="h-4 w-4"
                                     fill="none"
                                     viewBox="0 0 24 24"
@@ -273,7 +273,9 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
             <!-- Results Header & Counter -->
             <div class="mb-6 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                    <h1 class="text-xl font-bold tracking-tight sm:text-2xl">
+                    <h1
+                        class="min-w-0 text-xl font-bold tracking-tight break-words sm:text-2xl"
+                    >
                         <span v-if="query"
                             >Hasil pencarian untuk "{{ query }}"</span
                         >
@@ -296,23 +298,29 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
             <!-- Topic Landing Page Card (docs/28) -->
             <div
                 v-if="matchingTopic"
-                class="mb-6 rounded-2xl border border-[#bceccb] bg-[#f4fbf6] p-4 sm:p-5 shadow-xs"
+                class="border-brand-tint-strong bg-paper mb-6 rounded-2xl border p-4 shadow-xs sm:p-5"
             >
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div
+                    class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                >
                     <div>
-                        <div class="flex items-center gap-1.5 text-xs font-semibold text-[#185b3b]">
+                        <div
+                            class="text-brand-deep flex items-center gap-1.5 text-xs font-semibold"
+                        >
                             <Compass class="size-4" />
                             <span>Topik Terkait Tersedia</span>
                         </div>
-                        <h2 class="mt-1 text-base font-bold text-[#18392d] sm:text-lg">
+                        <h2
+                            class="text-ink mt-1 min-w-0 text-base font-bold break-words sm:text-lg"
+                        >
                             Lihat daftar: {{ matchingTopic.title }}
                         </h2>
                     </div>
                     <Link
                         :href="`/topik/${matchingTopic.slug}`"
-                        class="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#087f5b] px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-[#076c4d]"
+                        class="bg-brand hover:bg-brand-strong inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-semibold text-white shadow-xs"
                     >
-                        Buka Halaman Topik →
+                        Buka Halaman Topik
                     </Link>
                 </div>
             </div>
@@ -322,52 +330,70 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
             <Link
                 v-if="sponsorTeaser && sponsorTeaser.is_empty"
                 :href="sponsorPage()"
-                class="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-dashed border-[#ecdabf] bg-[#fffaf0] p-4 text-left shadow-sm transition hover:border-[#d97706] hover:bg-[#fff6e6]"
+                class="border-paid-line bg-paid-tint hover:border-star hover:bg-danger-tint mb-6 flex items-center justify-between gap-3 rounded-2xl border border-dashed p-4 text-left shadow-sm transition"
             >
                 <div class="flex items-center gap-2 text-xs">
-                    <Trophy class="size-4 shrink-0 text-[#d97706]" />
-                    <span class="text-[#856b47]">
-                        <span class="font-bold text-[#92400e]">Papan Sponsor masih kosong.</span>
+                    <Trophy class="text-paid size-4 shrink-0" />
+                    <span class="text-paid-muted">
+                        <span class="text-paid font-bold"
+                            >Papan Sponsor masih kosong.</span
+                        >
                         Jadi yang pertama tampil di sini.
                     </span>
                 </div>
-                <span class="flex shrink-0 items-center gap-1 text-xs font-bold text-[#b45309]">
+                <span
+                    class="text-paid flex shrink-0 items-center gap-1 text-xs font-bold"
+                >
                     Sponsori sekarang <ArrowRight class="size-3.5" />
                 </span>
             </Link>
 
             <div
                 v-else-if="sponsorTeaser && !sponsorTeaser.is_empty"
-                class="mb-6 rounded-2xl border border-[#ecdabf] bg-gradient-to-r from-[#fffaf0] via-[#fffdf9] to-[#fff8eb] p-4 text-left shadow-sm"
+                class="border-paid-line from-paid-tint via-canvas to-paid-tint mb-6 rounded-2xl border bg-gradient-to-r p-4 text-left shadow-sm"
             >
-                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#f1dfc5] pb-2.5 text-xs">
-                    <div class="flex items-center gap-2 font-bold text-[#92400e]">
-                        <Trophy class="size-4 text-[#d97706]" />
-                        <span>Papan Sponsor · {{ sponsorTeaser.period_name }}</span>
+                <div
+                    class="border-paid-line flex flex-wrap items-center justify-between gap-2 border-b pb-2.5 text-xs"
+                >
+                    <div class="text-paid flex items-center gap-2 font-bold">
+                        <Trophy class="text-paid size-4" />
+                        <span
+                            >Papan Sponsor,
+                            {{ sponsorTeaser.period_name }}</span
+                        >
                     </div>
                     <Link
                         :href="sponsorPage()"
-                        class="inline-flex min-h-11 items-center gap-1 font-bold text-[#b45309] hover:underline"
+                        class="text-paid inline-flex min-h-11 items-center gap-1 font-bold hover:underline"
                     >
                         Lihat papan <ArrowRight class="size-3.5" />
                     </Link>
                 </div>
-                <p class="mt-2 text-[11px] leading-relaxed text-[#856b47]">
-                    Urutan berdasarkan nominal sponsor terkonfirmasi; tidak memengaruhi hasil pencarian di bawah ini.
+                <p class="text-paid-muted mt-2 text-[11px] leading-relaxed">
+                    Urutan berdasarkan nominal sponsor terkonfirmasi; tidak
+                    memengaruhi hasil pencarian di bawah ini.
                 </p>
                 <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <Link
                         v-for="entry in sponsorTeaser.top_entries.slice(0, 3)"
                         :key="entry.id"
                         :href="showEntity(entry.slug)"
-                        class="flex min-h-11 items-center justify-between rounded-xl border border-[#f0dfc8] bg-white/80 px-3 py-2.5 text-xs transition hover:border-[#d97706] hover:bg-white"
+                        class="border-paid-line hover:border-star flex min-h-11 items-center justify-between rounded-xl border bg-white/80 px-3 py-2.5 text-xs transition hover:bg-white"
                     >
-                        <div class="truncate mr-2">
-                            <span class="font-bold text-[#92400e]">#{{ entry.rank }}</span>
-                            <span class="ml-1.5 font-semibold text-[#292218]">{{ entry.name }}</span>
+                        <div class="mr-2 truncate">
+                            <span class="text-paid font-bold"
+                                >#{{ entry.rank }}</span
+                            >
+                            <span class="text-paid-ink ml-1.5 font-semibold">{{
+                                entry.name
+                            }}</span>
                         </div>
-                        <span class="text-[11px] font-bold text-[#b45309] shrink-0">
-                            Rp{{ entry.settled_total_amount.toLocaleString('id-ID') }}
+                        <span class="text-paid shrink-0 text-[11px] font-bold">
+                            Rp{{
+                                entry.settled_total_amount.toLocaleString(
+                                    'id-ID',
+                                )
+                            }}
                         </span>
                     </Link>
                 </div>
@@ -378,7 +404,7 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                 <div
                     v-for="item in results"
                     :key="item.id"
-                    class="group relative flex cursor-pointer flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-xs transition-all hover:border-emerald-300 hover:shadow-md"
+                    class="group relative flex cursor-pointer flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-xs transition-[color,background-color,border-color,box-shadow] hover:border-emerald-300 hover:shadow-md"
                 >
                     <div
                         class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"
@@ -393,12 +419,10 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                                 >
                                     {{ item.type_label }}
                                 </span>
-                                <span class="text-neutral-400">•</span>
                                 <span class="font-medium text-neutral-600">
                                     {{ item.category.name }}
                                 </span>
                                 <template v-if="item.parent">
-                                    <span class="text-neutral-400">•</span>
                                     <span class="text-neutral-500">
                                         Brand:
                                         <Link
@@ -458,7 +482,9 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                             >
                                 <span>Sering disebut:</span>
                                 <span
-                                    v-for="(themeLabel, tIdx) in getMatchedThemes(item)"
+                                    v-for="(
+                                        themeLabel, tIdx
+                                    ) in getMatchedThemes(item)"
                                     :key="tIdx"
                                     class="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800"
                                 >
@@ -474,7 +500,7 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                             <!-- Sentimen Netijen Indicator -->
                             <div class="flex flex-col sm:items-end">
                                 <div
-                                    class="text-[11px] font-medium tracking-wider text-neutral-400 uppercase"
+                                    class="text-[11px] font-medium text-neutral-400"
                                 >
                                     Sentimen Netijen
                                 </div>
@@ -507,10 +533,11 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
 
                             <!-- Arrow indicator -->
                             <div
-                                class="pointer-events-none hidden items-center gap-1 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5 sm:flex"
+                                class="pointer-events-none hidden items-center gap-1 text-xs font-medium text-emerald-600 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none sm:flex"
                             >
                                 <span>Lihat detail</span>
                                 <svg
+                                    aria-hidden="true"
                                     class="h-4 w-4"
                                     fill="none"
                                     viewBox="0 0 24 24"
@@ -538,6 +565,7 @@ const getMatchedThemes = (item: SearchResultItem): string[] => {
                     class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100"
                 >
                     <svg
+                        aria-hidden="true"
                         class="h-6 w-6 text-neutral-400"
                         fill="none"
                         viewBox="0 0 24 24"

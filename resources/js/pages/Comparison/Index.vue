@@ -37,8 +37,18 @@ const jsonLd = computed(() => ({
         {
             '@type': 'BreadcrumbList',
             itemListElement: [
-                { '@type': 'ListItem', position: 1, name: 'Beranda', item: `${siteUrl.value}/` },
-                { '@type': 'ListItem', position: 2, name: 'Perbandingan', item: `${siteUrl.value}/banding` },
+                {
+                    '@type': 'ListItem',
+                    position: 1,
+                    name: 'Beranda',
+                    item: `${siteUrl.value}/`,
+                },
+                {
+                    '@type': 'ListItem',
+                    position: 2,
+                    name: 'Perbandingan',
+                    item: `${siteUrl.value}/banding`,
+                },
             ],
         },
         {
@@ -76,42 +86,87 @@ const jsonLd = computed(() => ({
                 <span class="font-medium text-neutral-800">Perbandingan</span>
             </nav>
 
-            <h1 class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl">
+            <h1
+                class="text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl"
+            >
                 Perbandingan Sentimen Netizen
             </h1>
             <p class="mt-2 max-w-2xl text-sm text-neutral-600 sm:text-base">
-                Dua merek, satu halaman: skor Sentimen Netijen, jumlah opini, dan tema yang paling sering dipuji atau
-                dikeluhkan netizen, berdampingan. Tiap skor dihitung sendiri dan tidak digabung.
-                <Link :href="methodology()" class="font-semibold text-emerald-700 hover:underline">Cara menghitung</Link>
+                Dua merek, satu halaman: skor Sentimen Netijen, jumlah opini,
+                dan tema yang paling sering dipuji atau dikeluhkan netizen,
+                berdampingan. Tiap skor dihitung sendiri dan tidak digabung.
+                <Link
+                    :href="methodology()"
+                    class="font-semibold text-emerald-700 hover:underline"
+                    >Cara menghitung</Link
+                >
             </p>
 
-            <p v-if="total === 0" class="mt-8 rounded-2xl border border-dashed border-neutral-300 bg-white p-6 text-center text-sm text-neutral-500">
-                Belum ada perbandingan yang memenuhi syarat minimal 30 opini untuk kedua sisinya.
+            <p
+                v-if="total === 0"
+                class="mt-8 rounded-2xl border border-dashed border-neutral-300 bg-white p-6 text-center text-sm text-neutral-500"
+            >
+                Belum ada perbandingan yang memenuhi syarat minimal 30 opini
+                untuk kedua sisinya.
             </p>
 
-            <section v-for="group in groups" :key="group.category_slug" class="mt-8" :aria-labelledby="`cat-${group.category_slug}`">
-                <h2 :id="`cat-${group.category_slug}`" class="text-lg font-bold text-neutral-900">
+            <section
+                v-for="group in groups"
+                :key="group.category_slug"
+                class="mt-8"
+                :aria-labelledby="`cat-${group.category_slug}`"
+            >
+                <h2
+                    :id="`cat-${group.category_slug}`"
+                    class="text-lg font-bold text-neutral-900"
+                >
                     {{ group.category }}
-                    <Link :href="showCategory.url(group.category_slug)" class="ml-2 text-xs font-semibold text-emerald-700 hover:underline">
-                        Semua {{ group.category }} →
+                    <Link
+                        :href="showCategory.url(group.category_slug)"
+                        class="ml-2 text-xs font-semibold text-emerald-700 hover:underline"
+                    >
+                        Semua {{ group.category }}
                     </Link>
                 </h2>
 
-                <ul class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <ul
+                    class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                >
                     <li v-for="item in group.pairs" :key="item.pair">
                         <Link
                             :href="showComparison.url(item.pair)"
                             class="block min-h-11 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50/40"
                         >
-                            <span class="text-sm font-bold text-neutral-900">{{ item.label }}</span>
-                            <span class="mt-3 grid grid-cols-2 gap-3 text-xs text-neutral-600">
-                                <span v-for="side in item.sides" :key="side.slug" class="block">
-                                    <span class="block truncate font-semibold text-neutral-800">{{ side.name }}</span>
+                            <span class="text-sm font-bold text-neutral-900">{{
+                                item.label
+                            }}</span>
+                            <span
+                                class="mt-3 grid grid-cols-2 gap-3 text-xs text-neutral-600"
+                            >
+                                <span
+                                    v-for="side in item.sides"
+                                    :key="side.slug"
+                                    class="block"
+                                >
+                                    <span
+                                        class="block truncate font-semibold text-neutral-800"
+                                        >{{ side.name }}</span
+                                    >
                                     <span class="mt-0.5 block">
-                                        <span class="text-xl font-black text-emerald-700">{{ Math.round(side.score) }}</span>
-                                        <span class="text-neutral-500">/100</span>
+                                        <span
+                                            class="text-xl font-black text-emerald-700"
+                                            >{{ Math.round(side.score) }}</span
+                                        >
+                                        <span class="text-neutral-500"
+                                            >/100</span
+                                        >
                                     </span>
-                                    <span class="block text-neutral-500">{{ formatCount(side.opinion_count) }} opini</span>
+                                    <span class="block text-neutral-500"
+                                        >{{
+                                            formatCount(side.opinion_count)
+                                        }}
+                                        opini</span
+                                    >
                                 </span>
                             </span>
                         </Link>

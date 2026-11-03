@@ -58,8 +58,10 @@ const typeLabel: Record<string, string> = {
 };
 
 const statusClass: Record<Status, string> = {
-    pending: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
-    approved: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
+    pending:
+        'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
+    approved:
+        'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
     rejected: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
 };
 
@@ -96,12 +98,15 @@ function onSubmitted(): void {
     <div class="flex w-full flex-col gap-6 p-4 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="min-w-0 flex-1">
-                <h1 class="text-2xl font-bold tracking-tight">Usulan Brand/Produk</h1>
+                <h1 class="text-2xl font-bold tracking-tight">
+                    Usulan Brand/Produk
+                </h1>
                 <p class="text-muted-foreground mt-1 text-sm">
-                    Usulkan brand, produk, atau layanan yang belum ada. Admin meninjau setiap
-                    usulan sebelum tampil dan usulan tidak mempengaruhi skor atau peringkat.
-                    Sponsor yang kamu kirim ke Papan Sponsor juga tercatat di sini dan langsung
-                    aktif setelah pembayaran terkonfirmasi, tanpa review admin.
+                    Usulkan brand, produk, atau layanan yang belum ada. Admin
+                    meninjau setiap usulan sebelum tampil dan usulan tidak
+                    mempengaruhi skor atau peringkat. Sponsor yang kamu kirim ke
+                    Papan Sponsor juga tercatat di sini dan langsung aktif
+                    setelah pembayaran terkonfirmasi, tanpa review admin.
                 </p>
             </div>
             <Button v-if="submissions.length > 0" @click="isFormOpen = true">
@@ -117,7 +122,8 @@ function onSubmitted(): void {
             <div>
                 <p class="font-medium">Belum ada usulan</p>
                 <p class="text-muted-foreground mt-1 text-sm">
-                    Brand atau produkmu belum ada di SuaraNetijen? Usulkan sekarang.
+                    Brand atau produkmu belum ada di SuaraNetijen? Usulkan
+                    sekarang.
                 </p>
             </div>
             <Button @click="isFormOpen = true">
@@ -126,7 +132,11 @@ function onSubmitted(): void {
         </div>
 
         <ul v-else class="divide-y rounded-xl border">
-            <li v-for="submission in submissions" :key="submission.key" class="px-4 py-4 sm:px-5">
+            <li
+                v-for="submission in submissions"
+                :key="submission.key"
+                class="px-4 py-4 sm:px-5"
+            >
                 <div class="flex items-center justify-between gap-4">
                     <div class="min-w-0">
                         <p class="flex min-w-0 items-center gap-2 font-medium">
@@ -138,16 +148,28 @@ function onSubmitted(): void {
                                 Sponsor
                             </span>
                         </p>
-                        <p class="text-muted-foreground mt-0.5 text-xs">
-                            {{ typeLabel[submission.entity_type] ?? submission.entity_type }}
+                        <p
+                            class="text-muted-foreground mt-0.5 flex flex-wrap gap-x-3 text-xs"
+                        >
+                            <span>{{
+                                typeLabel[submission.entity_type] ??
+                                submission.entity_type
+                            }}</span>
                             <template v-if="submission.kind === 'sponsor'">
-                                · {{ formatRupiah(submission.amount ?? 0) }}
-                                <template v-if="(submission.contributions ?? 0) > 1">
-                                    ({{ submission.contributions }}× sponsor)
-                                </template>
-                                · {{ submission.period_name }}
+                                <span>
+                                    {{ formatRupiah(submission.amount ?? 0) }}
+                                    <template
+                                        v-if="
+                                            (submission.contributions ?? 0) > 1
+                                        "
+                                    >
+                                        ({{ submission.contributions }}×
+                                        sponsor)
+                                    </template>
+                                </span>
+                                <span>{{ submission.period_name }}</span>
                             </template>
-                            · {{ formatDate(submission.created_at) }}
+                            <span>{{ formatDate(submission.created_at) }}</span>
                         </p>
                     </div>
                     <div class="flex shrink-0 items-center gap-3">
@@ -174,7 +196,10 @@ function onSubmitted(): void {
                     </div>
                 </div>
                 <p
-                    v-if="submission.status === 'rejected' && submission.review_note"
+                    v-if="
+                        submission.status === 'rejected' &&
+                        submission.review_note
+                    "
                     class="text-muted-foreground mt-2 text-sm"
                 >
                     Alasan: {{ submission.review_note }}
@@ -182,130 +207,216 @@ function onSubmitted(): void {
             </li>
         </ul>
 
-    <Dialog v-model:open="isFormOpen">
-        <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-            <Form
-                v-bind="EntitySubmissionController.store.form()"
-                class="space-y-5"
-                :options="{ preserveScroll: true }"
-                reset-on-success
-                @success="onSubmitted"
-                v-slot="{ errors, processing }"
-            >
-                <DialogHeader>
-                    <DialogTitle>Tambah usulan</DialogTitle>
-                    <DialogDescription>
-                        Isi data brand, produk, atau layanan yang ingin diusulkan.
-                    </DialogDescription>
-                </DialogHeader>
+        <Dialog v-model:open="isFormOpen">
+            <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+                <Form
+                    v-bind="EntitySubmissionController.store.form()"
+                    class="space-y-5"
+                    :options="{ preserveScroll: true }"
+                    reset-on-success
+                    @success="onSubmitted"
+                    v-slot="{ errors, processing }"
+                >
+                    <DialogHeader>
+                        <DialogTitle>Tambah usulan</DialogTitle>
+                        <DialogDescription>
+                            Isi data brand, produk, atau layanan yang ingin
+                            diusulkan.
+                        </DialogDescription>
+                    </DialogHeader>
 
-                <fieldset class="grid gap-2 sm:grid-cols-2">
-                    <legend class="mb-2 text-sm font-medium">Cara tayang</legend>
-                    <input type="hidden" name="sponsor" :value="submitMode === 'sponsor' ? 1 : 0" />
-                    <label
-                        class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm"
-                        :class="submitMode === 'review' ? 'border-primary bg-primary/5' : ''"
-                    >
-                        <input v-model="submitMode" type="radio" value="review" class="mt-0.5 size-4" />
-                        <span>
-                            <span class="font-medium">Gratis, ditinjau admin</span>
-                            <span class="text-muted-foreground block text-xs">Tayang setelah admin menyetujui.</span>
-                        </span>
-                    </label>
-                    <label
-                        class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm"
-                        :class="submitMode === 'sponsor' ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40' : ''"
-                    >
-                        <input v-model="submitMode" type="radio" value="sponsor" class="mt-0.5 size-4" />
-                        <span>
-                            <span class="font-medium">Langsung tayang dengan sponsor</span>
-                            <span class="text-muted-foreground block text-xs">
-                                Mulai Rp1.000 via QRIS. Tanpa review admin, tampil di Papan Sponsor setelah pembayaran terkonfirmasi.
+                    <fieldset class="grid gap-2 sm:grid-cols-2">
+                        <legend class="mb-2 text-sm font-medium">
+                            Cara tayang
+                        </legend>
+                        <input
+                            type="hidden"
+                            name="sponsor"
+                            :value="submitMode === 'sponsor' ? 1 : 0"
+                        />
+                        <label
+                            class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm"
+                            :class="
+                                submitMode === 'review'
+                                    ? 'border-primary bg-primary/5'
+                                    : ''
+                            "
+                        >
+                            <input
+                                v-model="submitMode"
+                                type="radio"
+                                value="review"
+                                class="mt-0.5 size-4"
+                            />
+                            <span>
+                                <span class="font-medium"
+                                    >Gratis, ditinjau admin</span
+                                >
+                                <span
+                                    class="text-muted-foreground block text-xs"
+                                    >Tayang setelah admin menyetujui.</span
+                                >
                             </span>
-                        </span>
-                    </label>
-                </fieldset>
+                        </label>
+                        <label
+                            class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm"
+                            :class="
+                                submitMode === 'sponsor'
+                                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40'
+                                    : ''
+                            "
+                        >
+                            <input
+                                v-model="submitMode"
+                                type="radio"
+                                value="sponsor"
+                                class="mt-0.5 size-4"
+                            />
+                            <span>
+                                <span class="font-medium"
+                                    >Langsung tayang dengan sponsor</span
+                                >
+                                <span
+                                    class="text-muted-foreground block text-xs"
+                                >
+                                    Mulai Rp1.000 via QRIS. Tanpa review admin,
+                                    tampil di Papan Sponsor setelah pembayaran
+                                    terkonfirmasi.
+                                </span>
+                            </span>
+                        </label>
+                    </fieldset>
 
-                <div class="grid gap-2">
-                    <Label for="name">Nama</Label>
-                    <Input id="name" name="name" required maxlength="120" placeholder="Contoh: Kopi Senja" />
-                    <InputError :message="errors.name" />
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
                     <div class="grid gap-2">
-                        <Label for="entity_type">Jenis</Label>
-                        <select id="entity_type" v-model="entityType" name="entity_type" :class="selectClass">
-                            <option value="brand">Brand</option>
-                            <option value="product">Produk</option>
-                            <option value="service">Layanan</option>
-                        </select>
-                        <InputError :message="errors.entity_type" />
+                        <Label for="name">Nama</Label>
+                        <Input
+                            id="name"
+                            name="name"
+                            required
+                            maxlength="120"
+                            placeholder="Contoh: Kopi Senja"
+                        />
+                        <InputError :message="errors.name" />
                     </div>
-                    <div class="grid gap-2">
-                        <Label for="category_id">Kategori</Label>
-                        <select id="category_id" name="category_id" required :class="selectClass">
-                            <option value="">Pilih kategori</option>
-                            <option v-for="category in categories" :key="category.id" :value="category.id">
-                                {{ category.name }}
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="grid gap-2">
+                            <Label for="entity_type">Jenis</Label>
+                            <select
+                                id="entity_type"
+                                v-model="entityType"
+                                name="entity_type"
+                                :class="selectClass"
+                            >
+                                <option value="brand">Brand</option>
+                                <option value="product">Produk</option>
+                                <option value="service">Layanan</option>
+                            </select>
+                            <InputError :message="errors.entity_type" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="category_id">Kategori</Label>
+                            <select
+                                id="category_id"
+                                name="category_id"
+                                required
+                                :class="selectClass"
+                            >
+                                <option value="">Pilih kategori</option>
+                                <option
+                                    v-for="category in categories"
+                                    :key="category.id"
+                                    :value="category.id"
+                                >
+                                    {{ category.name }}
+                                </option>
+                            </select>
+                            <InputError :message="errors.category_id" />
+                        </div>
+                    </div>
+
+                    <!-- The sponsor checkout has no parent-brand field, so it is hidden there. -->
+                    <div
+                        v-if="entityType !== 'brand' && submitMode === 'review'"
+                        class="grid gap-2"
+                    >
+                        <Label for="parent_entity_id"
+                            >Brand induk (opsional)</Label
+                        >
+                        <select
+                            id="parent_entity_id"
+                            name="parent_entity_id"
+                            :class="selectClass"
+                        >
+                            <option value="">Tidak ada</option>
+                            <option
+                                v-for="brand in brands"
+                                :key="brand.id"
+                                :value="brand.id"
+                            >
+                                {{ brand.name }}
                             </option>
                         </select>
-                        <InputError :message="errors.category_id" />
+                        <InputError :message="errors.parent_entity_id" />
                     </div>
-                </div>
 
-                <!-- The sponsor checkout has no parent-brand field, so it is hidden there. -->
-                <div v-if="entityType !== 'brand' && submitMode === 'review'" class="grid gap-2">
-                    <Label for="parent_entity_id">Brand induk (opsional)</Label>
-                    <select id="parent_entity_id" name="parent_entity_id" :class="selectClass">
-                        <option value="">Tidak ada</option>
-                        <option v-for="brand in brands" :key="brand.id" :value="brand.id">
-                            {{ brand.name }}
-                        </option>
-                    </select>
-                    <InputError :message="errors.parent_entity_id" />
-                </div>
+                    <div class="grid gap-2">
+                        <Label for="website_url">{{
+                            submitMode === 'sponsor'
+                                ? 'Website resmi'
+                                : 'Website (opsional)'
+                        }}</Label>
+                        <Input
+                            id="website_url"
+                            name="website_url"
+                            type="url"
+                            placeholder="https://"
+                            :required="submitMode === 'sponsor'"
+                        />
+                        <InputError :message="errors.website_url" />
+                    </div>
 
-                <div class="grid gap-2">
-                    <Label for="website_url">{{ submitMode === 'sponsor' ? 'Website resmi' : 'Website (opsional)' }}</Label>
-                    <Input
-                        id="website_url"
-                        name="website_url"
-                        type="url"
-                        placeholder="https://"
-                        :required="submitMode === 'sponsor'"
-                    />
-                    <InputError :message="errors.website_url" />
-                </div>
+                    <div class="grid gap-2">
+                        <Label for="description"
+                            >Deskripsi singkat (opsional)</Label
+                        >
+                        <textarea
+                            id="description"
+                            name="description"
+                            rows="3"
+                            maxlength="500"
+                            class="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                        />
+                        <InputError :message="errors.description" />
+                    </div>
 
-                <div class="grid gap-2">
-                    <Label for="description">Deskripsi singkat (opsional)</Label>
-                    <textarea
-                        id="description"
-                        name="description"
-                        rows="3"
-                        maxlength="500"
-                        class="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
-                    />
-                    <InputError :message="errors.description" />
-                </div>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="hidden" name="is_owner" value="0" />
+                        <input
+                            type="checkbox"
+                            name="is_owner"
+                            value="1"
+                            class="size-4"
+                        />
+                        Saya pemilik atau pengelola brand ini
+                    </label>
 
-                <label class="flex items-center gap-2 text-sm">
-                    <input type="hidden" name="is_owner" value="0" />
-                    <input type="checkbox" name="is_owner" value="1" class="size-4" />
-                    Saya pemilik atau pengelola brand ini
-                </label>
-
-                <DialogFooter class="gap-2">
-                    <DialogClose as-child>
-                        <Button type="button" variant="secondary">Batal</Button>
-                    </DialogClose>
-                    <Button type="submit" :disabled="processing">
-                        {{ submitMode === 'sponsor' ? 'Lanjut ke pembayaran' : 'Kirim usulan' }}
-                    </Button>
-                </DialogFooter>
-            </Form>
-        </DialogContent>
-    </Dialog>
+                    <DialogFooter class="gap-2">
+                        <DialogClose as-child>
+                            <Button type="button" variant="secondary"
+                                >Batal</Button
+                            >
+                        </DialogClose>
+                        <Button type="submit" :disabled="processing">
+                            {{
+                                submitMode === 'sponsor'
+                                    ? 'Lanjut ke pembayaran'
+                                    : 'Kirim usulan'
+                            }}
+                        </Button>
+                    </DialogFooter>
+                </Form>
+            </DialogContent>
+        </Dialog>
     </div>
 </template>

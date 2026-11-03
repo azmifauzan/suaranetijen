@@ -97,12 +97,12 @@ import PublicSeo from '@/components/PublicSeo.vue';
                             class="font-semibold text-emerald-700 hover:underline"
                             >sumber yang kami daftarkan</Link
                         >. Teks aslinya hanya disimpan sementara untuk diproses,
-                        lalu dihapus otomatis. Yang kami simpan seterusnya adalah
-                        hasil olahannya: label positif, netral, atau negatif,
-                        dan tema yang dibahas. Kami tidak menyimpan nama
-                        pengguna, foto profil, atau data pribadi penulisnya.
-                        Klasifikasi dilakukan oleh model dan bisa keliru;
-                        penjelasan cara kerjanya ada di halaman
+                        lalu dihapus otomatis. Yang kami simpan seterusnya
+                        adalah hasil olahannya: label positif, netral, atau
+                        negatif, dan tema yang dibahas. Kami tidak menyimpan
+                        nama pengguna, foto profil, atau data pribadi
+                        penulisnya. Klasifikasi dilakukan oleh model dan bisa
+                        keliru; penjelasan cara kerjanya ada di halaman
                         <Link
                             :href="methodology()"
                             class="font-semibold text-emerald-700 hover:underline"

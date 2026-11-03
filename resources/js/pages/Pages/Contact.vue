@@ -62,9 +62,9 @@ const emailLink =
                             untuk brand Anda.
                         </li>
                         <li>
-                            Data entitas yang keliru: nama, kategori,
-                            deskripsi, situs resmi, atau hubungan antara brand
-                            dan produknya.
+                            Data entitas yang keliru: nama, kategori, deskripsi,
+                            situs resmi, atau hubungan antara brand dan
+                            produknya.
                         </li>
                         <li>
                             Ringkasan otomatis atau label tema yang tidak sesuai
@@ -81,14 +81,14 @@ const emailLink =
                                 :href="methodology()"
                                 class="font-semibold text-emerald-700 hover:underline"
                                 >metodologi</Link
-                            >. Bila ada opini yang salah tempat, kami
-                            menghapus opini itu dan skornya dihitung ulang dari
-                            opini yang tersisa.
+                            >. Bila ada opini yang salah tempat, kami menghapus
+                            opini itu dan skornya dihitung ulang dari opini yang
+                            tersisa.
                         </li>
                         <li>
                             Rating Netijen yang diberikan pengguna terdaftar.
-                            Bila Anda mencurigai penyalahgunaan rating,
-                            laporkan kepada kami dan kami akan memeriksanya.
+                            Bila Anda mencurigai penyalahgunaan rating, laporkan
+                            kepada kami dan kami akan memeriksanya.
                         </li>
                         <li>
                             Posisi di ranking sentimen. Sponsor tidak bisa

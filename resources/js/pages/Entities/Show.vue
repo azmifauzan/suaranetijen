@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import PublicLayout from "@/layouts/PublicLayout.vue";
-import { contact, home, methodology, sources } from "@/routes";
-import { show as showEntity } from "@/routes/entities";
-import { show as showCategory } from "@/routes/categories";
-import { show as showRanking } from "@/routes/rankings";
-import { index as leaderboardPage } from "@/routes/leaderboard";
-import { Link, router, useHttp } from "@inertiajs/vue3";
-import { ArrowUpRight, Play, Star, Trophy } from "@lucide/vue";
-import { computed, ref } from "vue";
-import { login } from "@/routes";
-import PublicSeo from "@/components/PublicSeo.vue";
-import { trackEvent } from "@/lib/analytics";
-import { buildEntityJsonLd } from "@/lib/entityJsonLd";
-import { getDirectWebsiteUrl, trackSponsorClick } from "@/lib/sponsor";
+import PublicLayout from '@/layouts/PublicLayout.vue';
+import { contact, home, methodology, sources } from '@/routes';
+import { show as showEntity } from '@/routes/entities';
+import { show as showCategory } from '@/routes/categories';
+import { show as showRanking } from '@/routes/rankings';
+import { index as leaderboardPage } from '@/routes/leaderboard';
+import { Link, router, useHttp } from '@inertiajs/vue3';
+import { ArrowUpRight, Play, Star, Trophy } from '@lucide/vue';
+import { computed, ref } from 'vue';
+import { login } from '@/routes';
+import PublicSeo from '@/components/PublicSeo.vue';
+import { trackEvent } from '@/lib/analytics';
+import { buildEntityJsonLd } from '@/lib/entityJsonLd';
+import { getDirectWebsiteUrl, trackSponsorClick } from '@/lib/sponsor';
 import {
     destroy as deleteRating,
     update as updateRating,
-} from "@/routes/api/entities/rating";
+} from '@/routes/api/entities/rating';
 
 interface CategoryData {
     id: number;
@@ -207,7 +207,7 @@ const ratingForm = useHttp<
     RatingMutationResponse
 >({
     rating: props.rating.user_rating ?? 0,
-    review: props.rating.user_review ?? "",
+    review: props.rating.user_review ?? '',
 });
 
 const pageTitle = computed(
@@ -230,10 +230,10 @@ const jsonLd = computed(() =>
 );
 
 const periodLabels: Record<string, string> = {
-    "30d": "30 Hari",
-    "90d": "90 Hari",
-    "365d": "1 Tahun",
-    all: "Semua Waktu",
+    '30d': '30 Hari',
+    '90d': '90 Hari',
+    '365d': '1 Tahun',
+    all: 'Semua Waktu',
 };
 
 function switchPeriod(p: string) {
@@ -252,8 +252,8 @@ function updateRatingData(response: RatingMutationResponse): void {
         user_review: response.data.review,
     };
     ratingForm.rating = response.data.rating ?? 0;
-    ratingForm.review = response.data.review ?? "";
-    router.reload({ only: ["userReviews", "rating"] });
+    ratingForm.review = response.data.review ?? '';
+    router.reload({ only: ['userReviews', 'rating'] });
 }
 
 async function submitRating(): Promise<void> {
@@ -266,23 +266,23 @@ async function submitRating(): Promise<void> {
         await ratingForm.put(updateRating.url(props.entity.id), {
             onSuccess: (response) => {
                 updateRatingData(response);
-                trackEvent("submit_rating", {
+                trackEvent('submit_rating', {
                     entity_slug: props.entity.slug,
                     rating: response.data.rating,
                 });
             },
             onHttpException: (response) => {
                 ratingForm.setError(
-                    "rating",
+                    'rating',
                     response.status === 429
-                        ? "Terlalu banyak percobaan rating. Coba lagi nanti."
-                        : "Rating gagal disimpan. Coba lagi.",
+                        ? 'Terlalu banyak percobaan rating. Coba lagi nanti.'
+                        : 'Rating gagal disimpan. Coba lagi.',
                 );
             },
         });
     } catch {
         if (!ratingForm.hasErrors) {
-            ratingForm.setError("rating", "Rating gagal disimpan. Coba lagi.");
+            ratingForm.setError('rating', 'Rating gagal disimpan. Coba lagi.');
         }
     }
 }
@@ -294,16 +294,16 @@ async function removeRating(): Promise<void> {
             onSuccess: updateRatingData,
             onHttpException: (response) => {
                 ratingForm.setError(
-                    "rating",
+                    'rating',
                     response.status === 429
-                        ? "Terlalu banyak percobaan rating. Coba lagi nanti."
-                        : "Rating gagal dihapus. Coba lagi.",
+                        ? 'Terlalu banyak percobaan rating. Coba lagi nanti.'
+                        : 'Rating gagal dihapus. Coba lagi.',
                 );
             },
         });
     } catch {
         if (!ratingForm.hasErrors) {
-            ratingForm.setError("rating", "Rating gagal dihapus. Coba lagi.");
+            ratingForm.setError('rating', 'Rating gagal dihapus. Coba lagi.');
         }
     }
 }
@@ -382,7 +382,7 @@ async function removeRating(): Promise<void> {
                                     {{ entity.name }}
                                 </h1>
                                 <span
-                                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wider uppercase"
+                                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
                                     :class="{
                                         'bg-blue-100 text-blue-800':
                                             entity.type === 'brand',
@@ -402,7 +402,7 @@ async function removeRating(): Promise<void> {
                                     entitySeo?.intent_subtitle ||
                                     (sentiment.is_eligible
                                         ? `Bagus atau tidak menurut netizen? Ringkasan dari ${sentiment.opinion_count} opini publik.`
-                                        : "Opini netizen dan indeks sentimen publik.")
+                                        : 'Opini netizen dan indeks sentimen publik.')
                                 }}
                             </p>
 
@@ -492,7 +492,7 @@ async function removeRating(): Promise<void> {
                                 :ping="`/api/sponsor/click/${entity.slug}`"
                                 target="_blank"
                                 rel="noopener"
-                                class="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[#c2d6c6] bg-[#f0f7f2] px-3.5 py-2.5 text-xs font-semibold text-[#185b3b] transition hover:bg-[#e2f2e5]"
+                                class="border-line-strong bg-paper text-brand-deep hover:bg-line-soft inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3.5 py-2.5 text-xs font-semibold transition"
                                 @click="
                                     trackSponsorClick(entity.slug, {
                                         placement: 'entity_profile',
@@ -508,16 +508,16 @@ async function removeRating(): Promise<void> {
                         <!-- Leaderboard Badge: Full Width -->
                         <div
                             v-if="leaderboard && leaderboard.is_active"
-                            class="mt-4 flex w-full flex-wrap items-center justify-between gap-3 rounded-xl border border-[#fed7aa] bg-[#fffaf0] p-3 text-xs"
+                            class="border-paid-line bg-paid-tint mt-4 flex w-full flex-wrap items-center justify-between gap-3 rounded-xl border p-3 text-xs"
                         >
                             <div class="flex items-center gap-2">
-                                <Trophy class="size-4 text-[#d97706]" />
-                                <span class="font-bold text-[#92400e]"
+                                <Trophy class="text-paid size-4" />
+                                <span class="text-paid font-bold"
                                     >Aktif di Leaderboard Sponsor</span
                                 >
-                                <span class="font-medium text-[#b45309]"
-                                    >· {{ leaderboard.views_count }} Pengunjung
-                                    · {{ leaderboard.clicks_count }} Klik
+                                <span class="text-paid font-medium"
+                                    >{{ leaderboard.views_count }} pengunjung,
+                                    {{ leaderboard.clicks_count }} klik
                                     URL</span
                                 >
                             </div>
@@ -535,7 +535,7 @@ async function removeRating(): Promise<void> {
                                 :ping="`/api/sponsor/click/${entity.slug}`"
                                 target="_blank"
                                 rel="noopener"
-                                class="inline-flex items-center gap-1 font-bold text-[#b45309] hover:underline"
+                                class="text-paid inline-flex items-center gap-1 font-bold hover:underline"
                                 @click="
                                     trackSponsorClick(entity.slug, {
                                         placement: 'entity_sponsor_badge',
@@ -561,7 +561,7 @@ async function removeRating(): Promise<void> {
                                         : {},
                                 })
                             "
-                            class="mt-3 inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-[#b45309] hover:underline"
+                            class="text-paid mt-3 inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold hover:underline"
                         >
                             <Trophy class="size-3.5" />
                             {{
@@ -608,9 +608,7 @@ async function removeRating(): Promise<void> {
                             v-if="entity.aliases.length > 0"
                             class="mt-6 border-t border-neutral-100 pt-4"
                         >
-                            <div
-                                class="text-xs font-medium tracking-wider text-neutral-400 uppercase"
-                            >
+                            <div class="text-xs font-medium text-neutral-400">
                                 Nama Alternatif / Alias:
                             </div>
                             <div class="mt-2 flex flex-wrap gap-1.5">
@@ -675,7 +673,7 @@ async function removeRating(): Promise<void> {
                             class="flex flex-col justify-center rounded-xl bg-neutral-50 p-6"
                         >
                             <span
-                                class="text-xs font-semibold tracking-wider text-neutral-500 uppercase"
+                                class="text-xs font-semibold text-neutral-500"
                             >
                                 Skor Agregat Publik
                             </span>
@@ -711,7 +709,7 @@ async function removeRating(): Promise<void> {
                             class="flex flex-col justify-center rounded-xl bg-neutral-50 p-6"
                         >
                             <span
-                                class="text-xs font-semibold tracking-wider text-neutral-500 uppercase"
+                                class="text-xs font-semibold text-neutral-500"
                             >
                                 Distribusi Sentimen
                             </span>
@@ -790,7 +788,7 @@ async function removeRating(): Promise<void> {
                     <p class="mt-1 text-xs text-neutral-500">
                         {{
                             sentiment.empty_state_message ||
-                            "Crawler opini publik belum mengumpulkan minimal 30 opini netizen untuk entitas ini. Skor agregat publik akan dihitung otomatis saat pipeline observasi aktif."
+                            'Crawler opini publik belum mengumpulkan minimal 30 opini netizen untuk entitas ini. Skor agregat publik akan dihitung otomatis saat pipeline observasi aktif.'
                         }}
                     </p>
 
@@ -848,14 +846,12 @@ async function removeRating(): Promise<void> {
                         >
                             Metodologi Skor
                         </Link>
-                        <span>•</span>
                         <Link
                             :href="sources()"
                             class="text-emerald-600 hover:underline"
                         >
                             Sumber Data
                         </Link>
-                        <span>•</span>
                         <Link
                             :href="`${contact().url}#koreksi`"
                             class="text-emerald-600 hover:underline"
@@ -901,10 +897,10 @@ async function removeRating(): Promise<void> {
                             {{
                                 new Date(
                                     themes.summary.generated_at,
-                                ).toLocaleDateString("id-ID", {
-                                    day: "numeric",
-                                    month: "long",
-                                    year: "numeric",
+                                ).toLocaleDateString('id-ID', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
                                 })
                             }}. Bisa kurang tepat.
                         </p>
@@ -912,9 +908,7 @@ async function removeRating(): Promise<void> {
 
                     <!-- Ranked List -->
                     <div>
-                        <h3
-                            class="text-xs font-semibold tracking-wider text-neutral-500 uppercase"
-                        >
+                        <h3 class="text-xs font-semibold text-neutral-500">
                             Top 5 Tema Paling Sering Muncul
                         </h3>
                         <div class="mt-3 space-y-2.5">
@@ -952,9 +946,7 @@ async function removeRating(): Promise<void> {
 
                     <!-- Groups: Kelebihan & Kekurangan Menurut Netizen (docs/31 Fase 1) -->
                     <div class="pt-4">
-                        <h4
-                            class="text-xs font-bold tracking-wider text-neutral-500 uppercase"
-                        >
+                        <h4 class="text-xs font-bold text-neutral-500">
                             Kelebihan dan Kekurangan Menurut Netizen
                         </h4>
                         <div class="mt-2.5 grid gap-4 sm:grid-cols-2">
@@ -1025,7 +1017,7 @@ async function removeRating(): Promise<void> {
                     <p class="text-xs text-neutral-500">
                         {{
                             themes.empty_state_message ||
-                            "Belum cukup opini untuk merangkum Suara Netijen."
+                            'Belum cukup opini untuk merangkum Suara Netijen.'
                         }}
                     </p>
                 </div>
@@ -1172,7 +1164,7 @@ async function removeRating(): Promise<void> {
                                         'text-rose-600': (pt.score ?? 0) < 50,
                                     }"
                                 >
-                                    {{ pt.score !== null ? pt.score : "—" }}
+                                    {{ pt.score !== null ? pt.score : '—' }}
                                 </span>
                                 <span
                                     v-if="pt.score !== null"
@@ -1219,7 +1211,7 @@ async function removeRating(): Promise<void> {
                             <template v-if="ratingData.rating_average !== null">
                                 {{ ratingData.rating_average.toFixed(1) }}
                             </template>
-                            <span v-else>—</span>
+                            <span v-else>Belum ada</span>
                             <span class="text-base font-medium text-neutral-400"
                                 >/5</span
                             >
@@ -1245,8 +1237,8 @@ async function removeRating(): Promise<void> {
                             >
                                 {{
                                     ratingData.user_rating === null
-                                        ? "Beri rating Anda"
-                                        : "Rating Anda"
+                                        ? 'Beri rating Anda'
+                                        : 'Rating Anda'
                                 }}
                             </div>
                             <div
@@ -1286,8 +1278,8 @@ async function removeRating(): Promise<void> {
                             >
                                 {{
                                     ratingForm.processing
-                                        ? "Menyimpan..."
-                                        : "Simpan rating & ulasan"
+                                        ? 'Menyimpan...'
+                                        : 'Simpan rating & ulasan'
                                 }}
                             </button>
                             <button
@@ -1462,7 +1454,7 @@ async function removeRating(): Promise<void> {
                             {{ rel.name }}
                         </div>
                         <span
-                            class="mt-1 inline-block text-[10px] text-neutral-400 uppercase"
+                            class="mt-1 inline-block text-[10px] text-neutral-400"
                         >
                             {{ rel.type_label }}
                         </span>
@@ -1485,10 +1477,10 @@ async function removeRating(): Promise<void> {
                         v-for="topic in includedTopics"
                         :key="topic.id"
                         :href="`/topik/${topic.slug}`"
-                        class="block rounded-xl border border-neutral-100 bg-neutral-50 p-3.5 transition hover:border-[#185b3b]/30 hover:bg-[#edf8f0]/30 hover:shadow-xs"
+                        class="hover:border-brand-deep/30 hover:bg-sage/30 block rounded-xl border border-neutral-100 bg-neutral-50 p-3.5 transition hover:shadow-xs"
                     >
                         <div
-                            class="text-xs font-bold text-[#18392d] hover:text-[#087f5b]"
+                            class="text-ink hover:text-brand text-xs font-bold"
                         >
                             {{ topic.title }}
                         </div>

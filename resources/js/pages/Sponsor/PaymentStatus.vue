@@ -127,30 +127,28 @@ onBeforeUnmount(stopPolling);
             class="mx-auto flex max-w-3xl justify-center px-5 py-12 sm:px-8 sm:py-20"
         >
             <section
-                class="w-full rounded-3xl border border-[#e5e9e2] bg-white p-6 text-center shadow-sm sm:p-10"
+                class="border-line w-full rounded-3xl border bg-white p-6 text-center shadow-sm sm:p-10"
             >
                 <div
                     class="mx-auto flex size-16 items-center justify-center rounded-2xl"
                     :class="
                         isPaid
-                            ? 'bg-[#eaf8ee] text-[#168347]'
+                            ? 'bg-sage text-score-high'
                             : isTerminal
-                              ? 'bg-[#fef2f2] text-[#b91c1c]'
-                              : 'bg-[#fff7e8] text-[#d97706]'
+                              ? 'bg-danger-tint text-danger'
+                              : 'bg-danger-tint text-paid'
                     "
                 >
                     <CheckCircle2 v-if="isPaid" class="size-8" />
                     <AlertCircle v-else-if="isTerminal" class="size-8" />
-                    <RefreshCw v-else class="size-8 animate-spin" />
+                    <RefreshCw
+                        v-else
+                        class="size-8 animate-spin motion-reduce:animate-none"
+                    />
                 </div>
 
-                <p
-                    class="mt-6 text-xs font-bold tracking-[2px] text-[#d97706] uppercase"
-                >
-                    Pembayaran Sponsor SuaraNetijen
-                </p>
                 <h1
-                    class="mt-2 text-2xl font-black tracking-tight text-[#18392d] sm:text-3xl"
+                    class="text-ink mt-2 text-2xl font-black tracking-tight sm:text-3xl"
                 >
                     {{
                         isPaid
@@ -161,7 +159,7 @@ onBeforeUnmount(stopPolling);
                     }}
                 </h1>
                 <p
-                    class="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#5d6e61]"
+                    class="text-ink-muted mx-auto mt-3 max-w-xl text-sm leading-6"
                 >
                     <template v-if="isPaid">
                         Pembayaran sudah dikonfirmasi. Anda akan diarahkan ke
@@ -179,23 +177,23 @@ onBeforeUnmount(stopPolling);
                 </p>
 
                 <div
-                    class="mx-auto mt-8 max-w-md rounded-2xl border border-[#e5e9e2] bg-[#f8faf7] p-4 text-left text-sm"
+                    class="border-line bg-canvas mx-auto mt-8 max-w-md rounded-2xl border p-4 text-left text-sm"
                 >
                     <div class="flex items-center justify-between gap-4">
-                        <span class="text-[#5d6e61]">Entitas</span>
-                        <strong class="text-right text-[#18392d]">{{
+                        <span class="text-ink-muted">Entitas</span>
+                        <strong class="text-ink text-right">{{
                             order.entity_name
                         }}</strong>
                     </div>
                     <div class="mt-3 flex items-center justify-between gap-4">
-                        <span class="text-[#5d6e61]">Nominal</span>
-                        <strong class="text-[#92400e]">{{
+                        <span class="text-ink-muted">Nominal</span>
+                        <strong class="text-paid">{{
                             formatRupiah(order.amount)
                         }}</strong>
                     </div>
                     <div class="mt-3 flex items-center justify-between gap-4">
-                        <span class="text-[#5d6e61]">Status</span>
-                        <strong class="text-right text-[#18392d]">{{
+                        <span class="text-ink-muted">Status</span>
+                        <strong class="text-ink text-right">{{
                             statusLabel
                         }}</strong>
                     </div>
@@ -203,7 +201,7 @@ onBeforeUnmount(stopPolling);
 
                 <p
                     v-if="isChecking"
-                    class="mt-5 inline-flex items-center gap-2 text-xs text-[#5d6e61]"
+                    class="text-ink-muted mt-5 inline-flex items-center gap-2 text-xs"
                     role="status"
                     aria-live="polite"
                 >
@@ -211,7 +209,7 @@ onBeforeUnmount(stopPolling);
                 </p>
                 <p
                     v-else-if="lastCheckedAt && !isPaid"
-                    class="mt-5 text-xs text-[#5d6e61]"
+                    class="text-ink-muted mt-5 text-xs"
                     role="status"
                     aria-live="polite"
                 >
@@ -219,7 +217,7 @@ onBeforeUnmount(stopPolling);
                 </p>
                 <p
                     v-if="pollError"
-                    class="mt-3 text-xs text-[#b91c1c]"
+                    class="text-danger mt-3 text-xs"
                     role="alert"
                 >
                     {{ pollError }}
@@ -231,14 +229,14 @@ onBeforeUnmount(stopPolling);
                     <a
                         v-if="!isPaid && paymentLinkUrl"
                         :href="paymentLinkUrl"
-                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#9a3412] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#7c2d12]"
+                        class="bg-paid-strong hover:bg-paid-deep inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white transition"
                     >
                         Kembali ke Pembayaran <ArrowRight class="size-4" />
                     </a>
                     <Link
                         v-if="!isPaid"
                         :href="leaderboardPage()"
-                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#cfd9ce] px-5 py-3 text-sm font-bold text-[#18392d] transition hover:bg-[#f0f7f0]"
+                        class="border-line-strong text-ink hover:bg-sage inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-5 py-3 text-sm font-bold transition"
                     >
                         <Trophy class="size-4" /> Lihat Leaderboard
                     </Link>

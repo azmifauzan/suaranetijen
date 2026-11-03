@@ -1,3 +1,8 @@
+/* Hallmark · checked: 2026-11-03 · genre: editorial (inferred) · scope: homepage (/)
+ * floor: 0 FAIL in page files · fixed: 19, 27, 48, 63, F2, F16, F24 · structural: 58 printed (SEO h1 kept)
+ * waive 48: .public-site neutral scale and .dark/:root shadcn vars are scoped token blocks shared with admin
+ * waive 26b: links and buttons only, no form control or disabled state on the homepage
+ * built: the project · redesign: polish · v2.0.0 */
 @import 'tailwindcss';
 
 @import 'tw-animate-css';
@@ -20,13 +25,19 @@
         --color-neutral-700: #3e553d;
         --color-neutral-800: #2c462f;
         --color-neutral-900: #193c2c;
-        --color-emerald-600: #087f5b;
-        --color-emerald-700: #066446;
+        --color-emerald-600: var(--color-brand);
+        --color-emerald-700: var(--color-brand-strong);
+        scrollbar-color: var(--color-line-strong) transparent;
     }
 
     .public-site :is(a, button, input, select):focus-visible {
-        outline: 2px solid #087f5b;
+        outline: 2px solid var(--color-brand);
         outline-offset: 4px;
+    }
+
+    .public-site ::selection {
+        background: var(--color-brand-tint);
+        color: var(--color-ink);
     }
 
     .public-site button {
@@ -36,6 +47,38 @@
     .public-site main > nav {
         flex-wrap: wrap;
     }
+}
+
+/* Public-site palette: one green family for the index, one amber family for paid placement, three score hues for data. */
+@theme {
+    --color-ink: #18392d;
+    --color-ink-muted: #4f6252;
+    --color-line: #dfe5dc;
+    --color-line-strong: #c7d9ca;
+    --color-line-soft: #edf1ec;
+    --color-canvas: #fafaf7;
+    --color-paper: #f6f8f3;
+    --color-sage: #eff7eb;
+    --color-brand: #087f5b;
+    --color-brand-strong: #066446;
+    --color-brand-deep: #145736;
+    --color-brand-tint: #d5f5df;
+    --color-brand-tint-strong: #bceccb;
+    --color-paid: #92400e;
+    --color-paid-strong: #9a3412;
+    --color-paid-deep: #7c2d12;
+    --color-paid-ink: #3b2a12;
+    --color-paid-muted: #6b5f4d;
+    --color-paid-tint: #fffbf3;
+    --color-paid-soft: #fef3c7;
+    --color-paid-line: #efe0c6;
+    --color-star: #d97706;
+    --color-score-high: #1f8a5b;
+    --color-score-mid: #c98a1b;
+    --color-score-low: #c4513f;
+    --color-danger: #b91c1c;
+    --color-danger-tint: #fef2f2;
+    --color-info: #2563eb;
 }
 
 @theme inline {

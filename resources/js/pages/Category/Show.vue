@@ -80,7 +80,12 @@ const props = defineProps<{
     filteredEntities: FilteredItem[] | null;
     otherCategories: OtherCategory[];
     searchQuery: string | null;
-    relatedTopics?: Array<{ id: number; slug: string; title: string; keyword: string }>;
+    relatedTopics?: Array<{
+        id: number;
+        slug: string;
+        title: string;
+        keyword: string;
+    }>;
 }>();
 
 const query = ref(props.searchQuery || '');
@@ -92,7 +97,8 @@ const siteUrl = computed(() => {
 });
 
 const pageDescription = computed(
-    () => `Review dan sentimen netizen untuk ${props.category.total_entities} entitas ${props.category.name}: skor, tema yang sering dipuji dan dikeluhkan.`,
+    () =>
+        `Review dan sentimen netizen untuk ${props.category.total_entities} entitas ${props.category.name}: skor, tema yang sering dipuji dan dikeluhkan.`,
 );
 
 const breadcrumbJsonLd = computed(() => ({
@@ -156,7 +162,11 @@ function handleSearch() {
             :title="`${category.name}: Sentimen Netizen dan Review`"
             :description="pageDescription"
             :canonical-path="`/category/${category.slug}`"
-            :robots="searchQuery || category.total_entities === 0 ? 'noindex, follow' : 'index, follow'"
+            :robots="
+                searchQuery || category.total_entities === 0
+                    ? 'noindex, follow'
+                    : 'index, follow'
+            "
         >
             <component :is="'script'" type="application/ld+json">
                 {{ JSON.stringify(breadcrumbJsonLd) }}
@@ -189,11 +199,6 @@ function handleSearch() {
             >
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <div
-                            class="text-xs font-semibold tracking-wider text-emerald-600 uppercase"
-                        >
-                            Kategori
-                        </div>
                         <h1
                             class="mt-1 text-2xl font-black tracking-tight text-neutral-900 sm:text-3xl"
                         >
@@ -206,7 +211,7 @@ function handleSearch() {
                         </p>
                         <p
                             v-if="category.context_description"
-                            class="mt-3 text-sm leading-relaxed text-neutral-600 border-t border-neutral-100 pt-3"
+                            class="mt-3 border-t border-neutral-100 pt-3 text-sm leading-relaxed text-neutral-600"
                         >
                             {{ category.context_description }}
                         </p>
@@ -216,7 +221,7 @@ function handleSearch() {
                         :href="showRanking.url(category.slug)"
                         class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
                     >
-                        Lihat Ranking Lengkap →
+                        Lihat Ranking Lengkap
                     </Link>
                 </div>
 
@@ -247,7 +252,7 @@ function handleSearch() {
             <!-- Filtered Search Results (if user searched) -->
             <div v-if="filteredEntities !== null" class="mt-8">
                 <h2
-                    class="text-sm font-bold tracking-wider text-neutral-500 uppercase"
+                    class="min-w-0 text-sm font-bold break-words text-neutral-500"
                 >
                     Hasil Filter untuk "{{ searchQuery }}" ({{
                         filteredEntities.length
@@ -301,7 +306,7 @@ function handleSearch() {
                             :href="showRanking.url(category.slug)"
                             class="text-xs font-semibold text-emerald-600 hover:underline"
                         >
-                            Semua Ranking →
+                            Semua Ranking
                         </Link>
                     </div>
 
@@ -325,7 +330,7 @@ function handleSearch() {
                                         {{ item.name }}
                                     </Link>
                                     <div class="text-xs text-neutral-400">
-                                        {{ item.type_label }} •
+                                        {{ item.type_label }},
                                         {{ item.opinion_count }} opini
                                     </div>
                                 </div>
@@ -385,9 +390,7 @@ function handleSearch() {
                                     >
                                         {{ item.name }}
                                     </div>
-                                    <span
-                                        class="text-[10px] text-neutral-400 uppercase"
-                                    >
+                                    <span class="text-[10px] text-neutral-400">
                                         {{ item.type_label }}
                                     </span>
                                 </div>
@@ -428,9 +431,7 @@ function handleSearch() {
                                     >
                                         {{ item.name }}
                                     </div>
-                                    <span
-                                        class="text-[10px] text-neutral-400 uppercase"
-                                    >
+                                    <span class="text-[10px] text-neutral-400">
                                         {{ item.type_label }}
                                     </span>
                                 </div>
@@ -456,7 +457,9 @@ function handleSearch() {
 
             <!-- All entities: every indexable page in this category gets a crawlable link (docs/31 Fase 2) -->
             <section
-                v-if="!filteredEntities && allEntities && allEntities.length > 0"
+                v-if="
+                    !filteredEntities && allEntities && allEntities.length > 0
+                "
                 class="mt-12"
                 aria-labelledby="all-entities-heading"
             >
@@ -467,17 +470,26 @@ function handleSearch() {
                     Semua {{ category.name }} yang Dinilai Netizen
                 </h2>
                 <p class="mt-0.5 text-xs text-neutral-500">
-                    {{ allEntities.length }} entitas dengan minimal 30 opini, diurutkan dari opini terbanyak.
+                    {{ allEntities.length }} entitas dengan minimal 30 opini,
+                    diurutkan dari opini terbanyak.
                 </p>
-                <ul class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                <ul
+                    class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3"
+                >
                     <li v-for="item in allEntities" :key="item.slug">
                         <Link
                             :href="showEntity.url(item.slug)"
                             class="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm transition hover:border-emerald-300 hover:bg-emerald-50/40"
                         >
-                            <span class="font-semibold text-neutral-900">{{ item.name }}</span>
+                            <span class="font-semibold text-neutral-900">{{
+                                item.name
+                            }}</span>
                             <span class="shrink-0 text-xs text-neutral-500">
-                                {{ item.opinion_count }} opini<template v-if="item.score !== null"> · {{ Math.round(item.score) }}/100</template>
+                                {{ item.opinion_count }} opini<template
+                                    v-if="item.score !== null"
+                                    >, skor {{ Math.round(item.score) }} dari
+                                    100</template
+                                >
                             </span>
                         </Link>
                     </li>
@@ -485,18 +497,23 @@ function handleSearch() {
             </section>
 
             <!-- Related Topics (docs/28) -->
-            <div v-if="relatedTopics && relatedTopics.length > 0" class="mt-12 rounded-2xl border border-[#e5e9e2] bg-[#f9faf7] p-6">
-                <div class="text-xs font-semibold tracking-wider text-emerald-600 uppercase">
+            <div
+                v-if="relatedTopics && relatedTopics.length > 0"
+                class="border-line bg-canvas mt-12 rounded-2xl border p-6"
+            >
+                <div class="text-xs font-semibold text-emerald-600">
                     Topik Terkait Kategori Ini
                 </div>
-                <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                <div
+                    class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3"
+                >
                     <Link
                         v-for="topic in relatedTopics"
                         :key="topic.id"
                         :href="`/topik/${topic.slug}`"
-                        class="block rounded-xl border border-white bg-white p-4 transition hover:border-[#185b3b]/30 hover:shadow-xs"
+                        class="hover:border-brand-deep/30 block rounded-xl border border-white bg-white p-4 transition hover:shadow-xs"
                     >
-                        <div class="font-bold text-[#18392d] hover:text-[#087f5b]">
+                        <div class="text-ink hover:text-brand font-bold">
                             {{ topic.title }}
                         </div>
                         <div class="mt-1 text-xs text-neutral-500">
@@ -512,26 +529,30 @@ function handleSearch() {
                     Cara membaca halaman {{ category.name }}
                 </h2>
                 <p class="mt-3 text-sm leading-relaxed text-neutral-700">
-                    Sentimen Netijen adalah skor 0-100 dari opini netizen yang relevan dengan tiap entitas di kategori
-                    {{ category.name }}. Opini positif dihitung penuh, netral setengah, negatif nol. Skor baru tampil
-                    setelah entitas punya minimal 30 opini, supaya angka tidak datang dari segelintir komentar.
+                    Sentimen Netijen adalah skor 0-100 dari opini netizen yang
+                    relevan dengan tiap entitas di kategori
+                    {{ category.name }}. Opini positif dihitung penuh, netral
+                    setengah, negatif nol. Skor baru tampil setelah entitas
+                    punya minimal 30 opini, supaya angka tidak datang dari
+                    segelintir komentar.
                 </p>
                 <p class="mt-3 text-sm leading-relaxed text-neutral-700">
-                    SuaraNetijen mengambil opini dari forum, kolom komentar, dan platform video yang terbuka untuk umum.
-                    Penulis opini tidak ikut dinilai dan namanya tidak kami simpan. Rating Netijen, yaitu bintang dari
-                    pengguna, punya hitungan sendiri dan tidak dicampur dengan skor sentimen.
+                    SuaraNetijen mengambil opini dari forum, kolom komentar, dan
+                    platform video yang terbuka untuk umum. Penulis opini tidak
+                    ikut dinilai dan namanya tidak kami simpan. Rating Netijen,
+                    yaitu bintang dari pengguna, punya hitungan sendiri dan
+                    tidak dicampur dengan skor sentimen.
                 </p>
                 <p class="mt-3 text-sm leading-relaxed text-neutral-700">
-                    Pilih satu entitas untuk melihat sebaran sentimen dan tema yang paling sering dibahas. Kolom
-                    pencarian di atas membantu menyaring entitas menurut nama.
+                    Pilih satu entitas untuk melihat sebaran sentimen dan tema
+                    yang paling sering dibahas. Kolom pencarian di atas membantu
+                    menyaring entitas menurut nama.
                 </p>
             </section>
 
             <!-- Other Categories -->
             <div class="mt-12 border-t border-neutral-200 pt-8">
-                <div
-                    class="text-xs font-semibold tracking-wider text-neutral-400 uppercase"
-                >
+                <div class="text-xs font-semibold text-neutral-400">
                     Kategori Lainnya:
                 </div>
                 <div class="mt-3 flex flex-wrap gap-2">
