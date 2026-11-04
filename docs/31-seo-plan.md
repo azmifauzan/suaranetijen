@@ -1160,3 +1160,11 @@ Usulan perubahan plan (saran, belum diputuskan):
 - **Data:** di produksi 3.100 produk tidak punya `parent_id`; 1.462 di antaranya cocok dengan brand lewat awalan nama di kategori yang
   sama (dry-run read-only). Backfill ini syarat hub dan daftar produk berisi; dijalankan bersama deploy.
 - Ukur ulang trigram bersama antar halaman banding setelah deploy (sebelumnya 76% antara `infinix-vs-samsung` dan `infinix-vs-tecno`).
+
+**Deploy 4 November 2026:** `d2ee242` (image `sha256:2e8404f4…03bc8`) di host utama; worker 1-3 tetap image lama (perubahan
+hanya halaman web). Backfill `parent_id` 1.462/1.462 produk; Infinix kini 130 produk anak; 1.638 produk masih tanpa brand
+(nama tidak diawali nama brand, mis. `iPhone`/`Redmi`, atau kategori di luar smartphone). Cache halaman, sitemap, dan Cloudflare
+di-purge. Live: `/e/infinix` menampilkan "Produk Infinix yang dibahas netizen"; `/banding/infinix-vs-tecno`, `infinix-vs-samsung`,
+`realme-vs-vivo` menampilkan skor 30/90 hari, ringkasan, tema bersama, dan produk; sitemap berisi 59 `/banding`. Trigram bersama:
+`infinix-vs-samsung` vs `infinix-vs-tecno` 76% -> 68% (sisi Infinix sama, wajar); vs `realme-vs-vivo` 39%. Ukur dampak impresi
+mulai ~18 Nov (2 minggu data GSC setelah deploy).
