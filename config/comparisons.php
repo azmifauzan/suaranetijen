@@ -6,6 +6,9 @@
  * Each pair is two entity slugs in alphabetical order, joined by "-vs-", and picked because people search
  * for it ("oppo vs vivo bagus mana"). Any other pair of eligible entities in the same category still
  * renders, but is noindex and absent from the sitemap, so the set of indexed pages stays curated.
+ *
+ * Pruned on 4 Nov 2026: pairs with zero Search Console impressions 16 days after they shipped were removed
+ * (docs/31, "Analisis penurunan impresi GSC"). Re-add a pair only with new evidence of demand.
  */
 return [
     'pairs' => [
@@ -15,23 +18,18 @@ return [
         'apple-vs-samsung',
         'apple-vs-vivo',
         'apple-vs-xiaomi',
-        'bank-central-asia-vs-bank-mandiri',
         'byd-atto-1-vs-wuling-air-ev',
         'byd-vs-chery',
         'byd-vs-hyundai',
         'byd-vs-vinfast',
         'daihatsu-vs-toyota',
         'gojek-vs-grab',
-        'honda-adv-160-vs-yamaha-nmax-155',
-        'honda-hr-v-vs-hyundai-creta',
         'honda-mobil-vs-toyota',
         'honda-motor-vs-yamaha-motor',
         'honda-hr-v-vs-jaecoo-j5-ev',
-        'hyundai-stargazer-vs-mitsubishi-xpander',
         'hyundai-vs-kia',
         'hyundai-vs-toyota',
         'indihome-vs-myrepublic',
-        'infinix-gt-30-pro-vs-poco-x7-pro',
         'infinix-vs-oppo',
         'infinix-vs-poco',
         'infinix-vs-realme',
@@ -45,8 +43,6 @@ return [
         'iphone-16-vs-iphone-17',
         'jaecoo-j5-ev-vs-wuling-air-ev',
         'lg-vs-polytron',
-        'mitsubishi-pajero-sport-vs-toyota-fortuner',
-        'mitsubishi-xpander-vs-suzuki-ertiga-hybrid',
         'mitsubishi-xpander-vs-toyota-avanza',
         'oppo-vs-poco',
         'oppo-vs-realme',

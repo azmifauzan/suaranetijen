@@ -7,6 +7,9 @@ use App\Domains\Entities\Models\Entity;
 use App\Domains\Entities\Services\EntityComparison;
 use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
+use App\Domains\Themes\Models\EntityThemeSnapshot;
+use App\Domains\Themes\Models\EntityThemeSummary;
+use App\Domains\Themes\Models\Theme;
 use App\Http\Controllers\SitemapController;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -229,4 +232,84 @@ test('an entity page lists every curated comparison up to ten, not just six', fu
     }
 
     $this->get('/e/oppo')->assertInertia(fn (Assert $page) => $page->has('comparisons', 8));
+});
+
+function comparisonTheme(Entity $entity, string $slug, string $label, int $positive, int $negative): void
+{
+    $theme = Theme::query()->firstOrCreate(['slug' => $slug], ['display_label' => $label, 'canonical_key' => $slug]);
+
+    EntityThemeSnapshot::create([
+        'entity_id' => $entity->id,
+        'theme_id' => $theme->id,
+        'window' => Period::OneYear,
+        'observation_count' => $positive + $negative,
+        'positive_count' => $positive,
+        'neutral_count' => 0,
+        'negative_count' => $negative,
+        'rank' => 1,
+        'calculated_at' => now(),
+    ]);
+}
+
+function comparisonPeriodSnapshot(Entity $entity, Period $period, int $opinions, float $score): void
+{
+    SentimentSnapshot::query()->create([
+        'entity_id' => $entity->id,
+        'period' => $period->value,
+        'score' => $score,
+        'opinion_count' => $opinions,
+        'positive_count' => $opinions,
+        'neutral_count' => 0,
+        'negative_count' => 0,
+        'sentiment_model_version' => 'v1',
+        'score_formula_version' => 'v1',
+        'calculated_at' => now(),
+    ]);
+}
+
+test('a comparison page carries facts specific to the pair: summaries, recent windows, shared themes and products', function () {
+    $oppo = comparisonEntity('oppo', 'Oppo', 200, 70.2);
+    $vivo = comparisonEntity('vivo', 'Vivo', 150, 89.1);
+
+    comparisonTheme($oppo, 'baterai-awet', 'Baterai awet', 9, 1);
+    comparisonTheme($vivo, 'baterai-awet', 'Baterai awet', 8, 0);
+    comparisonTheme($vivo, 'kamera-jernih', 'Kamera jernih', 7, 0);
+
+    EntityThemeSummary::create(['entity_id' => $oppo->id, 'summary' => 'Netizen sering membahas baterai Oppo.', 'theme_notes' => [], 'opinion_count' => 200, 'generated_at' => now()]);
+
+    comparisonPeriodSnapshot($oppo, Period::ThirtyDays, 40, 66.0);
+    comparisonPeriodSnapshot($oppo, Period::NinetyDays, 10, 50.0);
+
+    $quiet = comparisonEntity('oppo-a5', 'Oppo A5', 40, 60.0);
+    $loud = comparisonEntity('oppo-reno-14', 'Oppo Reno 14', 90, 75.0);
+    Entity::query()->whereKey([$quiet->id, $loud->id])->update(['parent_id' => $oppo->id, 'type' => EntityType::Product]);
+
+    $this->get('/banding/oppo-vs-vivo')->assertInertia(fn (Assert $page) => $page
+        ->where('comparison.shared_themes.positive', ['Baterai awet'])
+        ->where('comparison.shared_themes.negative', [])
+        ->where('comparison.sides.0.summary', 'Netizen sering membahas baterai Oppo.')
+        ->where('comparison.sides.1.summary', null)
+        ->where('comparison.sides.0.recent_scores', [['period' => '30d', 'score' => 66, 'opinion_count' => 40]])
+        ->where('comparison.sides.0.products', [
+            ['name' => 'Oppo Reno 14', 'slug' => 'oppo-reno-14'],
+            ['name' => 'Oppo A5', 'slug' => 'oppo-a5'],
+        ])
+        ->where('comparison.sides.1.products', []));
+});
+
+test('a brand page lists its active products, most discussed first, and a product page lists none', function () {
+    $oppo = comparisonEntity('oppo', 'Oppo', 200, 70.2);
+    $a5 = comparisonEntity('oppo-a5', 'Oppo A5', 40, 60.0);
+    $reno = comparisonEntity('oppo-reno-14', 'Oppo Reno 14', 90, 75.0);
+    $hidden = comparisonEntity('oppo-lama', 'Oppo Lama', 300, 75.0);
+    Entity::query()->whereKey([$a5->id, $reno->id, $hidden->id])->update(['parent_id' => $oppo->id, 'type' => EntityType::Product]);
+    $hidden->update(['status' => EntityStatus::Disabled]);
+
+    $this->get('/e/oppo')->assertInertia(fn (Assert $page) => $page
+        ->where('products', [
+            ['name' => 'Oppo Reno 14', 'slug' => 'oppo-reno-14'],
+            ['name' => 'Oppo A5', 'slug' => 'oppo-a5'],
+        ]));
+
+    $this->get('/e/oppo-reno-14')->assertInertia(fn (Assert $page) => $page->where('products', []));
 });

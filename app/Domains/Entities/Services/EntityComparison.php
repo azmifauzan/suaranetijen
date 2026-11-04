@@ -3,7 +3,9 @@
 namespace App\Domains\Entities\Services;
 
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Sentiment\Enums\Period;
 use App\Domains\Sentiment\Models\SentimentSnapshot;
+use App\Domains\Sentiment\Services\ScoreCalculator;
 use App\Domains\Themes\Services\PublicCopyGuard;
 use App\Domains\Themes\Services\TopThemesService;
 use Illuminate\Support\Str;
@@ -15,6 +17,8 @@ use Illuminate\Support\Str;
 class EntityComparison
 {
     private const MIN_GAP = 5;
+
+    private const PRODUCT_LINKS = 6;
 
     public function __construct(
         protected EntityOgImage $snapshots,
@@ -54,7 +58,7 @@ class EntityComparison
     /**
      * Both sides of a pair, or null when either entity is missing, thin, or the two are not in the same category.
      *
-     * @return array{sides: array<int, array<string, mixed>>, verdict: string, same_category: bool}|null
+     * @return array{sides: array<int, array<string, mixed>>, verdict: string, same_category: bool, shared_themes: array{positive: array<int, string>, negative: array<int, string>}}|null
      */
     public function build(Entity $a, Entity $b): ?array
     {
@@ -74,6 +78,10 @@ class EntityComparison
             'sides' => $sides,
             'verdict' => $this->verdict($sides[0], $sides[1]),
             'same_category' => $a->category_id === $b->category_id,
+            'shared_themes' => [
+                'positive' => $this->sharedThemeLabels($sides[0]['positive_themes'], $sides[1]['positive_themes']),
+                'negative' => $this->sharedThemeLabels($sides[0]['negative_themes'], $sides[1]['negative_themes']),
+            ],
         ];
     }
 
@@ -225,7 +233,53 @@ class EntityComparison
             ],
             'positive_themes' => array_slice(PublicCopyGuard::publishableThemes($themes['positive_themes']), 0, 3),
             'negative_themes' => array_slice(PublicCopyGuard::publishableThemes($themes['negative_themes']), 0, 3),
+            'summary' => $themes['summary']['text'] ?? null,
+            'recent_scores' => $this->recentScores($entity),
+            'products' => $entity->mostDiscussedChildren(self::PRODUCT_LINKS)
+                ->map(fn (Entity $child): array => ['name' => $child->name, 'slug' => $child->slug])
+                ->all(),
         ];
+    }
+
+    /**
+     * Scores for the shorter windows that clear the public threshold, so a reader sees whether the
+     * year-long picture still holds lately. Each entry names its window (docs/11 periods).
+     *
+     * @return array<int, array{period: string, score: float, opinion_count: int}>
+     */
+    protected function recentScores(Entity $entity): array
+    {
+        return SentimentSnapshot::query()
+            ->where('entity_id', $entity->id)
+            ->whereIn('period', [Period::ThirtyDays->value, Period::NinetyDays->value])
+            ->whereNotNull('score')
+            ->get()
+            ->filter(fn (SentimentSnapshot $snapshot): bool => ScoreCalculator::isPublicScoreEligible((int) $snapshot->opinion_count))
+            ->sortBy(fn (SentimentSnapshot $snapshot): int => $snapshot->period->days() ?? PHP_INT_MAX)
+            ->map(fn (SentimentSnapshot $snapshot): array => [
+                'period' => $snapshot->period->value,
+                'score' => round((float) $snapshot->score, 1),
+                'opinion_count' => (int) $snapshot->opinion_count,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Labels of themes both sides share, matched by theme id so two entities praised for the same thing line up.
+     *
+     * @param  array<int, array{id: int, display_label: string}>  $first
+     * @param  array<int, array{id: int, display_label: string}>  $second
+     * @return array<int, string>
+     */
+    protected function sharedThemeLabels(array $first, array $second): array
+    {
+        $secondIds = array_column($second, 'id');
+
+        return array_values(array_map(
+            fn (array $theme): string => $theme['display_label'],
+            array_filter($first, fn (array $theme): bool => in_array($theme['id'], $secondIds, true)),
+        ));
     }
 
     /**

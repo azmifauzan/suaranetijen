@@ -136,6 +136,26 @@ class Entity extends Model
     }
 
     /**
+     * Active, searchable children with the most opinions in the last year first, so a brand page and a
+     * comparison page link to the products people actually talk about.
+     *
+     * @return Collection<int, Entity>
+     */
+    public function mostDiscussedChildren(int $limit): Collection
+    {
+        return $this->children()
+            ->active()
+            ->where('searchable', true)
+            ->orderByRaw(
+                'COALESCE((SELECT opinion_count FROM sentiment_snapshots WHERE sentiment_snapshots.entity_id = entities.id AND period = ?), 0) DESC',
+                [Period::OneYear->value],
+            )
+            ->orderBy('name')
+            ->limit($limit)
+            ->get(['id', 'name', 'slug']);
+    }
+
+    /**
      * Get the aliases associated with this entity.
      *
      * @return HasMany<EntityAlias, $this>

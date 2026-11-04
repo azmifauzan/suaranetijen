@@ -187,6 +187,7 @@ const props = defineProps<{
     entitySeo?: SeoData;
     ogImage?: string | null;
     comparisons?: Array<{ pair: string; label: string }>;
+    products?: Array<{ name: string; slug: string }>;
     reviewVideos?: Array<{ youtube_id: string; title: string }>;
 }>();
 
@@ -1408,6 +1409,29 @@ async function removeRating(): Promise<void> {
                     </div>
                 </div>
             </div>
+
+            <section
+                v-if="products && products.length > 0"
+                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
+                aria-labelledby="products-heading"
+            >
+                <h3
+                    id="products-heading"
+                    class="text-sm font-bold text-neutral-900"
+                >
+                    Produk {{ entity.name }} yang dibahas netizen
+                </h3>
+                <ul class="mt-3 flex flex-wrap gap-2">
+                    <li v-for="product in products" :key="product.slug">
+                        <Link
+                            :href="showEntity.url(product.slug)"
+                            class="inline-flex min-h-11 items-center rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-800 hover:border-emerald-300 hover:bg-emerald-50/40"
+                        >
+                            {{ product.name }}
+                        </Link>
+                    </li>
+                </ul>
+            </section>
 
             <!-- Comparisons (docs/31 Fase 3) -->
             <section

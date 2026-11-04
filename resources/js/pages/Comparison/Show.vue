@@ -30,12 +30,24 @@ interface Side {
     };
     positive_themes: Theme[];
     negative_themes: Theme[];
+    summary: string | null;
+    recent_scores: Array<{
+        period: '30d' | '90d';
+        score: number;
+        opinion_count: number;
+    }>;
+    products: Array<{ name: string; slug: string }>;
 }
 
 const props = defineProps<{
     pair: string;
     indexable: boolean;
-    comparison: { sides: Side[]; verdict: string; same_category: boolean };
+    comparison: {
+        sides: Side[];
+        verdict: string;
+        same_category: boolean;
+        shared_themes: { positive: string[]; negative: string[] };
+    };
     comparisonSeo: {
         title: string;
         meta_description: string;
@@ -53,6 +65,10 @@ const robots = computed(() =>
     props.indexable ? 'index, follow' : 'noindex, follow',
 );
 const formatCount = (value: number): string => value.toLocaleString('id-ID');
+const windowLabel = (period: '30d' | '90d'): string =>
+    period === '30d' ? 'Dalam 30 hari terakhir' : 'Dalam 90 hari terakhir';
+const sharedPositive = computed(() => props.comparison.shared_themes.positive);
+const sharedNegative = computed(() => props.comparison.shared_themes.negative);
 const trackEntityClick = (slug: string): void =>
     trackEvent('comparison_entity_click', { pair: props.pair, entity: slug });
 const trackRelatedClick = (pair: string): void =>
@@ -172,6 +188,27 @@ const trackRelatedClick = (pair: string): void =>
                         negatif
                     </p>
 
+                    <ul
+                        v-if="side.recent_scores.length > 0"
+                        class="mt-3 space-y-1 text-xs text-neutral-600"
+                    >
+                        <li
+                            v-for="recent in side.recent_scores"
+                            :key="recent.period"
+                        >
+                            {{ windowLabel(recent.period) }}: skor
+                            {{ Math.round(recent.score) }}/100 dari
+                            {{ formatCount(recent.opinion_count) }} opini
+                        </li>
+                    </ul>
+
+                    <p
+                        v-if="side.summary"
+                        class="mt-4 text-sm leading-relaxed text-neutral-700"
+                    >
+                        {{ side.summary }}
+                    </p>
+
                     <h3 class="mt-5 text-xs font-bold text-neutral-500">
                         Sering dipuji
                     </h3>
@@ -212,6 +249,25 @@ const trackRelatedClick = (pair: string): void =>
                         Belum ada keluhan berulang yang terdeteksi.
                     </p>
 
+                    <template v-if="side.products.length > 0">
+                        <h3 class="mt-4 text-xs font-bold text-neutral-500">
+                            Produk {{ side.name }} yang dibahas netizen
+                        </h3>
+                        <ul class="mt-2 flex flex-wrap gap-1.5">
+                            <li
+                                v-for="product in side.products"
+                                :key="product.slug"
+                            >
+                                <Link
+                                    :href="showEntity.url(product.slug)"
+                                    class="inline-flex min-h-9 items-center rounded-md border border-neutral-200 px-2.5 text-xs font-medium text-neutral-700 hover:border-emerald-300 hover:text-emerald-700"
+                                    @click="trackEntityClick(product.slug)"
+                                    >{{ product.name }}</Link
+                                >
+                            </li>
+                        </ul>
+                    </template>
+
                     <Link
                         :href="showEntity.url(side.slug)"
                         class="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-emerald-700 hover:underline"
@@ -221,6 +277,33 @@ const trackRelatedClick = (pair: string): void =>
                     </Link>
                 </section>
             </div>
+
+            <section
+                v-if="sharedPositive.length > 0 || sharedNegative.length > 0"
+                class="mt-6 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-6"
+                aria-labelledby="shared-themes"
+            >
+                <h2
+                    id="shared-themes"
+                    class="text-lg font-bold text-neutral-900"
+                >
+                    Yang sama dari {{ a.name }} dan {{ b.name }}
+                </h2>
+                <p
+                    v-if="sharedPositive.length > 0"
+                    class="mt-2 text-sm text-neutral-700"
+                >
+                    Netizen sama-sama memuji {{ a.name }} dan {{ b.name }} soal
+                    {{ sharedPositive.join(', ') }}.
+                </p>
+                <p
+                    v-if="sharedNegative.length > 0"
+                    class="mt-2 text-sm text-neutral-700"
+                >
+                    Keluhan yang muncul di keduanya:
+                    {{ sharedNegative.join(', ') }}.
+                </p>
+            </section>
 
             <p class="mt-4 text-xs text-neutral-500">
                 Dua skor ini dihitung terpisah dari opini publik masing-masing

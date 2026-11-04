@@ -28,6 +28,8 @@ use Inertia\Response;
 
 class EntityShowController extends Controller
 {
+    private const BRAND_PRODUCT_LINKS = 12;
+
     public function __construct(
         protected TopThemesService $topThemesService,
         protected EntitySeoService $entitySeoService,
@@ -275,6 +277,9 @@ class EntityShowController extends Controller
                 'type_label' => $e->type->label(),
             ]),
             'specs' => $this->buildSpecs($entity),
+            'products' => $entity->type === EntityType::Brand
+                ? $entity->mostDiscussedChildren(self::BRAND_PRODUCT_LINKS)->map(fn (Entity $child): array => ['name' => $child->name, 'slug' => $child->slug])
+                : [],
             'includedTopics' => SearchLandingPage::query()
                 ->published()
                 ->where(function ($q) use ($entity) {

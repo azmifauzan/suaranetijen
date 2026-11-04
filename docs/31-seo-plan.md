@@ -1086,3 +1086,77 @@ beda jendela dengan GSC 47 klik di snapshot 26 Okt). Keyword dicek 6 hari lalu.
 
 Catatan: saran "tambah bagian" harus tetap dalam batas produk (tanpa aspek skor, spesifikasi hanya dari blok `specs` referensi,
 tanpa harga/benchmark); tautan masuk dari halaman terkait sejalan dengan tindak lanjut Best structure di atas.
+
+## Pembaruan sumber data SEO 4 November 2026
+
+Sumber: Google Search Console (28 hari, 5 Okt-1 Nov, data tertinggal ~2 hari), Page indexing GSC, GA4 properti SuaraNetijen (home, 7 hari 28 Okt-3 Nov), RankMySEO (Starter, "Last check 4 Nov"), Ubersuggest/Neil Patel (paket gratis, dashboard 4 Nov). Dibaca 4 Nov. Angka yang tidak disebut tetap dari snapshot sebelumnya.
+
+| Metrik | Sebelumnya | 4 Nov |
+|---|---|---|
+| GSC klik / tayang 28 hari | 47 klik (26 Okt) | **54 klik, 8,48K tayang**, CTR 0,6%, posisi rata-rata 7,7 |
+| GSC query unik | - | 687 (terbanyak: `review jaecoo j5 ev` 2 klik/18 tayang, `infinix dan oppo bagus mana` 1/61) |
+| Page indexing GSC | 78 terindeks (2 Okt) | **287 terindeks**, 3K tidak: 2.867 `noindex`, 56 discovered-not-indexed, 31 404 (validasi Failed), 24 redirect, 17 alternate canonical, 6 crawled-not-indexed, 1 server error 5xx (validasi Started) |
+| RankMySEO skor on-page | 91 (28 Okt) | **91** (600 halaman, 52 isu); review terakhir gagal selesai, dicoba lagi 07:39 UTC |
+| RankMySEO keyword top 20 | 2 | 2 (`infinix vs tecno bagus mana` 17, `review jaecoo j5 ev` 16); top 10 = 0; posisi rata-rata 16,5 |
+| RankMySEO klik / tayang 28 hari | 52 / 7,4K (28 Okt) | 54 / 8,6K (-50% vs 14 hari sebelumnya per RankMySEO) |
+| RankMySEO authority / referring domain | 2 / 1 (28 Okt) | 4 / 7 (backlink 41; estimasi September, "Outdated") |
+| Ubersuggest | - | skor on-page 100, 6 isu; 8 keyword organik; trafik organik 54; backlink 43; DA 4; 6 keyword terlacak semua belum ranking; kompetitor, grafik tren, AI visibility terkunci (trial) |
+| GA4 7 hari (28 Okt-3 Nov) | - | 52 pengguna aktif, 68 sesi, 12 key event; Referral 30, Direct 17, Organic Search 11, Email 4, Organic Social 3, AI Assistant 1 |
+
+Catatan pembacaan:
+- GSC dan RankMySEO sama-sama 54 klik: RankMySEO menarik dari GSC, jadi bukan dua sumber independen.
+- GSC Page indexing: 404 31 URL berstatus validasi "Failed"; 5xx tinggal 1 (validasi berjalan). Indeks naik 78 -> 287 sejak 2 Okt.
+- Ubersuggest 100 vs RankMySEO 91 beda sampel dan aturan; jangan dibandingkan langsung. Ubersuggest masih mencatat `/e/infinix%20note%2030%205g` (#70); live sudah 301, tidak ada tindakan.
+- GA4 28 hari tidak termuat (laporan Traffic acquisition kosong saat dibaca); angka GA4 di atas hanya 7 hari dan tidak bisa dibandingkan dengan 90 sesi organik 28 hari di 26 Okt. Properti GA4 default yang terbuka di akun adalah Fabriku; SuaraNetijen dipilih manual.
+- Ubersuggest Next Actions (12 saran, 6 quick-win): optimasi `/e/jaecoo-j5-ev` (#19), `/banding/infinix-vs-vivo` (#51), `/e/albert-zhang` (#27, person: tidak dijadikan target, `docs/28`), `/banding/samsung-vs-xiaomi` (#39). Saran, belum diputuskan.
+
+Tindak lanjut:
+- Ulangi GA4 28 hari (Traffic acquisition) dan daftar URL isu RankMySEO setelah review 07:39 UTC.
+- Cek 31 URL 404 di GSC (kemungkinan entitas/topik yang dihapus atau URL berspasi) sebelum menekan "Validate fix" lagi.
+- Judul/snippet yang diubah 26 Okt: verdict CTR baru layak setelah ~28 hari data (setelah ~23 Nov).
+
+### Analisis penurunan impresi GSC (dibaca 4 November 2026)
+
+Data harian GSC (properti mulai 19 Sep): impresi naik dari <10/hari (sampai 3 Okt) ke puncak 581 (16 Okt), lalu turun hampir
+tiap hari sampai 155-204 (31 Okt-1 Nov). Perbandingan 14-20 Okt vs 26 Okt-1 Nov: impresi 3,58K -> 1,59K, klik 25 -> 3,
+posisi rata-rata 7,1 -> 7,9.
+
+- **Bukan halaman rusak.** Halaman yang turun paling banyak (`/banding/infinix-vs-samsung` 333 -> 39, `/banding/infinix-vs-tecno`
+  247 -> 9, `/banding/realme-vs-samsung` 196 -> 62) dicek live: 200, `index, follow`, canonical ke dirinya sendiri, SSR berisi.
+- **Query keluar dari hasil, bukan turun pelan.** Dari 494 query terlihat, 298 query yang tayang 14-20 Okt (798 impresi) tidak
+  tayang lagi; posisinya saat itu 4-10 (mis. `tecno dan infinix bagus mana` posisi 6,8 -> tidak tayang, `infinix dan samsung
+  bagus mana` 5,6 -> tidak tayang). Posisi rata-rata tetap ~7-8 karena query yang hilang tidak dihitung lagi (survivor bias).
+- **Hampir seluruh penurunan dari `/banding` (2.521 -> 1.147) dan `/e` (1.027 -> 432).** Hub, kategori, dan topik kecil sejak awal.
+- **Mulai sebelum deploy 26 Okt** (`06b46c4`, meta banding answer-first): penurunan sudah berjalan sejak 18 Okt, jadi deploy itu
+  bukan penyebab utama. Efeknya pada CTR belum bisa dinilai sebelum ~23 Nov.
+- **Penjelasan paling cocok (belum terbukti):** pola "uji coba" Google untuk halaman baru. Halaman `/banding` (66 di sitemap) diberi
+  posisi bagus sementara, lalu dinilai ulang. Halaman banding mirip satu sama lain: ~415 kata per halaman dan 76% trigram sama antara
+  `infinix-vs-samsung` dan `infinix-vs-tecno`, jadi Google bisa menganggap kebanyakan pasangan tipis atau mirip template.
+  Pembanding: authority domain 4, referring domain 7, belum ada sinyal luar yang menahan posisi.
+
+Usulan perubahan plan (saran, belum diputuskan):
+1. **Sedikit pasangan, lebih dalam.** Pertahankan `/banding` yang punya bukti query (Infinix vs Tecno/Oppo/Samsung, Realme vs
+   Vivo, Samsung vs Xiaomi), tambah isi khas per pasangan (tema yang beda di dua entitas, contoh opini, perubahan skor 30d/90d)
+   supaya trigram bersama turun jauh di bawah 76%. Pasangan tanpa impresi 28 hari: `noindex` atau keluarkan dari sitemap.
+2. **Satu halaman utama per topik `infinix`** (saran RankMySEO 28 Okt), ditautkan dari `/banding/infinix-*` dan `/e/infinix-*`,
+   supaya impresi tidak terpecah di banyak halaman tipis.
+3. **`/e/infinix-note-50-pro` dan `/e/infinix-gt-20-pro`**: query `kelebihan/kekurangan ...` dan `apakah ... masih worth it di 2026`
+   punya permintaan nyata. Jawab dengan tema Top Suara Netijen (puji vs keluhan), tanpa skor per aspek (ADR-008).
+4. **Backlink** (Fase 4 outreach) jadi prioritas: authority 4 dengan 7 referring domain tidak cukup menahan posisi 4-7.
+5. Pantau mingguan: impresi harian `/banding` vs `/e`, dan jumlah query yang hilang dari hasil. Bila impresi stabil di ~200/hari
+   selama 2 minggu, itu baseline baru, bukan penurunan yang berlanjut.
+
+### Tindak lanjut usulan 1-2 (dikerjakan 4 November 2026, belum dideploy)
+
+- **Pasangan dipangkas:** 7 pasangan yang dirilis 19 Okt dan 0 impresi dalam 28 hari dikeluarkan dari `config/comparisons.php`
+  (`bank-central-asia-vs-bank-mandiri`, `honda-adv-160-vs-yamaha-nmax-155`, `honda-hr-v-vs-hyundai-creta`,
+  `hyundai-stargazer-vs-mitsubishi-xpander`, `infinix-gt-30-pro-vs-poco-x7-pro`, `mitsubishi-pajero-sport-vs-toyota-fortuner`,
+  `mitsubishi-xpander-vs-suzuki-ertiga-hybrid`). Halamannya tetap ada, tapi `noindex` dan keluar dari sitemap. 59 pasangan tersisa.
+  `jaecoo-j5-ev-vs-wuling-air-ev` (dirilis 28 Okt) tetap, belum cukup umur untuk dinilai.
+- **Isi khas per pasangan di `/banding`:** Ringkasan Suara Netijen tiap sisi (365d), skor 30 dan 90 hari bila lolos ambang,
+  tema yang sama-sama dipuji atau dikeluhkan (dicocokkan per theme id), dan daftar produk brand yang paling banyak dibahas.
+- **Halaman brand jadi hub:** `/e/{brand}` menampilkan sampai 12 produk aktif, diurutkan dari opini 365 hari terbanyak.
+  Ini bekerja untuk semua brand, bukan hanya Infinix; halaman produk sudah menautkan brand lewat breadcrumb bila `parent_id` terisi.
+- **Data:** di produksi 3.100 produk tidak punya `parent_id`; 1.462 di antaranya cocok dengan brand lewat awalan nama di kategori yang
+  sama (dry-run read-only). Backfill ini syarat hub dan daftar produk berisi; dijalankan bersama deploy.
+- Ukur ulang trigram bersama antar halaman banding setelah deploy (sebelumnya 76% antara `infinix-vs-samsung` dan `infinix-vs-tecno`).
