@@ -58,7 +58,7 @@ it('keeps search accessible and shows clean state before category blocks exist',
         '<title>Sentimen Netizen Brand, Produk, dan Layanan di Indonesia</title>',
     );
     expect(html).toContain('name="description"');
-    expect(html).toContain('opini netizen');
+    expect(html).toContain('Indeks sentimen netizen tentang brand');
     expect(html).not.toContain('Baru diperbarui');
     expect(html).toContain('href="/register"');
 });
