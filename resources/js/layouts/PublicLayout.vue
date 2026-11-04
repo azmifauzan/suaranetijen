@@ -67,7 +67,7 @@ const navigation = [
                     <Link
                         v-if="page.props.auth?.user"
                         :href="dashboard()"
-                        class="border-line hover:bg-sage rounded-full border px-4 py-2.5"
+                        class="border-line hover:bg-sage hidden rounded-full border px-4 py-2.5 sm:block"
                         >Dashboard</Link
                     >
                     <template v-else>
@@ -123,6 +123,12 @@ const navigation = [
                         >Gabung SuaraNetijen</Link
                     >
                 </template>
+                <Link
+                    v-else
+                    :href="dashboard()"
+                    class="hover:bg-sage rounded-lg px-4 py-3"
+                    >Dashboard</Link
+                >
             </nav>
         </header>
 

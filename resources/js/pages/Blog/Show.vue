@@ -55,6 +55,13 @@ const siteUrl = computed(() => {
     return (raw || '').replace(/\/$/, '');
 });
 
+function toJsonLd(value: unknown): string {
+    return JSON.stringify(value)
+        .replace(/</g, '\\u003c')
+        .replace(/>/g, '\\u003e')
+        .replace(/&/g, '\\u0026');
+}
+
 const breadcrumbJsonLd = computed(() => ({
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -120,10 +127,10 @@ const articleJsonLd = computed(() => ({
 
         <Head>
             <component :is="'script'" type="application/ld+json">
-                {{ JSON.stringify(breadcrumbJsonLd) }}
+                {{ toJsonLd(breadcrumbJsonLd) }}
             </component>
             <component :is="'script'" type="application/ld+json">
-                {{ JSON.stringify(articleJsonLd) }}
+                {{ toJsonLd(articleJsonLd) }}
             </component>
         </Head>
 

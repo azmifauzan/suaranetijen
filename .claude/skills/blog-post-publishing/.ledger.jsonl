@@ -1,0 +1,1 @@
+{"action": "create", "reason": "Blog admin editing lost publish state: saving a published post with an empty date set published_at to null, so the public post 404'd silently. Class of work is admin blog post editing and publishing, with no existing skill covering it. Born class-level so later blog changes patch into it.", "evidence": "references/evidence-44323676.md"}

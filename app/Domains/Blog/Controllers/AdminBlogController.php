@@ -345,7 +345,9 @@ class AdminBlogController extends Controller
         foreach ($limits as $field => $max) {
             $value = trim((string) ($validated[$field] ?? ''));
 
-            if ($value !== '' && ! PublicCopyGuard::isAllowed($value, $max)) {
+            if ($value !== '' && preg_match('/[<>]/', $value) === 1) {
+                $errors[$field] = 'Teks tidak boleh mengandung karakter < atau >.';
+            } elseif ($value !== '' && ! PublicCopyGuard::isAllowed($value, $max)) {
                 $errors[$field] = 'Teks melanggar aturan penulisan: tidak boleh superlatif (terbaik/terburuk), persentase, mention (@), atau URL.';
             }
         }

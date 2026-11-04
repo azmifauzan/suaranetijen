@@ -265,3 +265,15 @@ test('saving a published post with an empty date keeps its published_at', functi
     expect($post->fresh()->published_at?->equalTo($publishedAt))->toBeTrue();
     $this->get("/blog/{$post->slug}")->assertOk();
 });
+
+test('title and excerpt reject angle brackets', function (): void {
+    $this->actingAs($this->admin)
+        ->post('/admin/blog', [
+            'title' => 'Judul </script><script>x</script>',
+            'excerpt' => 'Ringkasan <b>tebal</b>',
+            'body' => 'Isi.',
+        ])
+        ->assertSessionHasErrors(['title', 'excerpt']);
+
+    expect(BlogPost::count())->toBe(0);
+});
