@@ -120,7 +120,7 @@ Decided 3 November 2026: S3-compatible object storage the operator already holds
 - New disk `media` in `config/filesystems.php` reading the existing `.env` keys
   (`S3_STORAGE_SERVER`, `S3_STORAGE_BUCKET`, `S3_STORAGE_ACCESS_KEY`, `S3_STORAGE_SECRET_KEY`),
   `endpoint` = `https://{server}`, `root` = `suaranetijen`, `visibility` = `public`,
-  `url` = `https://{bucket}.{server}/suaranetijen`. The existing `AWS_*`/`s3` disk is untouched.
+  `url` = `https://{bucket}.{server}` (no prefix: `root` already adds `suaranetijen/` to the object key and the public URL; repeating it doubles the path and returns 403, found on staging 4 Nov 2026). The existing `AWS_*`/`s3` disk is untouched.
   `FILESYSTEM_DISK` stays `local`.
 - Requires `league/flysystem-aws-s3-v3` (new Composer dependency, approved by this decision).
 - Upload rules: `image` mimes jpg/png/webp, max 2 MB, min width 1200 (og:image size). Key

@@ -68,7 +68,7 @@ return [
             'bucket' => env('S3_STORAGE_BUCKET'),
             'endpoint' => env('S3_STORAGE_SERVER') ? 'https://'.env('S3_STORAGE_SERVER') : null,
             'url' => (env('S3_STORAGE_BUCKET') && env('S3_STORAGE_SERVER'))
-                ? 'https://'.env('S3_STORAGE_BUCKET').'.'.env('S3_STORAGE_SERVER').'/suaranetijen'
+                ? 'https://'.env('S3_STORAGE_BUCKET').'.'.env('S3_STORAGE_SERVER')
                 : null,
             'use_path_style_endpoint' => false,
             'root' => 'suaranetijen',

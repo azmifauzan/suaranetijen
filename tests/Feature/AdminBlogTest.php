@@ -277,3 +277,14 @@ test('title and excerpt reject angle brackets', function (): void {
 
     expect(BlogPost::count())->toBe(0);
 });
+
+test('media disk public url carries the suaranetijen prefix exactly once', function (): void {
+    config([
+        'filesystems.disks.media.bucket' => 'yahoot',
+        'filesystems.disks.media.url' => 'https://yahoot.is3.cloudhost.id',
+    ]);
+    Storage::forgetDisk('media');
+
+    expect(Storage::disk('media')->url('blog/covers/x.webp'))
+        ->toBe('https://yahoot.is3.cloudhost.id/suaranetijen/blog/covers/x.webp');
+});
