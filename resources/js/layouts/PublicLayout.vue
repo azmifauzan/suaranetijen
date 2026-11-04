@@ -21,6 +21,7 @@ import { index as comparisonsIndex } from '@/routes/comparisons';
 import { index as topicsIndex } from '@/routes/topics';
 import { index as leaderboardPage } from '@/routes/leaderboard';
 import { index as blogIndex } from '@/routes/blog';
+import SocialLinks from '@/components/SocialLinks.vue';
 
 const page = usePage();
 const menuOpen = ref(false);
@@ -147,6 +148,7 @@ const navigation = [
                             Temukan gambaran opini publik tentang brand, produk,
                             dan layanan di Indonesia.
                         </p>
+                        <SocialLinks class="mt-6" />
                     </div>
                     <div class="grid grid-cols-2 gap-12 text-sm sm:gap-20">
                         <div class="flex flex-col gap-3">

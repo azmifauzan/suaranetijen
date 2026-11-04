@@ -18,6 +18,7 @@ import { index as leaderboardPage } from '@/routes/leaderboard';
 import { index as rankingIndex } from '@/routes/rankings';
 import { index as searchPage } from '@/routes/search';
 import { index as topicIndex, show as showTopic } from '@/routes/topics';
+import { officialSocials } from '@/lib/socials';
 
 interface SearchSuggestion {
     query: string;
@@ -104,9 +105,7 @@ const jsonLd = computed(() =>
                 url: siteUrl.value,
                 logo: `${siteUrl.value}/logo.svg`,
                 sameAs: [
-                    'https://www.facebook.com/suaranetijen.id',
-                    'https://www.instagram.com/suaranetijen.official/',
-                    'https://www.threads.com/@suaranetijen.official',
+                    ...officialSocials.map((social) => social.url),
                     'https://www.linkedin.com/company/suaranetijen',
                     'https://github.com/azmifauzan/suaranetijen',
                 ],

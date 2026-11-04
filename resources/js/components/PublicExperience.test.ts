@@ -55,7 +55,7 @@ it('keeps search accessible and shows clean state before category blocks exist',
     expect(html).toContain('Cari brand, produk, atau layanan');
     expect(html).toContain('Sebelum pilih, cek kata netizen.');
     expect(html).toContain(
-        '<title>Sentimen Netizen Brand, Produk, dan Layanan di Indonesia | SuaraNetijen</title>',
+        '<title>Sentimen Netizen Brand, Produk, dan Layanan di Indonesia</title>',
     );
     expect(html).toContain('name="description"');
     expect(html).toContain('opini netizen');
@@ -206,4 +206,21 @@ it('exposes the open source repository from the public footer', async () => {
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noopener noreferrer"');
     expect(html).toContain('Kode sumber di GitHub');
+});
+
+it('shows the official social accounts with an official badge in the footer', async () => {
+    const html = await renderToString(
+        createSSRApp({
+            render: () =>
+                h(PublicLayout, null, {
+                    default: () => h('p', 'Konten publik'),
+                }),
+        }),
+    );
+
+    expect(html).toContain('Akun resmi');
+    expect(html).toContain('https://www.instagram.com/suaranetijen.official/');
+    expect(html).toContain('https://www.threads.com/@suaranetijen.official');
+    expect(html).toContain('https://www.facebook.com/suaranetijen.id');
+    expect(html).toContain('rel="noopener noreferrer me"');
 });
