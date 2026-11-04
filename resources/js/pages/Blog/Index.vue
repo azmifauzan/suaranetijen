@@ -82,8 +82,15 @@ const props = defineProps<{
                 <article
                     v-for="post in posts.data"
                     :key="post.id"
-                    class="group flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xs transition-all duration-200 hover:border-emerald-300 hover:shadow-md"
+                    class="group relative flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xs transition-all duration-200 hover:border-emerald-300 hover:shadow-md"
                 >
+                    <!-- Whole card is clickable; the title link stays for semantics -->
+                    <Link
+                        :href="`/blog/${post.slug}`"
+                        class="absolute inset-0 z-10"
+                        tabindex="-1"
+                        aria-hidden="true"
+                    />
                     <!-- Cover -->
                     <Link
                         :href="`/blog/${post.slug}`"
@@ -137,7 +144,7 @@ const props = defineProps<{
                         </div>
 
                         <div
-                            class="mt-4 flex items-center justify-between border-t border-neutral-100 pt-3 text-xs font-semibold text-[#087f5b]"
+                            class="pointer-events-none mt-4 flex items-center justify-between border-t border-neutral-100 pt-3 text-xs font-semibold text-[#087f5b]"
                         >
                             <span>Baca selengkapnya</span>
                             <ChevronRight
