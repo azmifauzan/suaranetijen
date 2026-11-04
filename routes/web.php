@@ -1,5 +1,7 @@
 <?php
 
+use App\Domains\Blog\Controllers\BlogIndexController;
+use App\Domains\Blog\Controllers\BlogShowController;
 use App\Domains\Entities\Controllers\CategoryShowController;
 use App\Domains\Entities\Controllers\ComparisonController;
 use App\Domains\Entities\Controllers\EntityOgImageController;
@@ -60,6 +62,10 @@ Route::get('/api/categories/{slug}/ranking', [CategoryRankingController::class, 
 // Topic Landing Pages (docs/28)
 Route::get('/topik', [TopicIndexController::class, 'index'])->name('topics.index');
 Route::get('/topik/{slug}', [TopicShowController::class, 'show'])->name('topics.show');
+
+// Blog (docs/33)
+Route::get('/blog', [BlogIndexController::class, 'index'])->name('blog.index');
+Route::get('/blog/{slug}', [BlogShowController::class, 'show'])->name('blog.show');
 
 // Static and trust pages (docs/04, docs/17)
 Route::get('/methodology', [StaticPageController::class, 'methodology'])->name('methodology');

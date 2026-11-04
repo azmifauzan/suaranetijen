@@ -14,10 +14,12 @@ const props = withDefaults(
         canonicalPath: string;
         robots?: string;
         image?: string;
+        ogType?: string;
     }>(),
     {
         robots: 'index, follow',
         image: '/og-image.png?v=2',
+        ogType: 'website',
     },
 );
 
@@ -68,7 +70,7 @@ const imageUrl = computed(() => {
             :content="description"
         />
         <meta head-key="og:url" property="og:url" :content="canonicalUrl" />
-        <meta head-key="og:type" property="og:type" content="website" />
+        <meta head-key="og:type" property="og:type" :content="ogType" />
         <meta
             head-key="og:site_name"
             property="og:site_name"

@@ -60,6 +60,23 @@ return [
             'report' => false,
         ],
 
+        'media' => [
+            'driver' => 's3',
+            'key' => env('S3_STORAGE_ACCESS_KEY'),
+            'secret' => env('S3_STORAGE_SECRET_KEY'),
+            'region' => env('S3_STORAGE_REGION', 'us-east-1'),
+            'bucket' => env('S3_STORAGE_BUCKET'),
+            'endpoint' => env('S3_STORAGE_SERVER') ? 'https://'.env('S3_STORAGE_SERVER') : null,
+            'url' => (env('S3_STORAGE_BUCKET') && env('S3_STORAGE_SERVER'))
+                ? 'https://'.env('S3_STORAGE_BUCKET').'.'.env('S3_STORAGE_SERVER').'/suaranetijen'
+                : null,
+            'use_path_style_endpoint' => false,
+            'root' => 'suaranetijen',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

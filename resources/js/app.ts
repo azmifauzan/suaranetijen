@@ -32,6 +32,7 @@ void createInertiaApp({
             case name.startsWith('Pages/'):
             case name.startsWith('Sponsor/'):
             case name.startsWith('Topics/'):
+            case name.startsWith('Blog/'):
             case name.startsWith('Comparison/'):
             case name === 'ErrorPage':
                 return null;

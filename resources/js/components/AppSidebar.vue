@@ -10,6 +10,7 @@ import {
     FolderTree,
     HelpCircle,
     LayoutGrid,
+    Newspaper,
     PlusCircle,
     Radio,
     Sparkles,
@@ -79,6 +80,11 @@ const adminNavItems: NavItem[] = [
         title: 'Topik Landing Pages',
         href: admin.topics.index(),
         icon: Compass,
+    },
+    {
+        title: 'Blog',
+        href: admin.blog.index(),
+        icon: Newspaper,
     },
     { title: 'LLM Settings', href: admin.llmSettings.edit(), icon: Bot },
 ];

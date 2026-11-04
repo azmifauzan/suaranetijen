@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domains\Blog\Models\BlogPost;
 use App\Domains\Entities\Enums\EntityStatus;
 use App\Domains\Entities\Models\Category;
 use App\Domains\Entities\Models\Entity;
@@ -216,6 +217,29 @@ class SitemapController extends Controller
                 'changefreq' => 'daily',
                 'priority' => '0.6',
             ];
+        }
+
+        // 6. Blog (docs/33)
+        $publishedPosts = BlogPost::query()
+            ->live()
+            ->latest('published_at')
+            ->get(['id', 'slug', 'updated_at']);
+
+        if ($publishedPosts->isNotEmpty()) {
+            $urls[] = [
+                'loc' => "{$baseUrl}/blog",
+                'changefreq' => 'daily',
+                'priority' => '0.8',
+            ];
+
+            foreach ($publishedPosts as $post) {
+                $urls[] = [
+                    'loc' => "{$baseUrl}/blog/{$post->slug}",
+                    'lastmod' => $post->updated_at?->toIso8601String(),
+                    'changefreq' => 'weekly',
+                    'priority' => '0.7',
+                ];
+            }
         }
 
         // Build XML

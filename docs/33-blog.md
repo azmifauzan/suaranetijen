@@ -1,6 +1,6 @@
 # 33 — Blog (admin-authored articles)
 
-Status: plan final, 3 November 2026. Not implemented.
+Status: implemented and reviewed 4 November 2026 (phases 1-4). Not yet deployed; staging main host needs the four `S3_STORAGE_*` keys in `.env` first.
 
 ## Goal
 

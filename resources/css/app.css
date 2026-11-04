@@ -244,3 +244,60 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* Server-rendered Markdown (blog body + admin preview). No typography plugin installed;
+ * Tailwind preflight strips list markers and heading sizes, so restore the basics here. */
+@layer components {
+    .blog-body {
+        @apply text-base leading-relaxed text-neutral-800;
+    }
+    .blog-body > * + * {
+        @apply mt-4;
+    }
+    .blog-body h2 {
+        @apply mt-10 text-2xl font-bold tracking-tight text-neutral-900;
+    }
+    .blog-body h3 {
+        @apply mt-8 text-xl font-bold tracking-tight text-neutral-900;
+    }
+    .blog-body h4 {
+        @apply mt-6 text-lg font-semibold text-neutral-900;
+    }
+    .blog-body ul {
+        @apply list-disc pl-6;
+    }
+    .blog-body ol {
+        @apply list-decimal pl-6;
+    }
+    .blog-body li + li {
+        @apply mt-1.5;
+    }
+    .blog-body a {
+        @apply font-medium text-emerald-700 underline underline-offset-2;
+    }
+    .blog-body blockquote {
+        @apply border-l-4 border-neutral-300 pl-4 text-neutral-600 italic;
+    }
+    .blog-body code {
+        @apply rounded bg-neutral-100 px-1 py-0.5 font-mono text-[0.9em];
+    }
+    .blog-body pre {
+        @apply overflow-x-auto rounded-lg bg-neutral-100 p-4;
+    }
+    .blog-body pre code {
+        @apply bg-transparent p-0;
+    }
+    .blog-body img {
+        @apply h-auto max-w-full rounded-xl;
+    }
+    .blog-body table {
+        @apply block w-full overflow-x-auto text-sm;
+    }
+    .blog-body th,
+    .blog-body td {
+        @apply border border-neutral-200 px-3 py-2 text-left;
+    }
+    .blog-body hr {
+        @apply my-8 border-neutral-200;
+    }
+}

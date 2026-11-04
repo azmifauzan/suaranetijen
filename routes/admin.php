@@ -2,6 +2,7 @@
 
 use App\Domains\Admin\Controllers\AdminDashboardController;
 use App\Domains\Admin\Controllers\AdminOperationsController;
+use App\Domains\Blog\Controllers\AdminBlogController;
 use App\Domains\Entities\Controllers\AdminCategoryController;
 use App\Domains\Entities\Controllers\AdminEntityAliasController;
 use App\Domains\Entities\Controllers\AdminEntityCandidatesController;
@@ -73,4 +74,16 @@ Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')
     Route::post('/topics/{topic}/reject', [AdminTopicsController::class, 'reject'])->name('topics.reject');
     Route::post('/topics/{topic}/regenerate', [AdminTopicsController::class, 'regenerate'])->name('topics.regenerate');
     Route::get('/topics-theme-search', [AdminTopicsController::class, 'searchThemes'])->name('topics.themes-search');
+
+    // Blog management (docs/33)
+    Route::get('/blog', [AdminBlogController::class, 'index'])->name('blog.index');
+    Route::get('/blog/create', [AdminBlogController::class, 'create'])->name('blog.create');
+    Route::post('/blog', [AdminBlogController::class, 'store'])->name('blog.store');
+    Route::get('/blog/{post}/edit', [AdminBlogController::class, 'edit'])->name('blog.edit');
+    Route::put('/blog/{post}', [AdminBlogController::class, 'update'])->name('blog.update');
+    Route::delete('/blog/{post}', [AdminBlogController::class, 'destroy'])->name('blog.destroy');
+    Route::post('/blog/{post}/publish', [AdminBlogController::class, 'publish'])->name('blog.publish');
+    Route::post('/blog/{post}/unpublish', [AdminBlogController::class, 'unpublish'])->name('blog.unpublish');
+    Route::delete('/blog/{post}/cover', [AdminBlogController::class, 'deleteCover'])->name('blog.delete-cover');
+    Route::post('/blog-preview', [AdminBlogController::class, 'previewMarkdown'])->name('blog.preview');
 });

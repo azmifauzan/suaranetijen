@@ -20,6 +20,7 @@ import { index as rankingIndex } from '@/routes/rankings';
 import { index as comparisonsIndex } from '@/routes/comparisons';
 import { index as topicsIndex } from '@/routes/topics';
 import { index as leaderboardPage } from '@/routes/leaderboard';
+import { index as blogIndex } from '@/routes/blog';
 
 const page = usePage();
 const menuOpen = ref(false);
@@ -27,8 +28,7 @@ const navigation = [
     { label: 'Jelajahi', href: searchPage() },
     { label: 'Ranking', href: rankingIndex() },
     { label: 'Papan Sponsor', href: leaderboardPage() },
-    { label: 'Cara kerja', href: methodology() },
-    { label: 'Tentang kami', href: about() },
+    { label: 'Blog', href: blogIndex() },
 ];
 </script>
 
@@ -65,7 +65,7 @@ const navigation = [
                 </nav>
                 <div class="flex items-center gap-3 text-sm font-semibold">
                     <Link
-                        v-if="page.props.auth.user"
+                        v-if="page.props.auth?.user"
                         :href="dashboard()"
                         class="border-line hover:bg-sage rounded-full border px-4 py-2.5"
                         >Dashboard</Link
@@ -111,7 +111,7 @@ const navigation = [
                     @click="menuOpen = false"
                     >{{ item.label }}</Link
                 >
-                <template v-if="!page.props.auth.user">
+                <template v-if="!page.props.auth?.user">
                     <Link
                         :href="login()"
                         class="hover:bg-sage rounded-lg px-4 py-3"
