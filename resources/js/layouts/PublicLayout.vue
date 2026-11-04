@@ -140,11 +140,13 @@ const navigation = [
         <footer class="border-line bg-paper border-t">
             <div class="mx-auto max-w-6xl px-5 py-12 sm:px-8">
                 <div class="flex flex-col justify-between gap-10 md:flex-row">
-                    <div class="max-w-xs">
+                    <div>
                         <Link :href="home()" aria-label="suaranetijen. Beranda"
                             ><BrandLogo tagline
                         /></Link>
-                        <p class="mt-5 text-sm leading-6 text-neutral-500">
+                        <p
+                            class="mt-5 max-w-xs text-sm leading-6 text-neutral-500"
+                        >
                             Temukan gambaran opini publik tentang brand, produk,
                             dan layanan di Indonesia.
                         </p>

@@ -23,7 +23,7 @@ const paths: Record<string, string> = {
             >
         </p>
         <ul
-            class="mt-3 flex flex-wrap gap-2"
+            class="mt-3 flex flex-wrap gap-1.5 sm:gap-2"
             aria-label="Akun resmi media sosial"
         >
             <li v-for="social in officialSocials" :key="social.key">
@@ -32,7 +32,7 @@ const paths: Record<string, string> = {
                     target="_blank"
                     rel="noopener noreferrer me"
                     :aria-label="`${social.label} SuaraNetijen, ${social.handle} (buka di tab baru)`"
-                    class="border-line hover:bg-sage inline-flex items-center gap-2 rounded-full border bg-white px-3.5 py-2 text-sm font-semibold transition"
+                    class="border-line hover:bg-sage inline-flex items-center gap-1.5 rounded-full border bg-white px-2.5 py-2 text-sm font-semibold transition sm:gap-2 sm:px-3.5"
                 >
                     <svg
                         viewBox="0 0 24 24"
