@@ -28,7 +28,7 @@ class ExtractThemesBatchJob implements ShouldQueue
     /**
      * Rate-limit releases and 429s must not eat the retry budget — see ExtractThemesJob.
      */
-    public int $maxExceptions = 3;
+    public int $maxExceptions = 6;
 
     /**
      * Allows the 120s Codex runner limit plus HTTP and persistence overhead.
@@ -55,7 +55,7 @@ class ExtractThemesBatchJob implements ShouldQueue
      */
     public function backoff(): array
     {
-        return [30, 120];
+        return [30, 60, 120];
     }
 
     /**

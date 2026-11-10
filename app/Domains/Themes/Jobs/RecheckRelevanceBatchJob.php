@@ -22,7 +22,7 @@ class RecheckRelevanceBatchJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $maxExceptions = 3;
+    public int $maxExceptions = 6;
 
     /**
      * @param  list<array{sourceItemId: int, text: string}>  $items
@@ -42,7 +42,7 @@ class RecheckRelevanceBatchJob implements ShouldQueue
      */
     public function backoff(): array
     {
-        return [30, 120];
+        return [30, 60, 120];
     }
 
     /**

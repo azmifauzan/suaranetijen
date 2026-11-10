@@ -207,6 +207,6 @@ it('still fails on non-429 llm errors and keeps the exception budget bounded', f
 
     expect(fn () => $job->handle(app(ThemeExtractor::class), app(LlmThemeExtractor::class)))
         ->toThrow(RequestException::class)
-        ->and($job->maxExceptions)->toBe(3)
+        ->and($job->maxExceptions)->toBe(6)
         ->and($job->retryUntil()->isFuture())->toBeTrue();
 });

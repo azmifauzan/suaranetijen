@@ -72,7 +72,7 @@ it('still fails on non-429 llm errors', function () {
 
     expect(fn () => $job->handle(app(LlmThemeExtractor::class)))
         ->toThrow(RequestException::class)
-        ->and($job->maxExceptions)->toBe(3)
+        ->and($job->maxExceptions)->toBe(6)
         ->and($job->retryUntil()->isFuture())->toBeTrue();
 });
 

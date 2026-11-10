@@ -15,6 +15,7 @@ services:
     image: ${CODEX_RUNNER_IMAGE:?Set CODEX_RUNNER_IMAGE to the released runner image}
     container_name: suaranetijen-codex
     restart: unless-stopped
+    init: true
     user: ${CODEX_RUNNER_USER:?Set CODEX_RUNNER_USER to the credential owner UID:GID}
     read_only: true
     cap_drop: [ALL]

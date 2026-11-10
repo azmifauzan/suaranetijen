@@ -20,7 +20,7 @@ it('releases a summary on a runner rate limit without spending its exception bud
 
     $job->handle($summarizer);
 
-    expect($job->maxExceptions)->toBe(3);
+    expect($job->maxExceptions)->toBe(6);
     expect($job->retryUntil()->isFuture())->toBeTrue();
 });
 

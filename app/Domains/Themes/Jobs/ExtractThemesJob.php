@@ -26,7 +26,7 @@ class ExtractThemesJob implements ShouldQueue
      * crawler's self-throttle): only real exceptions count, capped by $maxExceptions,
      * while retryUntil() bounds how long a throttled job may keep waiting.
      */
-    public int $maxExceptions = 3;
+    public int $maxExceptions = 6;
 
     public function retryUntil(): CarbonInterface
     {
@@ -38,7 +38,7 @@ class ExtractThemesJob implements ShouldQueue
      */
     public function backoff(): array
     {
-        return [30, 120];
+        return [30, 60, 120];
     }
 
     /**

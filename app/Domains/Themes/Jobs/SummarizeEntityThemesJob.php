@@ -16,7 +16,7 @@ class SummarizeEntityThemesJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $maxExceptions = 3;
+    public int $maxExceptions = 6;
 
     public int $timeout = 140;
 
@@ -28,7 +28,7 @@ class SummarizeEntityThemesJob implements ShouldQueue
     /** @return list<int> */
     public function backoff(): array
     {
-        return [30, 120];
+        return [30, 60, 120];
     }
 
     public function __construct(public int $entityId)
