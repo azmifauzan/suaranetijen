@@ -3,6 +3,7 @@
 namespace App\Domains\Themes\Jobs;
 
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Themes\Jobs\Middleware\CodexBeforeApiFallback;
 use App\Domains\Themes\Services\EntityThemeSummarizer;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
@@ -34,6 +35,14 @@ class SummarizeEntityThemesJob implements ShouldQueue
     public function __construct(public int $entityId)
     {
         $this->onQueue('aggregate');
+    }
+
+    /**
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [new CodexBeforeApiFallback];
     }
 
     public function handle(EntityThemeSummarizer $summarizer): void

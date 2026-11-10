@@ -161,7 +161,7 @@ it('rate-limits llm extraction through a shared limiter and never in keyword mod
     config(['themes.extractor' => 'llm', 'themes.llm_per_minute' => 2]);
     $job = new ExtractThemesJob(entityId: 1, sourceId: 1, sourceItemId: null, text: 'x');
 
-    expect($job->middleware())->toHaveCount(1)->and($job->middleware()[0])->toBeInstanceOf(RateLimited::class);
+    expect($job->middleware())->toHaveCount(2)->and($job->middleware()[0])->toBeInstanceOf(RateLimited::class);
 
     $limit = RateLimiter::limiter('themes-llm')();
     expect($limit->maxAttempts)->toBe(2);

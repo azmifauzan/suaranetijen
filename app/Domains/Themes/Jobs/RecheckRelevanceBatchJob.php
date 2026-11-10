@@ -3,6 +3,7 @@
 namespace App\Domains\Themes\Jobs;
 
 use App\Domains\Entities\Models\Entity;
+use App\Domains\Themes\Jobs\Middleware\CodexBeforeApiFallback;
 use App\Domains\Themes\Services\LlmThemeExtractor;
 use App\Domains\Themes\Services\OffTopicOpinionRemover;
 use Carbon\CarbonInterface;
@@ -50,7 +51,7 @@ class RecheckRelevanceBatchJob implements ShouldQueue
      */
     public function middleware(): array
     {
-        return [new RateLimited('themes-llm')];
+        return [new RateLimited('themes-llm'), new CodexBeforeApiFallback];
     }
 
     public function handle(LlmThemeExtractor $extractor, OffTopicOpinionRemover $remover): void

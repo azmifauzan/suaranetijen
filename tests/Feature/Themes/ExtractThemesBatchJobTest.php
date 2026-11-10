@@ -80,7 +80,7 @@ it('is queued on themes and rate-limited', function () {
     $job = new ExtractThemesBatchJob(1, []);
 
     expect($job->queue)->toBe('themes')
-        ->and($job->middleware())->toHaveCount(1)
+        ->and($job->middleware())->toHaveCount(2)
         ->and($job->middleware()[0])->toBeInstanceOf(RateLimited::class);
 });
 

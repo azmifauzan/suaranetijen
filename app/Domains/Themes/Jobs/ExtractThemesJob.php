@@ -4,6 +4,7 @@ namespace App\Domains\Themes\Jobs;
 
 use App\Domains\Entities\Models\Entity;
 use App\Domains\Sentiment\Enums\SentimentClass;
+use App\Domains\Themes\Jobs\Middleware\CodexBeforeApiFallback;
 use App\Domains\Themes\Models\ThemeObservation;
 use App\Domains\Themes\Services\LlmThemeExtractor;
 use App\Domains\Themes\Services\OffTopicOpinionRemover;
@@ -46,7 +47,7 @@ class ExtractThemesJob implements ShouldQueue
      */
     public function middleware(): array
     {
-        return config('themes.extractor') === 'llm' ? [new RateLimited('themes-llm')] : [];
+        return config('themes.extractor') === 'llm' ? [new RateLimited('themes-llm'), new CodexBeforeApiFallback] : [];
     }
 
     public function __construct(

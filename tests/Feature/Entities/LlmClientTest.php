@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Entities\Exceptions\CodexUnavailable;
 use App\Domains\Entities\Exceptions\LlmResponseUnusable;
 use App\Domains\Entities\Models\LlmSetting;
 use App\Domains\Entities\Services\LlmClient;
@@ -378,4 +379,27 @@ it('throws when the fallback model also returns an unusable answer', function ()
 
     expect(fn () => (new LlmClient)->chat([['role' => 'user', 'content' => 'hi']]))->toThrow(LlmResponseUnusable::class);
     Http::assertSentCount(2);
+});
+
+it('throws instead of using the paid API while a queue job still has retries left', function () {
+    useCodexApiFallback();
+    Http::preventStrayRequests();
+    $timeouts = [];
+    Http::fake(function (Request $request, array $options) use (&$timeouts) {
+        $timeouts[] = $options['timeout'];
+
+        return Http::response(['error' => 'inference_timeout'], 504);
+    });
+    LlmClient::$deferApiFallback = true;
+
+    try {
+        expect(fn () => app(LlmClient::class)->chat([['role' => 'user', 'content' => 'test']], ['name' => 'x', 'schema' => ['type' => 'object']]))
+            ->toThrow(CodexUnavailable::class);
+    } finally {
+        LlmClient::$deferApiFallback = false;
+    }
+
+    Http::assertSentCount(1);
+    Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'llm.internal'));
+    expect($timeouts)->toBe([125]);
 });

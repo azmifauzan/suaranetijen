@@ -2,6 +2,7 @@
 
 namespace App\Domains\Entities\Services;
 
+use App\Domains\Entities\Exceptions\CodexUnavailable;
 use App\Domains\Entities\Exceptions\LlmResponseUnusable;
 use App\Domains\Entities\Models\LlmSetting;
 use Illuminate\Http\Client\ConnectionException;
@@ -23,6 +24,12 @@ class LlmClient
     private const PRIMARY_DOWN_SECONDS = 300;
 
     /**
+     * Set by a queue job that still has retries left: a Codex failure then throws instead of
+     * spending API credit.
+     */
+    public static bool $deferApiFallback = false;
+
+    /**
      * @param  list<array{role: string, content: string}>  $messages
      * @param  array{name: string, schema: array<string, mixed>}|null  $jsonSchema
      * @param  int|null  $timeoutSeconds  Overrides the configured timeout for one long-running call.
@@ -36,7 +43,8 @@ class LlmClient
             }
 
             $apiFallbackEnabled = (bool) config('services.llm.codex_api_fallback', false);
-            $codexTimeout = $apiFallbackEnabled ? 45 : 120;
+            $deferApiFallback = $apiFallbackEnabled && self::$deferApiFallback;
+            $codexTimeout = $apiFallbackEnabled && ! $deferApiFallback ? 45 : 120;
 
             try {
                 $response = Http::withToken(config('services.llm.codex_runner_token'))
@@ -65,6 +73,10 @@ class LlmClient
                         || ($status === 429 && in_array($e->response->json('error'), ['runner_busy', 'runner_rate_limited'], true))) {
                         throw $e;
                     }
+                }
+
+                if ($deferApiFallback) {
+                    throw new CodexUnavailable($e);
                 }
 
                 Cache::increment('llm:codex-api-fallback:'.gethostname());
