@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://satsetpod.web.id/sitemap.xml

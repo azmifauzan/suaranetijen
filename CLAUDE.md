@@ -1698,9 +1698,11 @@ names, IPs and credentials stay out of this repo; they live in the operator's `.
 - **Layout.** One `nginx:alpine` container (`microsites`, 0.25 CPU / 64 MB, on the shared proxy
   network) serves `/sites/$host` by Host header. Each domain is a folder of plain HTML plus
   `style.css`, `sitemap.xml`, `robots.txt`; the content is not generated at request time. The
-  built HTML lives only on the server (`.../microsites/sites/<domain>/`); the generator scripts
-  were scratch files and are not in this repo, so to edit an article pull the folder from the
-  server, edit, and push it back (back up first).
+  built HTML is mirrored in this repo at `docs/microsites/<domain>/` (snapshot of 13 Nov 2026,
+  excluded from the Docker build via `.dockerignore`); the live copy is on the server
+  (`.../microsites/sites/<domain>/`). The generator scripts were scratch files and are not in this
+  repo. To edit an article, change it in `docs/microsites/<domain>/`, then upload the folder to
+  the server (back up first) and keep both copies in sync.
 - **Domains and main sites.** `fabriku.biz.id`, `fabriku.my.id`, `fabriku.web.id` -> `fabriku.id`;
   `satsetops.online`, `satsetops.web.id` -> `satsetops.com`; `satsetui.my.id`, `satsetui.web.id`
   -> `satsetui.com`; `satsetpod.web.id` and `santriq.my.id` -> their own main sites. Each

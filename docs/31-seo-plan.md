@@ -1243,7 +1243,8 @@ Nine static satellite blogs (7 articles each) and guide pages on the operator's 
 carry contextual backlinks to `suaranetijen.id` (articles 1 and 2 of each microsite, plus guide
 pages on DSFA, SantriQ, ASPRI, Yahoot) and to `fabriku.id` (two more articles per microsite).
 Structure, content rules, certificate handling and open gaps are recorded in `CLAUDE.md` under
-"Backlink microsites and guide pages".
+"Backlink microsites and guide pages". HTML jadi tiap domain disalin di `docs/microsites/<domain>/`
+(tidak ikut Docker build, lihat `.dockerignore`).
 
 Tindak lanjut:
 - ~15 Des: baca RankMySEO backlink review dan GSC; catat referring domain baru dan apakah halaman

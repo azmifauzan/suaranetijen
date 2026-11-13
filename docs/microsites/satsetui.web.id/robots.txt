@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://satsetui.web.id/sitemap.xml

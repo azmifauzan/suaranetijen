@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://fabriku.biz.id/sitemap.xml

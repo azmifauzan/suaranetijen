@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://santriq.my.id/sitemap.xml
