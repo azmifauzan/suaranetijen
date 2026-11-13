@@ -1236,3 +1236,16 @@ Tindak lanjut:
 Tindak lanjut:
 - ~16 Nov: baca ulang GA4 Traffic acquisition, pastikan `checkout.pymnt.app` hilang dari Referral.
 - Baca ulang Page indexing GSC setelah "Last update" berganti dari 23 Okt.
+
+### Backlink microsites (12 to 13 November 2026)
+
+Nine static satellite blogs (7 articles each) and guide pages on the operator's other apps now
+carry contextual backlinks to `suaranetijen.id` (articles 1 and 2 of each microsite, plus guide
+pages on DSFA, SantriQ, ASPRI, Yahoot) and to `fabriku.id` (two more articles per microsite).
+Structure, content rules, certificate handling and open gaps are recorded in `CLAUDE.md` under
+"Backlink microsites and guide pages".
+
+Tindak lanjut:
+- ~15 Des: baca RankMySEO backlink review dan GSC; catat referring domain baru dan apakah halaman
+  yang ditautkan (`/category/*`, `/topik/*`, `/banding/*`) naik.
+- Jangan menambah microsite baru sebelum angka itu terbaca.

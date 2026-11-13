@@ -1688,6 +1688,47 @@ full list of review findings live in those two docs; only the traps worth knowin
   by >= 3 distinct visitors in 30 days (`config/search.php` `suggestions`), safety-filtered like topic
   candidates, topped up with top-scoring entities only when short (`docs/29`, revision 1 Oct 2026).
 
+## Backlink microsites and guide pages (12 to 13 November 2026)
+
+Nine static blog microsites on parked/redirect domains plus guide pages on the operator's other
+apps, built to earn contextual backlinks to `suaranetijen.id` and `fabriku.id` (`docs/31`). Host
+names, IPs and credentials stay out of this repo; they live in the operator's `.env` and the
+`static-microsite-network` / `staging-operations` skills.
+
+- **Layout.** One `nginx:alpine` container (`microsites`, 0.25 CPU / 64 MB, on the shared proxy
+  network) serves `/sites/$host` by Host header. Each domain is a folder of plain HTML plus
+  `style.css`, `sitemap.xml`, `robots.txt`; the content is not generated at request time. The
+  built HTML lives only on the server (`.../microsites/sites/<domain>/`); the generator scripts
+  were scratch files and are not in this repo, so to edit an article pull the folder from the
+  server, edit, and push it back (back up first).
+- **Domains and main sites.** `fabriku.biz.id`, `fabriku.my.id`, `fabriku.web.id` -> `fabriku.id`;
+  `satsetops.online`, `satsetops.web.id` -> `satsetops.com`; `satsetui.my.id`, `satsetui.web.id`
+  -> `satsetui.com`; `satsetpod.web.id` and `santriq.my.id` -> their own main sites. Each
+  footer links to that main site, not to `suaranetijen.id`.
+- **Content rules per domain (7 articles each, 63 in total).** Articles stay on the host
+  domain's own topic and are 420 words or more. Articles 1 and 2 carry exactly one contextual
+  long-tail link to a `suaranetijen.id` page (category, `/topik`, `/banding`, `/methodology`);
+  articles 3 to 5 carry none; the two articles added on 13 Nov each carry exactly one contextual
+  link to a deep `fabriku.id` page (keywords from `fabriku/docs/seo-keyword-strategy.md`, for
+  example `cara menghitung hpp makanan`, `contoh kartu stok barang`). Links use
+  `utm_source=<domain>&utm_medium=blog`. Copy follows `public-page-copy` and antislop: no
+  em/en dash, no middle dot, no hype words, no invented statistics. Check each build with
+  `grep` for exactly one `<h1>` and exactly one link to the target site in the article body.
+- **Guide pages on live apps.** Article-style guide pages with one `suaranetijen.id` link:
+  `dsfahomemade.com`, SantriQ, ASPRI, Yahoot (the three Inertia apps render client-side, so the
+  link is not in the raw HTML; ASPRI also has no server-side meta description). New blog posts
+  with one backlink were added on the Fabriku, SatsetUI and SatsetOps blogs.
+- **Certificates.** Satellite domains behind Cloudflare Page Rules (`forwarding_url`) blocked
+  ACME http-01, so the rules were removed before issuing. SantriQ's `*.santriq.my.id` cert was
+  on webroot renewal, which cannot renew a wildcard; it now uses the DNS-01 lineage
+  `santriq-my-id.dns-cloudflare` (valid to 10 Feb 2027, `certbot renew --dry-run` passed
+  13 Nov 2026) and the old webroot renewal conf is disabled. The apex looks like the older cert
+  from outside only because Cloudflare proxies it.
+- **Not done / watch.** Local `main` of the ASPRI repo is diverged from origin (8 old local
+  commits) and needs reconciling by its owner. Impact is unmeasured: re-read RankMySEO backlink
+  review and GSC around mid-December 2026 before adding more domains, and do not reuse the same
+  anchor across microsites.
+
 ## Document map
 
 | File | Purpose |
