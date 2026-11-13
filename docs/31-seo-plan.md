@@ -1168,3 +1168,71 @@ di-purge. Live: `/e/infinix` menampilkan "Produk Infinix yang dibahas netizen"; 
 `realme-vs-vivo` menampilkan skor 30/90 hari, ringkasan, tema bersama, dan produk; sitemap berisi 59 `/banding`. Trigram bersama:
 `infinix-vs-samsung` vs `infinix-vs-tecno` 76% -> 68% (sisi Infinix sama, wajar); vs `realme-vs-vivo` 39%. Ukur dampak impresi
 mulai ~18 Nov (2 minggu data GSC setelah deploy).
+
+## Pembaruan sumber data SEO 9 November 2026
+
+Sumber: Google Search Console (28 hari, 11 Okt-7 Nov, data tertinggal ~2 hari, "Last update" ~3,5 jam lalu), Page indexing GSC, GA4 properti SuaraNetijen (28 hari, 12 Okt-8 Nov), RankMySEO (Starter, "Last check 8 Nov"), Ubersuggest (paket gratis, dashboard 9 Nov). Dibaca 9 Nov. Angka yang tidak disebut tetap dari snapshot 4 Nov.
+
+| Metrik | Sebelumnya (4 Nov) | 9 Nov |
+|---|---|---|
+| GSC klik / tayang 28 hari | 54 klik / 8,48K (5 Okt-1 Nov) | **58 klik, 8,84K tayang**, CTR 0,7%, posisi rata-rata 7,6 (11 Okt-7 Nov) |
+| GSC query unik | 687 | 697 (teratas: `review jaecoo j5 ev` 2/18, `infinix dan oppo bagus mana` 1/60, `infinix dan samsung bagus mana` 1/25, `telkomsel vs xl` 1/15) |
+| Page indexing GSC | 287 terindeks, 3K tidak | 287 terindeks, 3K tidak: 2.867 `noindex`, 56 discovered, 31 404 (validasi Failed), 24 redirect, 17 alternate canonical, 6 crawled, 1 5xx (validasi Started). Semua sama persis dengan 4 Nov: laporan ini tampaknya belum diperbarui, bukan bukti tidak ada perubahan |
+| GA4 28 hari (12 Okt-8 Nov) | tidak terbaca (7 hari saja) | **546 sesi**: Referral 286, Direct 108, Organic Search 95, Unassigned 31, Organic Social 18, Email 6, AI Assistant 1; engagement rate 62,09%; 60 key event (9,16% per sesi); Organic Search 0 key event |
+| RankMySEO skor on-page | 91 (600 halaman, 52 isu) | **80** (-11; 835 halaman, 2 tipe error, 3 tipe peringatan; review 8 Nov selesai) |
+| RankMySEO keyword | top 20 = 2, top 10 = 0 (jumlah dilacak tidak dicatat) | 10 dilacak, top 3 = 0, top 10 = 0, top 20 = 2, "just off page one" 2 |
+| RankMySEO klik / tayang 28 hari | 54 / 8,6K | 55 / 8,7K (-75% vs 14 hari sebelumnya per RankMySEO) |
+| RankMySEO authority / referring domain | 4 / 7 | 4 / 7 (traffic organik estimasi 1, keyword organik 1, disimpan 1 Nov) |
+| Ubersuggest | skor 100, 6 isu; 8 keyword; trafik 54; backlink 43; DA 4 | skor 100, 6 isu; 8 keyword (+700%); trafik organik 54; backlink 44; DA 4; 6 keyword terlacak semua belum ranking; kompetitor, grafik tren trafik, AI visibility (0% mention) terkunci (trial), ringkasan AI terkunci |
+
+Catatan pembacaan:
+- GSC dan RankMySEO (58 vs 55 klik, 8,84K vs 8,7K tayang) memakai sumber GSC dengan jendela waktu berbeda; bukan dua sumber independen.
+- GA4: properti yang terbuka pertama kali adalah **SantriQ** (51 sesi), bukan SuaraNetijen. Angka di atas dibaca setelah memilih akun SuaraNetijen manual. Referral 52% sesi: kemungkinan sebagian trafik outreach/sosial dan trafik internal, belum dipecah per sumber.
+- Organic Search GA4 95 sesi vs 90 sesi di snapshot 26 Okt (jendela 28 hari beda tanggal), hampir datar; klik GSC 58 dalam jendela yang sama.
+- Skor on-page RankMySEO turun 91 -> 80 bersamaan dengan halaman yang dipindai naik 600 -> 835: sampel beda, jangan dibaca sebagai kemunduran kualitas sebelum daftar isu dibuka. Skor Ubersuggest (100) dan RankMySEO (80) beda sampel dan aturan; tidak dibandingkan.
+- Ubersuggest Next Actions (13: 7 quick-win, 6 competitor gaps): `/e/jaecoo-j5-ev` (#19), `/e/infinix%20note%2030%205g` (#70, live sudah 301), `/banding/oppo-vs-vivo` (#70), `/banding/infinix-vs-vivo` (#51), `/e/albert-zhang` (#27, person, bukan target `docs/28`). Saran, belum diputuskan.
+- Deploy 4 Nov (`d2ee242`) baru berumur 5 hari; dampak banding/hub belum bisa dinilai.
+
+Tindak lanjut:
+- ~18 Nov: baca ulang GSC `/banding` vs `/e` (2 minggu setelah deploy 4 Nov), termasuk 7 pasangan yang di-`noindex`.
+- ~23 Nov: verdict CTR judul/snippet yang diubah 26 Okt.
+- Buka daftar isu RankMySEO (2 error, 3 peringatan, 835 halaman) untuk mencari penyebab skor 80 sebelum memutuskan perbaikan.
+- Baca ulang Page indexing GSC setelah laporan diperbarui (lalu cek 31 URL 404 sebelum "Validate fix" lagi).
+- Pecah Referral GA4 (286 sesi) per sumber pada snapshot berikut.
+
+### Lanjutan 9 November 2026: data yang tadinya belum terbaca
+
+Dibaca 9 Nov dari sumber yang sama (GSC 11 Okt-7 Nov, GA4 SuaraNetijen 12 Okt-8 Nov, RankMySEO review 5 Nov 00:34 UTC).
+
+| Metrik | Sebelumnya | 9 Nov |
+|---|---|---|
+| GA4 Referral 28 hari per sumber | tidak terbaca | 286 sesi: `l.threads.com` 242 (36 key event), `checkout.pymnt.app` 22, `m.facebook.com` 10, `facebook.com` 7, `join2nd.space` 6. Lainnya: `google / organic` 95, `(direct)` 108, `panjat / leaderboard` 24, `artifisial / (not set)` 7, `escalation_mailer / email` 6 (19 baris sumber total, 10 teratas dibaca) |
+| GSC halaman dengan tayang | tidak dicatat | 210 halaman. Teratas (klik/tayang): `/banding/infinix-vs-oppo` 3/909, `infinix-vs-samsung` 3/585, `oppo-vs-tecno` 3/482, `realme-vs-vivo` 3/436, `infinix-vs-vivo` 3/414, `infinix-vs-tecno` 3/335, `tecno-vs-vivo` 3/308, `/e/jaecoo-j5-ev` 3/71, `realme-vs-samsung` 2/413, `infinix-vs-xiaomi` 2/225 |
+| RankMySEO isu on-page | 52 isu (600 halaman, 28 Okt) | 165 isu, 835 halaman, review **5 Nov 00:34 UTC** (kartu Home menulis "Last check 8 Nov": tanggal review yang dipakai skor adalah 5 Nov; koreksi atas catatan "review 8 Nov" di atas) |
+
+Isu RankMySEO (5 isu, skor 80):
+- **Blocked from indexing (error, 152 halaman):** 25 URL pertama dibaca, semuanya `/e/{slug}` entitas di bawah ambang publik (`noindex` sengaja, `docs/13`); 127 sisanya tidak dibuka. Tidak ada tindakan.
+- **Duplicate meta descriptions (error, 2), Empty meta description (1), Title too short (1):** semuanya URL `status.suaranetijen.id` (`/incidents`, `/maintenance`, `/`), bukan situs utama. Halaman status itu aplikasi terpisah dengan meta sendiri.
+- **Unfriendly URL (warning, 9):** `/about`, `/banding`, `/contact`, `/methodology`, `/privacy`, `/search`, `/sources`, `/terms`, `/top`: path kata biasa, kemungkinan false positive. Tidak ada tindakan.
+- Akibatnya turunnya skor 91 -> 80 berasal dari sampel yang melebar (halaman noindex dan subdomain status ikut dihitung), bukan dari halaman publik yang rusak.
+
+Catatan:
+- RankMySEO Home menunjukkan top 20 = 2 dan "just off page one" 2; kartu Search Console di dalam proyek menampilkan 18 klik / 2.807 tayang dengan jendela yang tidak dicatat di halaman, tidak dipakai.
+- 60% key event GA4 datang dari satu sumber: `l.threads.com` (36 dari 60). Trafik Threads ini bukan Organic Search; Organic Search 0 key event.
+- Pasangan `/banding` pasca-pangkas (4 Nov) masih menjadi 9 dari 10 halaman teratas GSC; belum ada tindakan baru.
+
+Tindak lanjut:
+- ~18 Nov: baca ulang GSC `/banding` vs `/e` dan 7 pasangan yang di-`noindex`.
+- Setelah RankMySEO review berikutnya: periksa apakah skor kembali bila `status.suaranetijen.id` dikeluarkan dari sampel (atau beri meta di halaman status); keputusan perbaikan menunggu pembacaan itu.
+- Baca ulang Page indexing GSC begitu tanggal laporan berubah dari 4 Nov.
+
+### Tindakan 9 November 2026
+
+- **GA4 unwanted referral:** `checkout.pymnt.app` (referral dari halaman bayar sponsor, 22 sesi per 12 Okt-8 Nov) ditambahkan di Data stream SuaraNetijen > Google tag > List unwanted referrals (aturan "contains", status "Configuration saved"). Berlaku untuk sesi baru; sesi lama tetap tercatat sebagai Referral. Cek `Referral` di Traffic acquisition setelah ~7 hari: sumber itu seharusnya tidak muncul lagi.
+- **GSC 404 (31 URL):** Page indexing GSC "Last update 23 Okt", jadi angka indexing 4 dan 9 Nov sama persis karena laporannya belum diperbarui. URL contoh (`/e/luna g9`, `/e/maruti suzuki ciaz`, `/e/cadillac lyriq`, `/e/redmi-note-14-china`, `/e/huawei-mate-60-rs-ultimate`, `/e/lamborghini-lm002`) dicek live 9 Nov: semua 404 meski slug berspasi sudah di-301 ke `Str::slug`, karena entitasnya tidak ada. 404 ini benar; "Validate fix" tidak ditekan karena akan gagal lagi. Tidak ada perubahan kode.
+- **`status.suaranetijen.id` (isu meta RankMySEO):** halaman status dihosting Better Stack (status page 267593). Tidak ada field title/meta description di pengaturannya; opsi "Hide from search engines" butuh upgrade berbayar, jadi tidak diubah. Tiga isu itu tetap ada di audit RankMySEO dan diabaikan: bukan halaman situs utama dan tidak memengaruhi ranking.
+- **Threads:** akun `@suaranetijen.official` (1 pengikut, 39 tayangan/33 penonton 30 hari) memuat 3 posting dari 4 Nov. Tiga artikel belum diposting (`brand-dengan-sentimen-netijen-tertinggi-pada-oktober-2026`, `rekap-sentimen-netijen-oktober-2026`, `sentimen-netijen-per-kategori-pada-oktober-2026`). Tiga posting diterbitkan 9 Nov setelah persetujuan eksplisit (A brand tertinggi, B rekap Oktober, C per kategori); feed dimuat ulang dan tiap teks muncul 1 kali. Ukur tayangan/klik `l.threads.com` di GA4 setelah ~7 hari.
+
+Tindak lanjut:
+- ~16 Nov: baca ulang GA4 Traffic acquisition, pastikan `checkout.pymnt.app` hilang dari Referral.
+- Baca ulang Page indexing GSC setelah "Last update" berganti dari 23 Okt.
