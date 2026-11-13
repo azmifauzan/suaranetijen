@@ -1,0 +1,2 @@
+Ya, kekhawatiranmu benar. Sambil mengecek ini saya juga menemukan masalah lain yang lebih mendesak: backup database tidak pernah berhasil (rinciannya di bawah).
+Ringkas: ada temuan besar. Sumber yang lewat FlareSolverr tidak menghasilkan dokumen sama sekali dalam 24 jam terakhir. Sedang saya cek apakah slot FlareSolverr terkunci permanen.

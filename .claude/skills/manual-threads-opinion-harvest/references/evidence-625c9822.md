@@ -1,0 +1,1 @@
+- **Penyaringan:** kali ini saya saring di browser memakai leksikon classifier. Hasilnya 36 dari 36 baris yang dikirim lolos, dibanding 8 dari 66 sebelumnya.

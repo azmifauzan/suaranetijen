@@ -1,0 +1,1 @@
+seo-audit-spa-methodology [project]: Use when diagnosing low SEO scores or audit findings (RankMySEO, blocked from indexing, thin pages, long titles, email obfuscation) on SPA/Inertia apps.

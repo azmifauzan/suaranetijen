@@ -1,0 +1,5 @@
+{"type":"last-prompt","lastPrompt":"boleh, tekan Post untuk A, B, dan C","leafUuid":"11a7884d-9200-49b2-81f1-48d8d85ca60e","sessionId":"5f65b855-7e39-4809-bff3-a164b2851a6e"}
+{"type":"text","text":"{\"dialog\":true,\"len\":420,\"head\":\"Brand dengan Sentimen Netijen tertinggi Oktober 2026: Maybel\",\"who\":\"Cancel\\nNew thread\\nsuaranetijen.official\\n\\nBrand dengan Sentimen Netijen tertinggi\"}"}
+{"type":"text","text":"Clicked on element ref_300"}
+{"type":"text","text":"{\"A\":1,\"B\":1,\"C\":1,\"links\":[\"https://www.threads.com/@suaranetijen.official/post/DfgYH2WmPTq\",\"https://www.threads.com/@suaranetijen.official/post/DfgYEHTmBLt\",\"https://www.threads.com/@suaranetijen.official/post/DfgYAE2GH1T\",\"https://www.threads.com/@suaranetijen.official/post/DfTe1HRmOEq\"]}"}
+{"type":"text","text":"[[\"DfgYH2WmPTq\",\"suaranetijen.official 1m Sentimen per ka\"],[\"DfgYEHTmBLt\",\"suaranetijen.official 1m Rekap Oktober 2\"],[\"DfgYAE2GH1T\",\"suaranetijen.official 1m Brand dengan Se\"],[\"DfTe1HRmOEq\",\"suaranetijen.official 5d Teknologi di Ok\"]]"}

@@ -1,0 +1,5 @@
+Tool result (WebFetch https://repliz.com): "The content you provided is only a page title, which suggests Repliz is a tool for automating social media comments. It doesn't say which platforms are supported, whether there's a public API..."
+
+Tool result (WebFetch https://developers.facebook.com/docs/threads/keyword-search): "- **Permissions:** Calls to the keyword search endpoint require `threads_keyword_search`, and all Threads API endpoints require `threads_basic`.\n- **Without approval:** The search covers only posts owned by the authenticated user. \"After approval, public posts will be searchable.\"\n- **Rate limit:** A user can send up to 2,200 queries in a rolling 24-hour period."
+
+Tool result (Bash, curl docs.repliz.com/api/research/search-content-threads.html): "Search public content on Threads based on a keyword or phrase... Access Tier : Gold+"

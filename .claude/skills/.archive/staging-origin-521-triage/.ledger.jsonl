@@ -1,0 +1,2 @@
+{"action": "create", "reason": "Episode fixed a live 521 by starting an exited nginx-proxy container. No existing skill covers origin-down 521 triage on the staging host, so a new project-level deployment skill is the right home. The unresolved restart-policy question is recorded in the body so the next session does not assume a cause.", "evidence": "references/evidence-5353a151.md"}
+{"action": "delete", "reason": "Folded into staging-operations (origin outage section).", "evidence": "references/evidence-8258fb17.md"}

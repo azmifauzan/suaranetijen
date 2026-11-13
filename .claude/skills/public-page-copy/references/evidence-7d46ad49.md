@@ -1,0 +1,1 @@
+**Pengecekan antislop belum saya jalankan.** CLAUDE.md minta saya bertanya dulu apakah antislop dipakai selama atau sesudah pengerjaan, tapi kamu minta langsung dikerjakan.

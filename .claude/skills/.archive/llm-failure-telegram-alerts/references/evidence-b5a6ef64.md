@@ -1,0 +1,1 @@
+{"parentUuid":"0b3fd745-3814-4905-bcd2-455430aa8ab2","type":"user","message":{"role":"user","content":"jalankan"}} ... queue-operation enqueue: "test di local gak usah kirim notif ke telegramnya, menuh2 in aja" ... assistant edit: `if ($botToken === '' || $chatId === '' || app()->environment('local')) {` commit "fix(llm): do not send failure alerts to Telegram from local dev"

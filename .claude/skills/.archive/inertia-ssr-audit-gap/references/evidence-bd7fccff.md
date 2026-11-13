@@ -1,0 +1,1 @@
+curl raw HTML returned zero opinion data with generic title; Inertia props showed same pages contained 2134 opinions, score 72.52. Gap confirmed SSR fell back for non-JS crawlers.

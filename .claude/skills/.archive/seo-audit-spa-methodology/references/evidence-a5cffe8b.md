@@ -1,0 +1,2 @@
+curl -s -o /dev/null -w "%{http_code}\n" "https://suaranetijen.id/e/gac%20aion%20s"; curl ... "https://suaranetijen.id/e/gac-aion-s"
+404 = entitas yang sudah dipurge (slug-nya pun 404 di live), jadi 404 benar; tidak perlu redirect.

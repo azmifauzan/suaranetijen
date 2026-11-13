@@ -1,0 +1,1 @@
+ssh_main.sh: `ENV=/home/fauzan/dev/suaranetijen/.env` / `get() { grep -m1 "^$1=" $ENV | cut -d= -f2- ... }` / `export SSHPASS="$(get STAGING_SERVER_PASSWORD)"` / `sshpass -e ssh -o StrictHostKeyChecking=accept-new -o PreferredAuthentications=password -o PubkeyAuthentication=no "$(get STAGING_SERVER_USERNAME)@$(get STAGING_SERVER_IP)" "$1"`

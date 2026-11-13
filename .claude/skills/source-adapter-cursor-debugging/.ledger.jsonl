@@ -1,0 +1,1 @@
+{"action": "create", "reason": "Three adapter cursor bugs in one session (phpBB last-page loop, fixed forum/query index, cold-start metadata) were each found only by live discovery against real cursors after fixture tests passed. No existing skill covers adapter cursor debugging; the probe script is the repeatable check.", "evidence": "references/evidence-b1dc5529.md"}

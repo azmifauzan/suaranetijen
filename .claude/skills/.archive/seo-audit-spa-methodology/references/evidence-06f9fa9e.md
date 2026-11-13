@@ -1,0 +1,1 @@
+Search browse on /search returned href="/e/*" links (33 found) and robots "noindex, follow" on /e/realme-gt-neo-flash, /e/kia-seltos; 2.637 excluded by noindex in GSC vs 155 earlier. Assistant recommended filtering browse and related entities to publicly eligible entities; committed 52e0e3e "fix(seo): stop linking thin entity pages from indexable pages".

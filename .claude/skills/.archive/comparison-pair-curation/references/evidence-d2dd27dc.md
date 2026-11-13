@@ -1,0 +1,1 @@
+comparison-pair-curation [project]: Use when adding X vs Y pairs to /banding or changing pair-page meta, title, or related-pair links.

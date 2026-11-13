@@ -1,0 +1,1 @@
+"Heartbeat ini mengukur scheduler dan Horizon sekaligus. Kalau satu host worker mati tapi dua lainnya hidup, tidak ada alert." and "Ada satu insiden `Status 502` sekitar 25 detik saat container direcreate. Sekarang semua normal dan insiden itu seharusnya sudah tertutup otomatis."

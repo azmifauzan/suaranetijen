@@ -1,0 +1,4 @@
+{"action": "create", "reason": "Episode built a Better Stack status page with custom domain; SSL stuck for 40+ minutes and no reusable checklist existed for verifying CNAME/CAA/TLS or avoiding an overstated cause. Durable setup procedure for future status pages.", "evidence": "references/evidence-30e580ca.md"}
+{"action": "patch", "reason": "Local TLS failure was misattributed for a while; staging vantage proved the cert and status page were fine. Skill should force the second-vantage check before any cause is stated.", "evidence": "references/evidence-309b9bd6.md"}
+{"action": "patch", "reason": "Heartbeat coverage limits and expected deploy-time 502 incidents were learned during setup and should be stated up front so future reports are accurate.", "evidence": "references/evidence-529018de.md"}
+{"action": "delete", "reason": "Folded into ops-monitoring (status page section).", "evidence": "references/evidence-462656f2.md"}

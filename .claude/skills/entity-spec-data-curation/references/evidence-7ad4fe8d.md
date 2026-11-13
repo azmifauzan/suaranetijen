@@ -1,0 +1,1 @@
+{"type":"last-prompt","lastPrompt":"tambahin buat data baterai dong. itu penting buat EV"} ... assistant: "Saya tambah kolom `battery_kwh` dan `range_km` ke `car_specs`, lengkap dengan field di form admin, validasi, dan label publik \"Baterai\" dan \"Jarak Tempuh\" dengan satuannya. Migrasinya sudah jalan di staging."

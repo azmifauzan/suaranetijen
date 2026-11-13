@@ -1,0 +1,1 @@
+Edit to RebuildEntityAggregatesJob: "A full rebuild can pass the 60s worker timeout while a big recheck loads the database; it is idempotent, so retry." Assistant: "22 job `RebuildEntityAggregatesJob` timeout (batas 60 detik di worker, saat DB sedang padat). Sudah saya tambah retry 3 kali"

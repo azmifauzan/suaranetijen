@@ -1,0 +1,1 @@
+Struktur grid dua kolom sudah terpasang dan `vue-tsc` bersih; saya commit dan build di background. Deploy saya tahan dulu sampai batch yang sedang berjalan selesai, karena recreate container bisa mematikannya.

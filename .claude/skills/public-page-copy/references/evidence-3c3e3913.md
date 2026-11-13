@@ -1,0 +1,1 @@
+Write to feedback_finish_without_stopping.md: "- Do not ask whether antislop applies; apply it while writing." Also the same memory body: "Do not ask whether antislop applies; apply it while writing."

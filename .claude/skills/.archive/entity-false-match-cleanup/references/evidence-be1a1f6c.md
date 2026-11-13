@@ -1,0 +1,1 @@
+Tool result: "Jago: verified 44, unverifiable 130, to delete 40 / Dry run, nothing changed. / Jago: verified 44, unverifiable 130, to delete 170 / Purged 170 opinion(s) for Jago and rebuilt its aggregates."

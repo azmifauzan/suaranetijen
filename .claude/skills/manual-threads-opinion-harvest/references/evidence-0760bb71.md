@@ -1,0 +1,1 @@
+- **Komentar hampir tidak diambil di batch ini.** Sebagian besar observasinya level post. Kalau mau komentar, perlu pass tambahan.

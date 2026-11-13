@@ -1,0 +1,1 @@
+Episode demonstrated end-to-end workflow: selected 5 topic candidates from GA4/GSC signals and database theme snapshots, drafted and edited copy, validated against PublicCopyGuard rules (meta desc ≤155 chars), published when eligible, verified on sitemap and homepage integration.

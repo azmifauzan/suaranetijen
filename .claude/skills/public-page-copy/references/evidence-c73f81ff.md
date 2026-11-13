@@ -1,0 +1,1 @@
+Tool result: "rekap-sentimen-netijen-oktober-2026 guard-bad: [] em/en dash: False len 35 138" (lint of titles/excerpts). Assistant text: "Copy lolos lint (tanpa kata terlarang, tanpa em/en dash)." Live check: "curl -s $B/blog | grep -c \"mdash\\|–\"" returned 0.

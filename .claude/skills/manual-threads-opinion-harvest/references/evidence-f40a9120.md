@@ -1,0 +1,1 @@
+SQLSTATE[42703]: Undefined column: 7 ERROR:  column "sentiment_class" does not exist

@@ -1,0 +1,2 @@
+{"action": "create", "reason": "Capture observability pattern: alert when one entity dominates a source's observations, signaling adapter bugs or misconfiguration", "evidence": "references/evidence-d350f4f4.md"}
+{"action": "delete", "reason": "Folded into ops-monitoring (concentration alert section).", "evidence": "references/evidence-737d9790.md"}

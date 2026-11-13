@@ -1,0 +1,1 @@
+{"type":"last-prompt","lastPrompt":"lanjut 50 tokoh lagi","leafUuid":"73ff1bb7-2f64-4a67-962f-be6474be4ed3","sessionId":"142b6672-0c5a-49ed-ae63-73c1c14f5876"}  ... Saya ambil dari sisa 600 entitas `person` di staging, diurutkan dari jumlah observasi terbanyak yang sudah ada di DB.

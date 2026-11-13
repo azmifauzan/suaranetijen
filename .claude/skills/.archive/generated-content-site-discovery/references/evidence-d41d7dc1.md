@@ -1,0 +1,1 @@
+Built and deployed `/banding` listing page (ComparisonController@index, Comparison/Index.vue) that groups indexable comparison pairs by category, adds footer link "Perbandingan" in PublicLayout, includes conditional sitemap entries, renders JSON-LD BreadcrumbList and ItemList, integrates with page cache, and sets noindex when no pairs are eligible.

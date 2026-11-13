@@ -1,0 +1,1 @@
+GA4 admin/events showed submit_rating event not yet recordable as key (no prior occurrence); RankMySEO score from Oct 5 predated SSR, noindex, a11y fixes deployed since, requiring re-crawl for valid measurement.

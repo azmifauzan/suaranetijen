@@ -1,0 +1,1 @@
+docs/31-seo-plan.md deploy note: "Worker 1-3 tidak diperbarui: perubahan ini hanya menyentuh jalur web (gateway SSR, halaman `/banding`) dan tidak dipakai job antrean."

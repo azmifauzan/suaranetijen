@@ -1,0 +1,3 @@
+RankMySEO read. Review is still 13 Oct (500 pages), so the score is the same review as 19 Oct. Issues dropped 424 → 229 because 3 rows were marked fixed by hand, not re-crawled. Now Neil Patel.
+
+Correct unverified claim about manually fixed rows — python3 replace of "karena tiga baris (Title too long, Thin content, Broken links) ditandai \"Marked fixed\" secara manual (3 baris), bukan hasil crawl ulang." with "karena tiga baris ditandai \"Marked fixed\" secara manual (filter \"Marked fixed (3)\"; baris mana saja tidak dicatat saat dibaca ..."

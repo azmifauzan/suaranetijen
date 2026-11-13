@@ -1,0 +1,3 @@
+Thinking (assistant, before rewrite): "Saya menemukan beberapa klaim yang keliru setelah dicek ulang, yaitu urutan top 10 volume, rasio \"hampir tiga kali lipat\" yang sebenarnya 2,5 kali, serta alasan skor Teknologi dan penyebab kenaikan skor gabungan. Semuanya akan saya perbaiki sebelum melanjutkan."
+
+Tool result after publish checks: "cover public: 200\n1 rekap-sentimen-netijen-oktober-2026 entities=0/0\n2 sentimen-netijen-per-kategori-pada-oktober-2026 entities=0/0\n3 brand-dengan-sentimen-netijen-tertinggi-pada-oktober-2026 entities=10/10\n4 brand-yang-paling-banyak-dibicarakan-netijen-pada-oktober-2026 entities=10/10\ntotal=4"

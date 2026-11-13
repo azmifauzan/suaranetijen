@@ -1,0 +1,1 @@
+Assistant after deploy: "Purge Jago menghapus 170 opini: 40 yang gagal dicek ulang dengan matcher baru dan 130 yang payload mentahnya sudah expired. Sisa 4 opini terverifikasi." Deploy ran to main host and worker-1/2/3 before purge ("Deploy new image to main host and workers").

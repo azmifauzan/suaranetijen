@@ -1,0 +1,1 @@
+{"id":379,"entity_id":213,"period":"365d","positive_count":49,"neutral_count":23,"negative_count":27,"opinion_count":99,"score":"61.11","sentiment_model_version":"v1","score_formula_version":"v1","calculated_at":"2026-10-29 03:50:26","created_at":"2026-09-06 03:00:17","updated_at":"2026-10-29 03:50:26"}

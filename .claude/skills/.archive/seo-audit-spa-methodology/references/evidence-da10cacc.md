@@ -1,0 +1,1 @@
+GSC: Total impressions 525, Average position 10.3 (2 Oct: impressions 25, position 33.7), while RankMySEO on-page score stayed 34 / 100 from the 1 Oct review.

@@ -1,0 +1,1 @@
+The search term list was frozen into crawl_states on first run, so only 216 of 5358 entities were ever searched. SearchQueryPlanner now reads entities each cycle and orders them by last search plus an opinion-count penalty.

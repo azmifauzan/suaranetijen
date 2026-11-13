@@ -1,0 +1,1 @@
+Satu panggilan scroll juga sempat timeout karena saya set 30 langkah; sekarang 8 langkah per panggilan.

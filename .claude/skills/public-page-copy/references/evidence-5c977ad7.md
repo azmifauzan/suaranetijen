@@ -1,0 +1,1 @@
+Assistant final: "**Tanda hubung:** teks seperti \"Skor 0–100\" dan \"bintang 1–5\" diganti \"skor 0 sampai 100\" dan \"bintang 1 sampai 5\". **Titik tengah:** keterangan seperti \"Smartphone · 246 opini\" sekarang dua teks terpisah, di kartu kategori dan di saran pencarian."

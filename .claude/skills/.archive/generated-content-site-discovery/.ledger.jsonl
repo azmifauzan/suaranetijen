@@ -1,0 +1,1 @@
+{"action": "create", "reason": "The user explicitly requested and built a listing page for comparison pages to make them discoverable from site navigation; this is a reusable architectural pattern worth documenting for future generated-content work in this codebase.", "evidence": "references/evidence-d41d7dc1.md"}

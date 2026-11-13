@@ -1,0 +1,1 @@
+{"entity_id":5237,"name":"Taufik Hidayat","platform":"threads","post":"none","item":"none","label":"no_opinion_name_collision"} ... Nama umum salah match. Contoh: Tulus, Pamungkas, Muhidin, Taufik Hidayat, Al Ghazali (tokoh sejarah), Farhan, Budi Santoso. ... "Mas Pur" (id 525) muncul sebagai vendor kuliner, bukan tokoh publik. Kemungkinan salah kategori `person`.

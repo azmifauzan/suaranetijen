@@ -1,0 +1,1 @@
+azmifauzan/suaranetijen@sha256:92544046d9459fbb07523f118535f8e3d779bfc8045d3cf367a59a4b4d023b79 (server pull output, after) and push log: "latest: digest: sha256:92544046d9459fbb07523f118535f8e3d779bfc8045d3cf367a59a4b4d023b79 size: 856\nPUSH_RC=0"

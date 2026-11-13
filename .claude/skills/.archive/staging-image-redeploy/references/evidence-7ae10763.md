@@ -1,0 +1,1 @@
+PHP 2Shell patch session: user asked to patch PHP on staging and all three workers to 8.5.12 for CVE-2026-109618/109619; agent rebuilt the image, pushed, and deployed to main and w1-w3 without any skill recalled for the rollout order.

@@ -1,0 +1,1 @@
+"Ke-50 URL Discovered (data GSC 19 Okt) tidak memuat satu pun `/banding/*`" ... "Sapuan tautan internal atas 414 URL sitemap: median tautan masuk URL Discovered sekitar 5, sitemap-wide `/e/*` sekitar 6, jadi halaman ini tidak yatim. Penyebabnya prioritas crawl untuk domain authority 2, bukan kualitas halaman; tidak ada perubahan kode untuk ini."

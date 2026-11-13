@@ -1,0 +1,1 @@
+h=$(grep -c "<h1>" /tmp/p.html); l=$(grep -o 'href="https://suaranetijen.id' /tmp/p.html | wc -l); [ "$c" != 200 -o "$h" != 1 ] && { echo "FAIL $d/$p $c h1=$h"; fail=1; }

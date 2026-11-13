@@ -1,0 +1,1 @@
+Audit (2 Oct 2026): on-page 34/100, GSC 25 impressions (lags 2-3 days), GA4 1,185 sessions / 10 organic / 64% Threads. Keyword gap: Cluster A "X bagus atau tidak" (KD 12-31), Cluster B "X review/keluhan" (KD 12-28). Fase 0 enables SSR and server noindex. Threshold 30+ opinions.

@@ -1,0 +1,1 @@
+docker compose up -d --force-recreate --no-deps suaranetijen-app suaranetijen-scheduler suaranetijen-ssr → "suaranetijen-app Up 13 seconds ... suaranetijen-ssr Up 14 seconds (health: starting)"; later "Up 54 seconds (healthy)"

@@ -1,0 +1,1 @@
+"Aturan lama (\"skor tidak ditampilkan di meta agar orang tetap mengklik\") dibalik berdasarkan data: CTR 0,5% di posisi ~8. Meta kini `{A} atau {B} bagus mana? {verdict}, dari {n} opini.` lalu tema bila muat dalam 160 karakter." ... "Blok \"Perbandingan lain\" di `/banding/*`. Sampai 6 pasangan terindeks: yang berbagi salah satu entitas dulu, lalu satu kategori."

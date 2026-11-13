@@ -1,0 +1,1 @@
+"EMPTY https://suaranetijen.id/category/automotive\nok=37 bad=1" (sequential re-check of 38 URLs) and re-test: "1\n1\n1\nHTTP/2 200 \r\n1"

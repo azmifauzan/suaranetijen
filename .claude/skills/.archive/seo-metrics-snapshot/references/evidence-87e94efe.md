@@ -1,0 +1,1 @@
+seo-metrics-snapshot [project]: Use when pulling SEO numbers from GSC, GA4, RankMySEO, Ubersuggest, or Neil Patel.

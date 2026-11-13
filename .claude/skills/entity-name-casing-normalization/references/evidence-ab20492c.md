@@ -1,0 +1,2 @@
+- Root cause of bad casing: CarisinyalCandidateSource::slugToName uses ucwords; enricher LLM echoed it.
+- Fix: enricher prompt now asks for manufacturer capitalization ("Write suggested_name with the capitalization the manufacturer uses (e.g. \"Xiaomi 14T\", \"iQOO Z10R\", \"Samsung Galaxy S24 FE 5G\")")

@@ -1,0 +1,1 @@
+Raw HTML: empty body, generic robots meta. Rendered: 2134 opinions, score 72.52. Competitors: brandlist.id 2778 words + FAQ/Breadcrumb schema. Search Console: 1 click, 12 impressions, rank 75. Autocomplete: users search "oppo vs vivo bagus mana", not sentiment-analysis terms.

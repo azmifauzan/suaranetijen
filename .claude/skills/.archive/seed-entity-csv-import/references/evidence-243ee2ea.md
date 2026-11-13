@@ -1,0 +1,1 @@
+Audit output: "AUD judged=3617 of 3617 changes=83 disable0=616 flagged=198". Category samples: "AUD CH 192|Le Minerale|Brand Umum -> FMCG|ops=9", "AUD CH 438|Matahari|Brand Umum -> Consumer Brands|ops=16". Summary: "Entity import waves: candidates with source_types manual_research (1,170 entities 4–8 Sep) caused wrong categories/foreign products."

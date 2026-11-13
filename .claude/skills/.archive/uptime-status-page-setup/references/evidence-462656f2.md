@@ -1,0 +1,1 @@
+uptime-status-page-setup [project]: Use when setting up a Better Stack status page.

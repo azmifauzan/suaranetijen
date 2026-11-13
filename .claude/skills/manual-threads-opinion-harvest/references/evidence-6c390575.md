@@ -1,0 +1,1 @@
+{"name":"navigate","input":{"url":"https://www.threads.com/search?q=Luna%20Maya&serp_type=default&filter=recent","tabId":402581658}}

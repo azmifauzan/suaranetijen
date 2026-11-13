@@ -1,0 +1,1 @@
+Ketepatan video: video hanya dipakai kalau judulnya memang mengulas model itu. Kode model harus muncul, dan varian seperti Ultra, Pro, atau FE yang bukan milik entitas ditolak. Jadi review "S24 Ultra" tidak menempel di "Galaxy S24". Kuota: tiap pencarian memakai 100 unit kuota YouTube, dengan batas 20 produk per hari (±2.000 unit), berbagi API key dengan crawler.

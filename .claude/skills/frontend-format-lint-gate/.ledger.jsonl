@@ -1,0 +1,1 @@
+{"action": "create", "reason": "Repo formats and lints JS/Vue with vite-plus (`vp`), not prettier or eslint. Running `npx prettier --write` rewrote quotes and trailing commas across two whole Vue files, forcing a git checkout and a manual re-apply. No existing skill names the correct gate.", "evidence": "references/evidence-a7b47866.md"}

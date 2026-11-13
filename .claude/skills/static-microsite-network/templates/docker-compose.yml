@@ -1,0 +1,15 @@
+services:
+  microsites:
+    image: nginx:alpine
+    container_name: microsites
+    restart: unless-stopped
+    cpus: '0.25'
+    mem_limit: 64m
+    memswap_limit: 64m
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./sites:/sites:ro
+    networks: [proxy-net]
+networks:
+  proxy-net:
+    external: true

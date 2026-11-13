@@ -1,0 +1,1 @@
+**Variabel `SEARCH_PRIORITY_FOCUS_TYPES=product`** sudah dipasang di host utama dan ketiga worker, dan terbaca di semuanya. Untuk menghentikan mode fokus, hapus variabel itu di keempat host lalu recreate container (config di-cache saat boot).

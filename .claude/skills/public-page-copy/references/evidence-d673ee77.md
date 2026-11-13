@@ -1,0 +1,3 @@
+- `/e/chery`: dua label "Kualitas mobil bagus/jelek" yang saling bertentangan sudah tidak muncul. Sekarang "Kelebihan: Desain model keren. Kekurangan: Harga mahal."
+- `/banding` sekarang memakai filter yang sama. Filternya sekarang ada di `PublicCopyGuard::publishableThemes()`.
+- Label generik nyata dan meluas: "Rekomendasi beli bagus" (958 entitas), "Ponsel bagus" (542), "Kualitas mobil bagus/jelek".

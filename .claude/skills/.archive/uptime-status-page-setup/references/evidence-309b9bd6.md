@@ -1,0 +1,1 @@
+Local: "local tcp443 ok" then staging curl: "from staging: http=200 ssl_verify=0" with status page sections listed; assistant then: "Dari komputerku koneksi TLS tetap gagal, padahal TCP port 443 terbuka. Kemungkinan penyebabnya filter SNI atau DNS di jaringan lokal, bukan masalah sertifikat."

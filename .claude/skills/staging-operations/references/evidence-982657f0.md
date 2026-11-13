@@ -1,0 +1,1 @@
+User `dev` ada di grup sudo, tapi sudo-nya meminta password. Saya kirim password lewat stdin (`sudo -S`), dibaca dari `.env` di sisi lokal, jadi tidak pernah muncul di argv atau log:

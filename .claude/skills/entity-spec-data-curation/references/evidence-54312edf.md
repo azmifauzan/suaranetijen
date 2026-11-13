@@ -1,0 +1,1 @@
+assistant: "Isi Jaecoo J5 EV: **60,9 kWh** dan **461 km** (NEDC). Keduanya muncul di `/e/jaecoo-j5-ev`." ... "Kolom NEDC tidak punya tempat khusus, jadi catatan \"NEDC\" tidak ikut tampil."

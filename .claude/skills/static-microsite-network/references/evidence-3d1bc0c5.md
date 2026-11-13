@@ -1,0 +1,1 @@
+Hitung kata: artikel baru baru ~270 kata, terlalu tipis untuk SEO. Tambahkan satu bagian substantif (~170 kata) per artikel agar mencapai 450+.

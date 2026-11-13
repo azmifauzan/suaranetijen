@@ -1,0 +1,1 @@
+Added monitor:metrics tripwire: alert when one entity takes >60% of source's last-24h observations. IndoForum adapter gave 1,197/1,243 observations to GitHub due to //main | //body fallback too permissive — concentration check would have flagged this pattern

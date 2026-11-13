@@ -1,0 +1,2 @@
+{"action": "create", "reason": "Two monitoring skills share one class: operating what the operator watches (a Better Stack status page, and the source-concentration data alert). Folded into one umbrella with a section per signal.", "evidence": "references/evidence-94e7f050.md"}
+{"action": "patch", "reason": "Backup and crawler failures were found only by ad hoc audit, not by any alert; the existing rule covers process liveness but not silent no-output failures.", "evidence": "references/evidence-527bc12e.md"}

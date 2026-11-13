@@ -1,0 +1,1 @@
+{"action": "create", "reason": "Episode deployed Inertia SSR and verified via curl and TTFB measurement that server-side rendering works: unique page titles, absolute canonical links, rendered H1, correct robots directives, sitemap indexing, and response time under 1s for entity pages.", "evidence": "references/evidence-87035505.md"}

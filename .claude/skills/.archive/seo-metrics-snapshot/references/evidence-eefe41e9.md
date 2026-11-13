@@ -1,0 +1,2 @@
+Jendela GSC dan GA4 berbeda dua hari dan sama-sama bergeser satu minggu dari laporan 19 Okt (GSC 19 Sep-16 Okt, GA4
+21 Sep-18 Okt); 21 hari tumpang tindih. Perubahan di bawah adalah perbandingan antar-jendela, bukan angka periode terpisah.

@@ -1,0 +1,1 @@
+Mau saya lanjut query lain ("joko widodo", "presiden jokowi") dan buka replies supaya tembus 100 dan masuk `/top/politisi`?

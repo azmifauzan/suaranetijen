@@ -1,0 +1,2 @@
+{"action": "create", "reason": "Matching precision rule and quota math for the new review-video feature; a future session extending it needs both to avoid wrong-model attachments and quota burn.", "evidence": "references/evidence-2557c347.md"}
+{"action": "delete", "reason": "Folded into entity-catalog-maintenance (review videos section).", "evidence": "references/evidence-52080810.md"}

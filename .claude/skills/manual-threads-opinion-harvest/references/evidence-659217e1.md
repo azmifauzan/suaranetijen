@@ -1,0 +1,1 @@
+timeout 120 ssh -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519_mynet dev@… 'docker exec -i suaranetijen-app php artisan tinker' < $SCR/next50_verify.php

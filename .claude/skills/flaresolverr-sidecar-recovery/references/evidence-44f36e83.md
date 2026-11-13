@@ -1,0 +1,4 @@
+Akar masalahnya ketemu, dan perbaikannya menyentuh keputusan desain yang dibuat dengan sengaja, jadi saya minta persetujuanmu dulu.
+- Commit `2d054d5` (19 Okt) mengunci slot FlareSolverr selamanya setiap kali respons tidak berisi `status: ok`. Termasuk di sini `{"status":"error","message":"Error solving the challenge. Timeout after 45.0 seconds."}`.
+- Masalahnya, Cloudflare SerayaMotor sering timeout. Di live testing 5 Sep, satu dari tiga percobaan timeout. Begitu terjadi sekali, slot terkunci dan **semua** sumber FlareSolverr di host itu mati. Reset manual saya pukul 10:52 hanya bertahan 20–30 menit.
+[2026-11-02 04:41:24] testing.WARNING: FlareSolverr slot quarantined; restart the sidecar before clearing its in-flight marker. {"instance":"Fauzan-Box","slot":0,"exception":"Illuminate\\Http\\Client\\ConnectionException"} 

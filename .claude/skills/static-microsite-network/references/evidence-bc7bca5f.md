@@ -1,0 +1,1 @@
+user: "bkin artikel baru saja untuk blog yang masih berhubungan dengan topik masing2 domain namun tetap ada long keyword target untuk suaranetijen. santriq,aspri,yahoot buatkan saja halaman bergaya artikel s…" ; tool_result: "server {\n    listen 80 default_server;\n    server_name ~^(?:www\\.)?(?<site>.+)$;\n    root /sites/$site;" ; tool_result: "Container microsites Started"
