@@ -74,6 +74,16 @@ Earlier hypothesis, superseded: the first phase looks like Infinix/Tecno query d
 
 Redirects: none planned.
 
+## On-page issues resolved by reading the URLs (24 Nov, `issue_pages`)
+
+- `duplicate_meta_descriptions` (3) and `title_short` (1): all on `status.suaranetijen.id` (`/`, `/incidents`, `/maintenance`), the hosted Better Stack status page, not this app. Fix only in Better Stack's status page settings (owner step), or ignore; it does not touch the main site.
+- `seo_non_friendly_url` (9): `/about`, `/banding`, `/contact`, `/methodology`, `/privacy`, `/search`, `/sources`, `/terms`, `/top`. Short single-word paths, flagged by the tool's heuristic. Deliberate skip: renaming them would only add redirects for no searcher benefit.
+- RankMySEO reports `sitemapUrl: null`, but `robots.txt` declares `https://suaranetijen.id/sitemap.xml` and it returns 200 `application/xml`. Not a site issue.
+
+## Quick-wins sprint (24 Nov): not run
+
+No candidate is free to change now. The only `tune`/`expand` rows (`/banding/realme-vs-vivo`, `/banding/poco-x7-pro-vs-poco-x8-pro`) share the `/banding` template, changed on 26 Oct and 4 Nov and inside the core-update hold above. The pages with real impressions on `/e` (`/e/infinix-gt-20-pro` 283 impressions at 7.8, `/e/iphone-11` 39 at 9.6) are `wait` rows: the `/e` template changed on 3 Nov, under six weeks ago. The only tracked keyword in 4 to 20 is "infinix vs tecno bagus mana" at 17 with no reported volume. Rerun `/seo wins` after the 8 Dec read.
+
 ## Limits of this baseline
 
 - `site_pages` listed 150 of 563 crawled pages, from a crawl dated 4 Nov. The per-URL inventory is incomplete.
