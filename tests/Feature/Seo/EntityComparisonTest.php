@@ -201,6 +201,18 @@ test('the comparison meta description answers the question with both scores', fu
             && mb_strlen($description) <= 160));
 });
 
+test('the comparison meta description keeps the praised theme when praise plus complaint would pass 160 characters', function () {
+    $oppo = comparisonEntity('oppo', 'Oppo', 200, 70.2);
+    comparisonEntity('vivo', 'Vivo', 150, 89.1);
+    comparisonTheme($oppo, 'baterai-awet', 'Baterai awet', 9, 1);
+    comparisonTheme($oppo, 'layar-mudah-retak', 'Layar mudah retak', 1, 9);
+
+    $this->get('/banding/oppo-vs-vivo')->assertInertia(fn (Assert $page) => $page
+        ->where('comparisonSeo.meta_description', fn (string $description): bool => str_contains($description, 'Oppo: dipuji soal Baterai awet.')
+            && ! str_contains($description, 'dikeluhkan')
+            && mb_strlen($description) <= 160));
+});
+
 test('a comparison links to other indexable pairs sharing a side first, then same-category pairs', function () {
     config(['comparisons.pairs' => ['oppo-vs-vivo', 'oppo-vs-xiaomi', 'realme-vs-tecno', 'kecil-vs-vivo', 'mobil-x-vs-mobil-y']]);
     comparisonEntity('oppo', 'Oppo', 200, 70.2);

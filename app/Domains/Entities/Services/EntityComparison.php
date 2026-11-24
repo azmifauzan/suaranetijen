@@ -394,9 +394,13 @@ class EntityComparison
                 continue;
             }
 
-            $addition = " {$side['name']}: ".implode(', ', $parts).'.';
-            if (mb_strlen($description.$addition) <= 160) {
-                $description .= $addition;
+            foreach ([$parts, array_slice($parts, 0, 1)] as $candidate) {
+                $addition = " {$side['name']}: ".implode(', ', $candidate).'.';
+                if (mb_strlen($description.$addition) <= 160) {
+                    $description .= $addition;
+
+                    break;
+                }
             }
         }
 
